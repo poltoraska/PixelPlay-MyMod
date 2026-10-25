@@ -17,6 +17,8 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -253,6 +255,7 @@ fun QueueBottomSheet(
     queueSheetOffset: Animatable<Float, androidx.compose.animation.core.AnimationVector1D>,
     modifier: Modifier = Modifier,
     tonalElevation: Dp = 10.dp,
+    embedded: Boolean = false,
     shape: RoundedCornerShape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
 ) {
     val colors = MaterialTheme.colorScheme
@@ -502,9 +505,9 @@ fun QueueBottomSheet(
         }
     }
 
-    val canDragSheetFromList by remember {
+    val canDragSheetFromList by remember(embedded) {
         derivedStateOf {
-            listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset == 0
+            !embedded && listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset == 0
         }
     }
     val updatedCanDragSheet by rememberUpdatedState(canDragSheetFromList)
@@ -683,7 +686,7 @@ fun QueueBottomSheet(
     }
 
     val directSheetDragModifier =
-        if (updatedIsReordering || updatedReorderHandleInUse) {
+        if (embedded || updatedIsReordering || updatedReorderHandleInUse) {
             Modifier
         } else {
             Modifier.pointerInput(updatedOnQueueDragStart, updatedOnQueueDrag, updatedOnQueueRelease) {
@@ -716,6 +719,13 @@ fun QueueBottomSheet(
     Surface(
         modifier = modifier
             .graphicsLayer {
+                if (embedded) {
+                    scaleX = 1f
+                    scaleY = 1f
+                    translationY = 0f
+                    clip = false
+                    return@graphicsLayer
+                }
                 val p = predictiveBackProgress.value
                 val offsetVal = queueSheetOffset.value
                 val y = offsetVal.roundToInt()
@@ -759,11 +769,13 @@ fun QueueBottomSheet(
             modifier = Modifier.fillMaxSize()
         ) {
             Column {
-                val headerTopPadding = WindowInsets.statusBars
+                val headerTopPadding = if (embedded) 10.dp else WindowInsets.statusBars
                     .asPaddingValues()
                     .calculateTopPadding() + 10.dp
 
                 QueueHeaderSection(
+                    embedded = embedded,
+                    onDismiss = onDismiss,
                     isPlaying = isPlaying,
                     queueSourceName = currentQueueSourceName,
                     queueCount = displaySongCount,
@@ -816,7 +828,7 @@ fun QueueBottomSheet(
                                     shape = queueListShape
                                 )
                                 .then(
-                                    if (isReordering || reorderHandleInUse) {
+                                    if (embedded || isReordering || reorderHandleInUse) {
                                         Modifier
                                     } else {
                                         Modifier.nestedScroll(listDragConnection)
@@ -961,6 +973,7 @@ fun QueueBottomSheet(
                         .align(Alignment.BottomCenter)
                         .padding(bottom = fabSpacing + navigationBarHeight)
                         .height(70.dp)
+                        .then(if (embedded) Modifier.horizontalScroll(rememberScrollState()) else Modifier)
                         .then(directSheetDragModifier),
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
@@ -1273,9 +1286,40 @@ private fun QueueHeaderSection(
     onNext: () -> Unit,
     colorScheme: ColorScheme? = null,
     onLocateCurrentSong: () -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    embedded: Boolean = false,
+    onDismiss: () -> Unit = {},
 ) {
     val colors = MaterialTheme.colorScheme
+
+    if (embedded) {
+        Column(modifier.fillMaxWidth().padding(top = topPadding, bottom = 12.dp)) {
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        stringResource(R.string.queue_next_up_label),
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = colors.onSurface,
+                    )
+                    Text(
+                        if (queueCount <= 0) stringResource(R.string.queue_tracks_empty)
+                        else pluralStringResource(R.plurals.queue_tracks_lined_up, queueCount, queueCount),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = colors.onSurfaceVariant,
+                    )
+                }
+                IconButton(onClick = onDismiss) {
+                    Icon(Icons.Rounded.Close, stringResource(R.string.common_close), tint = colors.onSurface)
+                }
+            }
+            QueueSourceBadge(queueSourceName, Modifier.padding(start = 16.dp, top = 12.dp))
+        }
+        return
+    }
 
     Column(
         modifier = modifier

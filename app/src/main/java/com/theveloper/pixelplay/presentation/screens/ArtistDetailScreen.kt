@@ -2,6 +2,8 @@
 
 package com.theveloper.pixelplay.presentation.screens
 
+import com.theveloper.pixelplay.presentation.adaptive.LocalLibraryDetailPane
+
 import com.theveloper.pixelplay.presentation.navigation.navigateSafely
 import com.theveloper.pixelplay.presentation.navigation.navigateSafelyReplacing
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -158,7 +160,11 @@ fun ArtistDetailScreen(
     }
 
     // --- Lógica del Header Colapsable ---
-    val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val statusBarHeight = if (LocalLibraryDetailPane.current) {
+        0.dp
+    } else {
+        WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    }
     val minTopBarHeight = 64.dp + statusBarHeight
     val maxTopBarHeight = 300.dp
 
@@ -1016,12 +1022,14 @@ private fun CustomCollapsingTopBar(
                     .fillMaxSize()
                     .statusBarsPadding()
             ) {
-                FilledIconButton(
-                    modifier = Modifier.align(Alignment.TopStart).padding(start = 12.dp, top = 4.dp),
-                    onClick = onBackPressed,
-                    colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
-                ) {
-                    Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
+                if (!LocalLibraryDetailPane.current) {
+                    FilledIconButton(
+                        modifier = Modifier.align(Alignment.TopStart).padding(start = 12.dp, top = 4.dp),
+                        onClick = onBackPressed,
+                        colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+                    ) {
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
+                    }
                 }
 
                 // Image edit button (visible only when header is mostly expanded)
@@ -1090,7 +1098,7 @@ private fun CustomCollapsingTopBar(
                                 fontSize = 26.sp,
                                 textGeometricTransform = TextGeometricTransform(scaleX = 1.2f),
                             ),
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = FontWeight.ExtraBold,
                             color = MaterialTheme.colorScheme.onSurface,
                             maxLines = titleMaxLines,
                             overflow = TextOverflow.Ellipsis

@@ -4,6 +4,7 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import androidx.annotation.DrawableRes
+import androidx.annotation.StringRes
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.MutableTransitionState
@@ -102,7 +103,9 @@ import coil.compose.AsyncImagePainter
 import coil.request.ImageRequest
 import coil.size.Size
 import com.theveloper.pixelplay.R
+import com.theveloper.pixelplay.BuildConfig
 import com.theveloper.pixelplay.data.github.GitHubContributorService
+import com.theveloper.pixelplay.presentation.adaptive.settingsPaneHeaderHeight
 import com.theveloper.pixelplay.presentation.components.CollapsibleCommonTopBar
 import com.theveloper.pixelplay.presentation.components.MiniPlayerHeight
 import com.theveloper.pixelplay.presentation.components.SmartImage
@@ -117,9 +120,12 @@ import kotlin.math.roundToInt
 private data class Contributor(
     val id: String,
     val displayName: String,
-    val role: String,
+    val role: String = "",
+    @StringRes val roleRes: Int? = null,
     val detail: String? = null,
+    @StringRes val detailRes: Int? = null,
     val badge: String? = null,
+    @StringRes val badgeRes: Int? = null,
     val avatarUrl: String? = null,
     @DrawableRes val iconRes: Int? = null,
     val githubUrl: String? = null,
@@ -130,8 +136,8 @@ private data class Contributor(
 private val CoreMaintainer = Contributor(
     id = "theovilardo",
     displayName = "Theo Vilardo",
-    role = "Creator and maintainer",
-    detail = "Building PixelPlayer with direct community feedback.",
+    roleRes = R.string.about_maintainer_role,
+    detailRes = R.string.about_maintainer_detail,
     avatarUrl = "https://avatars.githubusercontent.com/u/26845343?v=4",
     iconRes = R.drawable.round_developer_board_24,
     githubUrl = "https://github.com/theovilardo",
@@ -139,29 +145,37 @@ private val CoreMaintainer = Contributor(
 
 private val PinnedCommunityMembers = listOf(
     Contributor(
+        id = "poltoraska",
+        displayName = "@poltoraska",
+        roleRes = R.string.about_community_member_role,
+        avatarUrl = "https://avatars.githubusercontent.com/u/85281694?v=4",
+        iconRes = R.drawable.rounded_person_24,
+        githubUrl = "https://github.com/poltoraska",
+    ),
+    Contributor(
         id = "lostf1sh",
         displayName = "@lostf1sh",
-        role = "Most active contributor",
-        detail = "Has contributed enormously across core features, architecture and reliability.",
-        badge = "Top Impact",
+        roleRes = R.string.about_active_contributor_role,
+        detailRes = R.string.about_active_contributor_detail,
+        badgeRes = R.string.about_active_contributor_badge,
         iconRes = R.drawable.rounded_celebration_24,
         githubUrl = "https://github.com/lostf1sh",
     ),
     Contributor(
         id = "cromaguy",
         displayName = "@cromaguy",
-        role = "Rhythm developer",
-        detail = "Developer of Rhythm (another music app) and key community supporter.",
-        badge = "Community Ally",
+        roleRes = R.string.about_rhythm_developer_role,
+        detailRes = R.string.about_rhythm_developer_detail,
+        badgeRes = R.string.about_rhythm_developer_badge,
         iconRes = R.drawable.round_developer_board_24,
         githubUrl = "https://github.com/cromaguy",
     ),
     Contributor(
         id = "colbycabrera",
         displayName = "@ColbyCabrera",
-        role = "Early contributor",
-        detail = "Helped shape PixelPlayer in the first stages of the app.",
-        badge = "Early Support",
+        roleRes = R.string.about_early_contributor_role,
+        detailRes = R.string.about_early_contributor_detail,
+        badgeRes = R.string.about_early_contributor_badge,
         iconRes = R.drawable.round_newspaper_24,
         githubUrl = "https://github.com/ColbyCabrera",
     ),
@@ -186,12 +200,7 @@ fun AboutScreen(
     onNavigationIconClick: () -> Unit,
 ) {
     val context = LocalContext.current
-    val versionName: String = try {
-        val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-        packageInfo.versionName ?: "N/A"
-    } catch (_: Exception) {
-        "N/A"
-    }
+    val versionName = BuildConfig.VERSION_NAME
 
     var contributors by remember { mutableStateOf<List<Contributor>>(emptyList()) }
     var isLoadingContributors by remember { mutableStateOf(true) }
@@ -207,7 +216,7 @@ fun AboutScreen(
                         Contributor(
                             id = normalizeHandle(github.login),
                             displayName = "@${github.login}",
-                            role = "Community contributor",
+                            roleRes = R.string.about_community_member_role,
                             avatarUrl = github.avatar_url,
                             iconRes = R.drawable.rounded_person_24,
                             githubUrl = github.html_url,
@@ -284,24 +293,26 @@ fun AboutScreen(
     val statusBarHeight = WindowInsets.statusBars
         .asPaddingValues()
         .calculateTopPadding()
-    val minTopBarHeight = 64.dp + statusBarHeight
-    val maxTopBarHeight = 170.dp
+    val paneHeaderHeight = settingsPaneHeaderHeight(stringResource(R.string.about_screen_title))
+    val minTopBarHeight = paneHeaderHeight ?: (64.dp + statusBarHeight)
+    val maxTopBarHeight = paneHeaderHeight ?: (170.dp)
 
     val minTopBarHeightPx = with(density) { minTopBarHeight.toPx() }
     val maxTopBarHeightPx = with(density) { maxTopBarHeight.toPx() }
 
-    val topBarHeight = remember { Animatable(maxTopBarHeightPx) }
+    val topBarHeight = remember(minTopBarHeightPx, maxTopBarHeightPx) { Animatable(maxTopBarHeightPx) }
     var collapseFraction by remember { mutableStateOf(0f) }
 
     LaunchedEffect(topBarHeight.value) {
         collapseFraction = 1f - (
-            (topBarHeight.value - minTopBarHeightPx) / (maxTopBarHeightPx - minTopBarHeightPx)
+            (topBarHeight.value - minTopBarHeightPx) / (maxTopBarHeightPx - minTopBarHeightPx).coerceAtLeast(1f)
             ).coerceIn(0f, 1f)
     }
 
-    val nestedScrollConnection = remember {
+    val nestedScrollConnection = remember(minTopBarHeightPx, maxTopBarHeightPx) {
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                if (minTopBarHeightPx == maxTopBarHeightPx) return Offset.Zero
                 val delta = available.y
                 val isScrollingDown = delta < 0
 
@@ -854,7 +865,7 @@ private fun ContributorCard(
                 )
 
                 Text(
-                    text = contributor.role,
+                    text = contributor.roleRes?.let { stringResource(it) } ?: contributor.role,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -862,7 +873,7 @@ private fun ContributorCard(
                     modifier = Modifier.padding(top = 1.dp),
                 )
 
-                contributor.detail?.takeIf { it.isNotBlank() }?.let { detail ->
+                (contributor.detailRes?.let { stringResource(it) } ?: contributor.detail)?.takeIf { it.isNotBlank() }?.let { detail ->
                     Text(
                         text = detail,
                         style = MaterialTheme.typography.bodySmall,
@@ -878,7 +889,7 @@ private fun ContributorCard(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    contributor.badge?.let { badge ->
+                    (contributor.badgeRes?.let { stringResource(it) } ?: contributor.badge)?.let { badge ->
                         ContributorLabel(text = badge)
                     }
                     if (showContributionCount && contributor.contributions != null) {

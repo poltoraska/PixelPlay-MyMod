@@ -116,6 +116,7 @@
     <string name="common_shuffle_play">Shuffle Play</string>
     <string name="common_more_options_for">More options for %1$s</string>
     <string name="common_expand_menu">Expand menu</string>
+    <string name="common_collapse_menu">Collapse menu</string>
     <string name="common_next">Next</string>
     <string name="common_finish">Finish</string>
     <string name="common_reset_defaults">Reset defaults</string>

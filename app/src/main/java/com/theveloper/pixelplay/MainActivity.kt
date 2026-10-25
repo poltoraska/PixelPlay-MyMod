@@ -1,9 +1,8 @@
 package com.theveloper.pixelplay
 
+import com.theveloper.pixelplay.presentation.adaptive.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import com.theveloper.pixelplay.presentation.navigation.navigateSafely
-
-// import androidx.compose.ui.platform.LocalView // No longer needed for this
-// import androidx.core.view.WindowInsetsCompat // No longer needed for this
 import android.Manifest
 import android.content.ActivityNotFoundException
 import android.content.Context
@@ -49,11 +48,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.absoluteOffset
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -327,9 +329,11 @@ class MainActivity : ComponentActivity() {
                                 label = "SetupTransition"
                             ) { shouldShowSetup ->
                                 if (shouldShowSetup) {
-                                    SetupScreen(onSetupComplete = {
-                                        // Repository-backed setup completion updates the gate automatically.
-                                    })
+                                    AdaptiveScreenContent(maxWidth = 1120f) {
+                                        SetupScreen(onSetupComplete = {
+                                            // Repository-backed setup completion updates the gate automatically.
+                                        })
+                                    }
                                 } else {
                                     MainAppContent(playerViewModel, mainViewModel)
                                 }
@@ -606,8 +610,37 @@ class MainActivity : ComponentActivity() {
     @androidx.annotation.OptIn(UnstableApi::class)
     @Composable
     private fun MainUI(playerViewModel: PlayerViewModel, navController: NavHostController) {
-        Trace.beginSection("MainActivity.MainUI")
+        var railExpanded by rememberSaveable { mutableStateOf(false) }
+        BoxWithConstraints(Modifier.fillMaxSize()) {
+            val adaptiveLayout = rememberAdaptiveLayout(this@MainActivity, maxWidth.value, maxHeight.value, railExpanded)
+            val backProgress by playerViewModel.predictiveBackCollapseFraction.collectAsStateWithLifecycle()
+            val playerExpansion = if (adaptiveLayout.usesSideNavigation) {
+                (playerViewModel.playerContentExpansionFraction.value * (1f - backProgress)).coerceIn(0f, 1f)
+            } else 0f
+            val reclaimedWidth = adaptiveLayout.contentLeft * playerExpansion
+            val contentLayout = adaptiveLayout.copy(
+                contentLeft = adaptiveLayout.contentLeft - reclaimedWidth,
+                contentWidth = adaptiveLayout.contentWidth + reclaimedWidth,
+                hingeStart = adaptiveLayout.hingeStart?.plus(reclaimedWidth),
+                hingeEnd = adaptiveLayout.hingeEnd?.plus(reclaimedWidth),
+            )
+            MainUIContent(playerViewModel, navController, contentLayout,
+                navigationLayout = adaptiveLayout,
+                navigationVisibility = 1f - playerExpansion,
+                onToggleRail = { railExpanded = !railExpanded })
+        }
+    }
 
+    @Composable
+    private fun MainUIContent(
+        playerViewModel: PlayerViewModel,
+        navController: NavHostController,
+        adaptiveLayout: AdaptiveLayoutInfo,
+        navigationLayout: AdaptiveLayoutInfo,
+        navigationVisibility: Float,
+        onToggleRail: () -> Unit,
+    ) {
+        Trace.beginSection("MainActivity.MainUI")
         val commonNavItems = remember {
             persistentListOf(
                 BottomNavItem("Home", R.string.nav_bar_home, R.drawable.rounded_home_24, R.drawable.home_24_rounded_filled, Screen.Home),
@@ -692,7 +725,9 @@ class MainActivity : ComponentActivity() {
             rootView.rootView?.isHapticFeedbackEnabled = hapticsEnabled
         }
 
-        val horizontalPadding = if (navBarStyle == NavBarStyle.DEFAULT) {
+        val horizontalPadding = if (adaptiveLayout.usesSideNavigation) {
+            16.dp
+        } else if (navBarStyle == NavBarStyle.DEFAULT) {
             if (systemNavBarInset > 30.dp) 14.dp else systemNavBarInset
         } else {
             0.dp
@@ -704,8 +739,8 @@ class MainActivity : ComponentActivity() {
         )
         val bottomBarPadding = animatedBottomBarPadding
         val navBarHeight = resolveNavBarSurfaceHeight(navBarStyle, systemNavBarInset, navBarCompactMode)
-        val navBarOccupiedHeight by remember(systemNavBarInset, navBarCompactMode) {
-            derivedStateOf { resolveNavBarOccupiedHeight(systemNavBarInset, navBarCompactMode) }
+        val navBarOccupiedHeight by remember(systemNavBarInset, navBarCompactMode, adaptiveLayout.usesSideNavigation) {
+            derivedStateOf { if (adaptiveLayout.usesSideNavigation) systemNavBarInset else resolveNavBarOccupiedHeight(systemNavBarInset, navBarCompactMode) }
         }
         val navBarVisibilityProgressState = animateFloatAsState(
             targetValue = if (shouldHideNavigationBar) 0f else 1f,
@@ -733,9 +768,9 @@ class MainActivity : ComponentActivity() {
                 !shouldHideNavigationBar || navBarVisibilityProgress > 0.01f
             }
         }
-        val isNavBarEffectivelyHidden by remember(shouldHideNavigationBar, navBarVisibilityProgress) {
+        val isNavBarEffectivelyHidden by remember(shouldHideNavigationBar, navBarVisibilityProgress, adaptiveLayout.usesSideNavigation) {
             derivedStateOf {
-                shouldHideNavigationBar && navBarVisibilityProgress <= 0.01f
+                adaptiveLayout.usesSideNavigation || (shouldHideNavigationBar && navBarVisibilityProgress <= 0.01f)
             }
         }
 
@@ -774,6 +809,7 @@ class MainActivity : ComponentActivity() {
         }
 
         CompositionLocalProvider(
+            LocalAdaptiveLayout provides adaptiveLayout,
             LocalAppHapticsConfig provides appHapticsConfig,
             LocalHapticFeedback provides scopedHapticFeedback
         ) {
@@ -796,10 +832,27 @@ class MainActivity : ComponentActivity() {
                 }
         ) {
 
+                AdaptiveAppLayout(
+                    layout = adaptiveLayout,
+                    navigationVisibility = navigationVisibility,
+                    navigation = { expanded ->
+                        AdaptiveNavigationPanel(
+                            expanded = expanded,
+                            onToggleExpanded = onToggleRail,
+                            navItems = commonNavItems,
+                            currentRoute = currentRoute,
+                            navController = navController,
+                            onBeforeNavigate = {
+                                playerViewModel.collapsePlayerSheet()
+                            },
+                            onSearchDoubleTap = { playerViewModel.onSearchNavIconDoubleTapped() },
+                        )
+                    },
+                ) {
                 Scaffold(
                 modifier = Modifier.fillMaxSize(),
                 bottomBar = {
-                    if (shouldRenderNavigationBar) {
+                    if (shouldRenderNavigationBar && !adaptiveLayout.usesSideNavigation) {
                         val currentSongId by remember {
                             playerViewModel.stablePlayerState
                                 .map { it.currentSong?.id }
@@ -948,7 +1001,11 @@ class MainActivity : ComponentActivity() {
 
                         Box(
                             modifier = Modifier
-                                .fillMaxSize()
+                                // Reclaiming the rail belongs to the player sheet only. Keep
+                                // background destinations at their original window bounds.
+                                .absoluteOffset(x = (navigationLayout.contentLeft - adaptiveLayout.contentLeft).dp)
+                                .width(navigationLayout.contentWidth.dp)
+                                .fillMaxHeight()
                                 .graphicsLayer {
                                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                                         if (disableBlurAllOver) {
@@ -965,14 +1022,16 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                         ) {
-                            AppNavigation(
-                                playerViewModel = playerViewModel,
-                                navController = navController,
-                                paddingValues = innerPadding,
-                                userPreferencesRepository = userPreferencesRepository,
-                                onSearchBarActiveChange = { isSearchBarActive = it },
-                                onOpenSidebar = { scope.launch { drawerState.open() } }
-                            )
+                            CompositionLocalProvider(LocalAdaptiveLayout provides navigationLayout) {
+                                AppNavigation(
+                                    playerViewModel = playerViewModel,
+                                    navController = navController,
+                                    paddingValues = innerPadding,
+                                    userPreferencesRepository = userPreferencesRepository,
+                                    onSearchBarActiveChange = { isSearchBarActive = it },
+                                    onOpenSidebar = { scope.launch { drawerState.open() } }
+                                )
+                            }
                         }
 
                         val isExpandedOrExpanding by remember {
@@ -1064,6 +1123,7 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        }
         Trace.endSection()
     }
 
@@ -1158,7 +1218,8 @@ private class BlurEffectCache {
     private var cached: androidx.compose.ui.graphics.RenderEffect? = null
 
     fun get(radiusPx: Float): androidx.compose.ui.graphics.RenderEffect? {
-        if (radiusPx <= 0f) {
+        // RenderEffect is unavailable on Android 11; keep the existing dimming fallback.
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || radiusPx <= 0f) {
             lastRadiusPx = 0f
             cached = null
             return null

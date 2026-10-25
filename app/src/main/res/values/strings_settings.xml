@@ -629,6 +629,7 @@
     <string name="about_maintainer_title">Maintainer</string>
     <string name="about_maintainer_subtitle">The person behind PixelPlayer.</string>
     <string name="about_spotlight_title">Community spotlight</string>
+    <string name="about_community_member_role">Community contributor</string>
     <string name="about_spotlight_subtitle">Recognition for collaborators with major impact.</string>
     <string name="about_licenses_title">Licenses and notices</string>
     <string name="about_licenses_subtitle">Attribution for dependencies and earlier contributions.</string>

@@ -1,5 +1,6 @@
 package com.theveloper.pixelplay.presentation.screens
 
+import com.theveloper.pixelplay.ui.theme.GoogleSansNunitoFont
 import com.theveloper.pixelplay.presentation.navigation.navigateSafely
 
 import android.os.Trace
@@ -456,10 +457,11 @@ private fun rememberRecentlyPlayedTitleStyle(): TextStyle {
     return remember {
         TextStyle(
             fontFamily = FontFamily(
-                Font(
+                GoogleSansNunitoFont(
                     resId = R.font.gflex_variable,
+                    weight = FontWeight.ExtraBold,
                     variationSettings = FontVariation.Settings(
-                        FontVariation.weight(560),
+                        FontVariation.weight(850),
                         FontVariation.width(122f),
                         FontVariation.grade(40),
                         FontVariation.Setting("ROND", 100f),
@@ -469,7 +471,7 @@ private fun rememberRecentlyPlayedTitleStyle(): TextStyle {
                     )
                 )
             ),
-            fontWeight = FontWeight(560),
+            fontWeight = FontWeight.ExtraBold,
             fontSize = 34.sp,
             lineHeight = 38.sp,
             letterSpacing = (-0.4).sp

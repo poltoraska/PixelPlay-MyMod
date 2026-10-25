@@ -3,6 +3,7 @@ package com.theveloper.pixelplay.presentation.components
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
+import com.theveloper.pixelplay.BuildConfig
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -76,14 +77,7 @@ fun BetaInfoBottomSheet(modifier: Modifier = Modifier) {
 
     val fabCornerRadius = 18.dp
 
-    val versionName = remember {
-        try {
-            val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-            packageInfo.versionName ?: "0.7.5-beta"
-        } catch (_: Exception) {
-            "0.7.5-beta"
-        }
-    }
+    val versionName = BuildConfig.VERSION_NAME
 
     val versionStrTemplate = stringResource(R.string.beta_sheet_version)
     val welcomeTitleTemplate = stringResource(R.string.beta_sheet_welcome_title)

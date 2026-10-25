@@ -86,6 +86,38 @@ enum class BackupSection(
         sinceVersion = 4
     );
 
+    @get:androidx.annotation.StringRes
+    val labelRes: Int get() = when (this) {
+        PLAYLISTS -> R.string.settings_backup_module_playlists_title
+        GLOBAL_SETTINGS -> R.string.settings_backup_module_global_settings_title
+        FAVORITES -> R.string.settings_backup_module_favorites_title
+        LYRICS -> R.string.settings_backup_module_lyrics_title
+        SEARCH_HISTORY -> R.string.settings_backup_module_search_history_title
+        TRANSITIONS -> R.string.settings_backup_module_transitions_title
+        ENGAGEMENT_STATS -> R.string.settings_backup_module_engagement_stats_title
+        PLAYBACK_HISTORY -> R.string.settings_backup_module_playback_history_title
+        QUICK_FILL -> R.string.settings_backup_module_quick_fill_title
+        ARTIST_IMAGES -> R.string.settings_backup_module_artist_images_title
+        EQUALIZER -> R.string.settings_backup_module_equalizer_title
+        AI_USAGE_LOGS -> R.string.settings_backup_module_ai_usage_logs_title
+    }
+
+    @get:androidx.annotation.StringRes
+    val descriptionRes: Int get() = when (this) {
+        PLAYLISTS -> R.string.settings_backup_module_playlists_description
+        GLOBAL_SETTINGS -> R.string.settings_backup_module_global_settings_description
+        FAVORITES -> R.string.settings_backup_module_favorites_description
+        LYRICS -> R.string.settings_backup_module_lyrics_description
+        SEARCH_HISTORY -> R.string.settings_backup_module_search_history_description
+        TRANSITIONS -> R.string.settings_backup_module_transitions_description
+        ENGAGEMENT_STATS -> R.string.settings_backup_module_engagement_stats_description
+        PLAYBACK_HISTORY -> R.string.settings_backup_module_playback_history_description
+        QUICK_FILL -> R.string.settings_backup_module_quick_fill_description
+        ARTIST_IMAGES -> R.string.settings_backup_module_artist_images_description
+        EQUALIZER -> R.string.settings_backup_module_equalizer_description
+        AI_USAGE_LOGS -> R.string.settings_backup_module_ai_usage_logs_description
+    }
+
     companion object {
         val defaultSelection: Set<BackupSection> = entries.toSet()
 

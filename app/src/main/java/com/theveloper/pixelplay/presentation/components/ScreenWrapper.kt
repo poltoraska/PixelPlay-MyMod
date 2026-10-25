@@ -1,5 +1,21 @@
 package com.theveloper.pixelplay.presentation.components
 
+import com.theveloper.pixelplay.presentation.adaptive.LocalAdaptiveLayout
+import com.theveloper.pixelplay.presentation.adaptive.LocalSettingsRootSection
+import com.theveloper.pixelplay.presentation.adaptive.calculateSettingsPaneLayout
+import com.theveloper.pixelplay.presentation.adaptive.isSettingsDestination
+import com.theveloper.pixelplay.presentation.adaptive.isSettingsRootSection
+import com.theveloper.pixelplay.presentation.adaptive.libraryPaneTopPadding
+import com.theveloper.pixelplay.presentation.adaptive.LibraryPaneShape
+import com.theveloper.pixelplay.presentation.navigation.Screen
+import com.theveloper.pixelplay.presentation.navigation.isTabletTabSwitch
+import androidx.compose.foundation.layout.*
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.draw.clip
+import com.theveloper.pixelplay.presentation.adaptive.LocalSettingsDetailPane
+import com.theveloper.pixelplay.presentation.adaptive.LocalLibraryDetailPane
+import com.theveloper.pixelplay.presentation.adaptive.LibraryPaneAnimationDuration
+import com.theveloper.pixelplay.presentation.adaptive.AdaptiveScreenContent
 import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.EnterExitState
@@ -47,6 +63,48 @@ fun ScreenWrapper(
     animatedVisibilityScope: AnimatedVisibilityScope? = null,
     content: @Composable () -> Unit
 ) {
+    val owner = LocalLifecycleOwner.current
+    val myRoute = (owner as? androidx.navigation.NavBackStackEntry)?.destination?.route
+    val settingsOrigin = remember(owner, navController) {
+        isSettingsDestination(myRoute) &&
+            runCatching { navController.getBackStackEntry(Screen.Settings.route) }.isSuccess
+    }
+    val layout = LocalAdaptiveLayout.current
+    val panes = if (settingsOrigin && layout.usesSideNavigation) {
+        calculateSettingsPaneLayout(layout.contentWidth, layout.hingeStart, layout.hingeEnd)
+    } else null
+    val topPadding = if (panes != null) libraryPaneTopPadding() else 0.dp
+    Box(modifier.fillMaxSize()) {
+        CompositionLocalProvider(
+            LocalSettingsDetailPane provides (panes != null),
+            LocalSettingsRootSection provides (panes != null && isSettingsRootSection(myRoute)),
+            LocalAdaptiveLayout provides if (panes == null) layout else layout.copy(
+                contentLeft = layout.contentLeft + panes.detailLeft,
+                contentTop = layout.contentTop + topPadding.value,
+                contentWidth = panes.detailWidth,
+                contentHeight = (layout.contentHeight - topPadding.value).coerceAtLeast(0f),
+                hingeStart = null, hingeEnd = null,
+            ),
+        ) {
+            val frame = if (panes == null) Modifier.fillMaxSize() else {
+                Modifier.absoluteOffset(x = panes.detailLeft.dp).width(panes.detailWidth.dp)
+                    .fillMaxHeight().padding(top = topPadding)
+                    .consumeWindowInsets(PaddingValues(top = topPadding)).clip(LibraryPaneShape)
+            }
+            ScreenWrapperContent(navController, playerViewModel, frame, animatedVisibilityScope, content)
+        }
+    }
+}
+
+@OptIn(UnstableApi::class)
+@Composable
+private fun ScreenWrapperContent(
+    navController: androidx.navigation.NavController,
+    playerViewModel: PlayerViewModel,
+    modifier: Modifier,
+    animatedVisibilityScope: AnimatedVisibilityScope?,
+    content: @Composable () -> Unit,
+) {
     val lifecycleOwner = LocalLifecycleOwner.current
     
     // Lifecycle State
@@ -69,10 +127,8 @@ fun ScreenWrapper(
     // stack (navigate / pop commit) emits currentBackStackEntry, so reading these here is what
     // triggers recomposition; the synchronous navController properties below are then re-read
     // with frame-perfect values.
-    val visibleEntriesState by navController.visibleEntries.collectAsState()
+    val syncVisibleEntries by navController.visibleEntries.collectAsState()
     val currentBackStackEntryState by navController.currentBackStackEntryAsState()
-
-    val syncVisibleEntries = navController.visibleEntries.collectAsState().value.also { _ -> visibleEntriesState }
 
     val myEntry = lifecycleOwner as? androidx.navigation.NavBackStackEntry
     val myRoute = myEntry?.destination?.route
@@ -80,7 +136,10 @@ fun ScreenWrapper(
     val hasVisibleNonMainRootScreen = syncVisibleEntries.any { entry ->
         entry.destination.route?.let { route -> !isMainRootRoute(route) } == true
     }
-    val shouldRunDepthEffects = !isMainRootScreen || hasVisibleNonMainRootScreen
+    val tabletTabTransition = LocalAdaptiveLayout.current.usesSideNavigation &&
+        syncVisibleEntries.any { isTabletTabSwitch(it.destination.route, myRoute) }
+    val shouldRunDepthEffects = (!isMainRootScreen || hasVisibleNonMainRootScreen) &&
+        !LocalSettingsDetailPane.current && !tabletTabTransition
 
     // Dim/Blur Logic: the screen "behind" during any transition — forward push, committed pop,
     // or an in-progress predictive back gesture — is always the entry directly below the top of
@@ -103,13 +162,14 @@ fun ScreenWrapper(
 
     val disableBlurAllOver by playerViewModel.disableBlurAllOver.collectAsState()
 
+    val depthAnimationDuration = if (LocalLibraryDetailPane.current) LibraryPaneAnimationDuration else 350
     val transition = animatedVisibilityScope?.transition
 
     // Declarative Animations
     val targetRadius = if (shouldRunDepthEffects && !isResumed) 32f else 0f
     val animatedCornerRadius = if (transition != null) {
         val animatedValue by transition.animateFloat(
-            transitionSpec = { tween(durationMillis = 350, easing = FastOutSlowInEasing) },
+            transitionSpec = { tween(durationMillis = depthAnimationDuration, easing = FastOutSlowInEasing) },
             label = "cornerRadius"
         ) { state ->
             if (shouldRunDepthEffects && (state == EnterExitState.PostExit || state == EnterExitState.PreEnter)) {
@@ -122,7 +182,7 @@ fun ScreenWrapper(
     } else {
         val fallbackCornerRadius = remember { Animatable(targetRadius) }
         LaunchedEffect(targetRadius) {
-            fallbackCornerRadius.animateTo(targetRadius, animationSpec = tween(durationMillis = 350, easing = FastOutSlowInEasing))
+            fallbackCornerRadius.animateTo(targetRadius, animationSpec = tween(durationMillis = depthAnimationDuration, easing = FastOutSlowInEasing))
         }
         fallbackCornerRadius.value
     }
@@ -135,7 +195,7 @@ fun ScreenWrapper(
     }
     val animatedDimAlpha = if (transition != null) {
         val animatedValue by transition.animateFloat(
-            transitionSpec = { tween(durationMillis = 350, easing = CubicBezierEasing(0.5f, 0f, 0.8f, 0.2f)) },
+            transitionSpec = { tween(durationMillis = depthAnimationDuration, easing = CubicBezierEasing(0.5f, 0f, 0.8f, 0.2f)) },
             label = "dimAlpha"
         ) { state ->
             if (shouldRunDepthEffects && shouldDim && (state == EnterExitState.PostExit || state == EnterExitState.PreEnter)) {
@@ -148,7 +208,7 @@ fun ScreenWrapper(
     } else {
         val fallbackDimAlpha = remember { Animatable(targetDim) }
         LaunchedEffect(targetDim) {
-            fallbackDimAlpha.animateTo(targetDim, animationSpec = tween(durationMillis = 350, easing = FastOutSlowInEasing))
+            fallbackDimAlpha.animateTo(targetDim, animationSpec = tween(durationMillis = depthAnimationDuration, easing = FastOutSlowInEasing))
         }
         fallbackDimAlpha.value
     }
@@ -157,7 +217,7 @@ fun ScreenWrapper(
     val targetBlur = if (shouldRunDepthEffects && shouldDim && !disableBlurAllOver) 24f else 0f
     val animatedBlurRadius = if (transition != null) {
         val animatedValue by transition.animateDp(
-            transitionSpec = { tween(durationMillis = 350, easing = CubicBezierEasing(0.5f, 0f, 0.8f, 0.2f)) },
+            transitionSpec = { tween(durationMillis = depthAnimationDuration, easing = CubicBezierEasing(0.5f, 0f, 0.8f, 0.2f)) },
             label = "blurRadius"
         ) { state ->
             if (shouldRunDepthEffects && shouldDim && !disableBlurAllOver && (state == EnterExitState.PostExit || state == EnterExitState.PreEnter)) {
@@ -170,7 +230,7 @@ fun ScreenWrapper(
     } else {
         val fallbackBlurRadius = remember { Animatable(targetBlur) }
         LaunchedEffect(targetBlur) {
-            fallbackBlurRadius.animateTo(targetBlur, animationSpec = tween(durationMillis = 350, easing = FastOutSlowInEasing))
+            fallbackBlurRadius.animateTo(targetBlur, animationSpec = tween(durationMillis = depthAnimationDuration, easing = FastOutSlowInEasing))
         }
         fallbackBlurRadius.value.dp
     }
@@ -201,7 +261,14 @@ fun ScreenWrapper(
             .blur(radius = if (shouldRunDepthEffects) animatedBlurRadius else 0.dp)
             .background(MaterialTheme.colorScheme.background)
     ) {
-        content()
+        val contentMaxWidth = when {
+            LocalSettingsDetailPane.current -> 840f
+            myRoute == "home" || myRoute == "library" -> 1200f
+            myRoute == "settings" || myRoute == "stats" -> 1120f
+            myRoute == "search" -> 1040f
+            else -> 840f
+        }
+        AdaptiveScreenContent(contentMaxWidth) { content() }
 
         // Dim Layer Overlay
         Box(

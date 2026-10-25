@@ -2,6 +2,8 @@
 
 package com.theveloper.pixelplay.presentation.screens
 
+import com.theveloper.pixelplay.presentation.adaptive.LocalLibraryDetailPane
+
 import com.theveloper.pixelplay.presentation.navigation.navigateSafely
 import com.theveloper.pixelplay.presentation.navigation.navigateSafelyReplacing
 
@@ -32,7 +34,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.rounded.Shuffle
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -40,7 +41,6 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.LargeExtendedFloatingActionButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -89,6 +89,7 @@ import coil.compose.AsyncImagePainter
 import coil.size.Size
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.model.Album
+import com.theveloper.pixelplay.presentation.components.AlbumPlaybackActions
 import com.theveloper.pixelplay.presentation.components.CollapsibleCommonTopBar
 import com.theveloper.pixelplay.presentation.components.ExpressiveScrollBar
 import com.theveloper.pixelplay.ui.theme.LocalShowScrollbar
@@ -103,7 +104,6 @@ import com.theveloper.pixelplay.presentation.viewmodel.AlbumDetailViewModel
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
 import com.theveloper.pixelplay.presentation.viewmodel.PlaylistViewModel
 import com.theveloper.pixelplay.utils.formatSongCount
-import com.theveloper.pixelplay.utils.shapes.RoundedStarShape
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 import androidx.compose.ui.res.stringResource
@@ -194,12 +194,32 @@ fun AlbumDetailScreen(
             uiState.album != null -> {
                 val album = uiState.album!!
                 val songs = uiState.songs
+                val isAlbumPlaying = stablePlayerState.currentSong?.albumId == album.id && stablePlayerState.isPlaying
+                val onAlbumPlayPause: () -> Unit = {
+                    if (stablePlayerState.currentSong?.albumId == album.id) {
+                        playerViewModel.playPause()
+                    } else {
+                        songs.firstOrNull()?.let { firstSong ->
+                            playerViewModel.playSongs(songs, firstSong, queueName = album.title)
+                        }
+                    }
+                }
+                val onAlbumShuffle: () -> Unit = {
+                    if (songs.isNotEmpty()) {
+                        playerViewModel.playSongsShuffled(songs, queueName = album.title, startAtZero = true)
+                    }
+                }
                 val songsByDisc = remember(songs) {
                     songs.groupBy { it.discNumber ?: 1 }
                 }
                 val lazyListState = rememberLazyListState()
 
-                val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+                val isTabletPane = LocalLibraryDetailPane.current
+                val statusBarHeight = if (isTabletPane) {
+                    0.dp
+                } else {
+                    WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+                }
                 val minTopBarHeight = 64.dp + statusBarHeight
                 val maxTopBarHeight = 380.dp
 
@@ -293,12 +313,12 @@ fun AlbumDetailScreen(
                         .background(
                             color = MaterialTheme.colorScheme.surface
                         )
-                        .nestedScroll(nestedScrollConnection)
+                        .then(if (isTabletPane) Modifier else Modifier.nestedScroll(nestedScrollConnection))
                 ) {
                     val currentTopBarHeightDp = with(density) { topBarHeight.value.toDp() }
                     val showScrollBar =
                         LocalShowScrollbar.current &&
-                        collapseFraction > 0.95f &&
+                        (isTabletPane || collapseFraction > 0.95f) &&
                             (lazyListState.canScrollForward || lazyListState.canScrollBackward)
 
                     LazyColumn(
@@ -308,16 +328,41 @@ fun AlbumDetailScreen(
                             .offset {
                                 val extraHeight =
                                     (topBarHeight.value - minTopBarHeightPx).roundToInt()
-                                IntOffset(0, extraHeight)
+                                if (isTabletPane) IntOffset.Zero else IntOffset(0, extraHeight)
                             },
                         contentPadding = PaddingValues(
-                            top = minTopBarHeight + 8.dp,
-                            start = 16.dp,
-                            end = if (showScrollBar) 24.dp else 16.dp,
-                            bottom = fabBottomPadding + 80.dp // To account for FAB
+                            top = if (isTabletPane) 0.dp else minTopBarHeight + 8.dp,
+                            start = if (isTabletPane) 0.dp else 16.dp,
+                            end = if (isTabletPane) 0.dp else if (showScrollBar) 24.dp else 16.dp,
+                            bottom = fabBottomPadding + if (isTabletPane) systemNavBarInset + 8.dp else 80.dp
                         ),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
+                        if (isTabletPane) {
+                            item(key = "album_header", contentType = "album_header") {
+                                TabletAlbumHeader(
+                                    album = album,
+                                    songs = songs,
+                                    imageRequestSize = headerImageRequestSize,
+                                    onArtworkState = { state ->
+                                        if (state is AsyncImagePainter.State.Success) headerArtworkLoaded = true
+                                    },
+                                    isPlaying = isAlbumPlaying,
+                                    onPlay = onAlbumPlayPause,
+                                    onShuffle = onAlbumShuffle,
+                                )
+                            }
+                        } else {
+                            item(key = "album_actions", contentType = "album_actions") {
+                                AlbumPlaybackActions(
+                                    isPlaying = isAlbumPlaying,
+                                    enabled = songs.isNotEmpty(),
+                                    onPlayPause = onAlbumPlayPause,
+                                    onShuffle = onAlbumShuffle,
+                                    modifier = Modifier.padding(bottom = 8.dp),
+                                )
+                            }
+                        }
                         songsByDisc.forEach { (discNumber, discSongs) ->
                             if (songsByDisc.size > 1) {
                                 item(key = "disc_header_$discNumber") {
@@ -327,7 +372,7 @@ fun AlbumDetailScreen(
                                         color = MaterialTheme.colorScheme.primary,
                                         fontWeight = FontWeight.Bold,
                                         modifier = Modifier
-                                            .padding(top = 16.dp, bottom = 8.dp, start = 8.dp)
+                                            .padding(top = 16.dp, bottom = 8.dp, start = if (isTabletPane) 24.dp else 8.dp)
                                     )
                                 }
                             }
@@ -337,6 +382,7 @@ fun AlbumDetailScreen(
                                 contentType = { "album_song" }
                             ) { song ->
                                 EnhancedSongListItem(
+                                    modifier = if (isTabletPane) Modifier.padding(start = 16.dp, end = if (showScrollBar) 24.dp else 16.dp) else Modifier,
                                     song = song,
                                     isCurrentSong = stablePlayerState.currentSong?.id == song.id,
                                     isPlaying = stablePlayerState.isPlaying,
@@ -357,52 +403,42 @@ fun AlbumDetailScreen(
                             modifier = Modifier
                                 .align(Alignment.CenterEnd)
                                 .padding(
-                                    top = minTopBarHeight + 12.dp,
-                                    bottom = fabBottomPadding + 80.dp
+                                    top = if (isTabletPane) 12.dp else minTopBarHeight + 12.dp,
+                                    bottom = fabBottomPadding + if (isTabletPane) systemNavBarInset + 8.dp else 80.dp
                                 )
                         )
                     }
 
-                    if (UseSharedCollapsibleTopBarProbe) {
-                        SharedAlbumTopBarProbe(
-                            album = album,
-                            songs = songs,
-                            collapseFraction = collapseFraction,
-                            headerHeight = currentTopBarHeightDp,
-                            headerImageRequestSize = headerImageRequestSize,
-                            onHeaderArtworkState = { state ->
-                                if (state is AsyncImagePainter.State.Success) {
-                                    headerArtworkLoaded = true
-                                }
-                            },
-                            onBackPressed = { navController.popBackStack() },
-                            onPlayClick = {
-                                if (songs.isNotEmpty()) {
-                                    val randomSong = songs.random()
-                                    playerViewModel.showAndPlaySong(randomSong, songs)
-                                }
-                            }
-                        )
-                    } else {
-                        CollapsingAlbumTopBar(
-                            album = album,
-                            songsCount = songs.size,
-                            collapseFraction = collapseFraction,
-                            headerHeight = currentTopBarHeightDp,
-                            headerImageRequestSize = headerImageRequestSize,
-                            onHeaderArtworkState = { state ->
-                                if (state is AsyncImagePainter.State.Success) {
-                                    headerArtworkLoaded = true
-                                }
-                            },
-                            onBackPressed = { navController.popBackStack() },
-                            onPlayClick = {
-                                if (songs.isNotEmpty()) {
-                                    val randomSong = songs.random()
-                                    playerViewModel.showAndPlaySong(randomSong, songs)
-                                }
-                            }
-                        )
+                    if (!isTabletPane) {
+                        if (UseSharedCollapsibleTopBarProbe) {
+                            SharedAlbumTopBarProbe(
+                                album = album,
+                                songs = songs,
+                                collapseFraction = collapseFraction,
+                                headerHeight = currentTopBarHeightDp,
+                                headerImageRequestSize = headerImageRequestSize,
+                                onHeaderArtworkState = { state ->
+                                    if (state is AsyncImagePainter.State.Success) {
+                                        headerArtworkLoaded = true
+                                    }
+                                },
+                                onBackPressed = { navController.popBackStack() },
+                            )
+                        } else {
+                            CollapsingAlbumTopBar(
+                                album = album,
+                                songsCount = songs.size,
+                                collapseFraction = collapseFraction,
+                                headerHeight = currentTopBarHeightDp,
+                                headerImageRequestSize = headerImageRequestSize,
+                                onHeaderArtworkState = { state ->
+                                    if (state is AsyncImagePainter.State.Success) {
+                                        headerArtworkLoaded = true
+                                    }
+                                },
+                                onBackPressed = { navController.popBackStack() },
+                            )
+                        }
                     }
                 }
             }
@@ -513,7 +549,6 @@ private fun SharedAlbumTopBarProbe(
     headerImageRequestSize: Size,
     onHeaderArtworkState: ((AsyncImagePainter.State) -> Unit)? = null,
     onBackPressed: () -> Unit,
-    onPlayClick: () -> Unit
 ) {
     // --- ВЫЧИСЛЕНИЕ ДЛИТЕЛЬНОСТИ И ФОРМАТИРОВАНИЕ ---
     val totalDurationMs = remember(songs) {
@@ -552,8 +587,6 @@ private fun SharedAlbumTopBarProbe(
     val fallbackStatusBarColor = remember(expandedStatusBarFallback, surfaceColor, solidAlpha) {
         lerpColor(expandedStatusBarFallback, surfaceColor, solidAlpha)
     }
-    val titleVerticalBias = lerp(1f, -1f, collapseFraction)
-    val shuffleAlignment = BiasAlignment(horizontalBias = 1f, verticalBias = titleVerticalBias)
 
     PixelPlayStatusBarStyle(color = fallbackStatusBarColor)
 
@@ -632,7 +665,7 @@ private fun SharedAlbumTopBarProbe(
             collapsedTitleStartPadding = 68.dp,
             expandedTitleStartPadding = 24.dp,
             collapsedTitleEndPadding = 24.dp,
-            expandedTitleEndPadding = 136.dp,
+            expandedTitleEndPadding = 24.dp,
             containerHeightRange = 112.dp to 56.dp,
             titleStyle = MaterialTheme.typography.headlineMedium.copy(
                 fontFamily = GoogleSansRounded,
@@ -650,21 +683,6 @@ private fun SharedAlbumTopBarProbe(
             syncStatusBarWithContainer = false
         )
 
-        LargeExtendedFloatingActionButton(
-            onClick = onPlayClick,
-            shape = RoundedStarShape(sides = 8, curve = 0.05, rotation = 0f),
-            modifier = Modifier
-                .align(shuffleAlignment)
-                .statusBarsPadding()
-                .padding(end = 16.dp)
-                .graphicsLayer {
-                    scaleX = expandedContentAlpha
-                    scaleY = expandedContentAlpha
-                    alpha = expandedContentAlpha
-                }
-        ) {
-            Icon(Icons.Rounded.Shuffle, contentDescription = stringResource(R.string.common_shuffle_play_album))
-        }
     }
 }
 
@@ -678,7 +696,6 @@ private fun CollapsingAlbumTopBar(
     headerImageRequestSize: Size,
     onHeaderArtworkState: ((AsyncImagePainter.State) -> Unit)? = null,
     onBackPressed: () -> Unit,
-    onPlayClick: () -> Unit
 ) {
     val surfaceColor = MaterialTheme.colorScheme.surface
     val statusBarColor =
@@ -687,7 +704,6 @@ private fun CollapsingAlbumTopBar(
         )
 
     // Animation Values
-    val fabScale = 1f - collapseFraction
     val backgroundAlpha = collapseFraction
     val headerContentAlpha = 1f - (collapseFraction * 2).coerceAtMost(1f)
     val showExpandedArtwork = headerContentAlpha > 0.01f
@@ -773,14 +789,16 @@ private fun CollapsingAlbumTopBar(
                     .fillMaxSize()
                     .statusBarsPadding()
             ) {
-                FilledIconButton(
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(start = 12.dp, top = 4.dp),
-                    onClick = onBackPressed,
-                    colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
-                ) {
-                    Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
+                if (!LocalLibraryDetailPane.current) {
+                    FilledIconButton(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(start = 12.dp, top = 4.dp),
+                        onClick = onBackPressed,
+                        colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+                    ) {
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
+                    }
                 }
 
                 Box(
@@ -793,7 +811,7 @@ private fun CollapsingAlbumTopBar(
                     Column(
                         modifier = Modifier
                             .align(Alignment.CenterStart)
-                            .padding(start = titlePaddingStart, end = 120.dp)
+                            .padding(start = titlePaddingStart, end = 24.dp)
                             .graphicsLayer {
                                 scaleX = titleScale
                                 scaleY = titleScale
@@ -806,7 +824,7 @@ private fun CollapsingAlbumTopBar(
                                 fontSize = 26.sp,
                                 textGeometricTransform = TextGeometricTransform(scaleX = 1.2f),
                             ),
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = FontWeight.ExtraBold,
                             color = MaterialTheme.colorScheme.onSurface,
                             maxLines = titleMaxLines,
                             overflow = TextOverflow.Ellipsis
@@ -825,20 +843,6 @@ private fun CollapsingAlbumTopBar(
                     }
                 }
 
-                LargeExtendedFloatingActionButton(
-                    onClick = onPlayClick,
-                    shape = RoundedStarShape(sides = 8, curve = 0.05, rotation = 0f),
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(16.dp)
-                        .graphicsLayer {
-                            scaleX = fabScale
-                            scaleY = fabScale
-                            alpha = fabScale
-                        }
-                ) {
-                    Icon(Icons.Rounded.Shuffle, contentDescription = stringResource(R.string.common_shuffle_play_album))
-                }
             }
         }
     }

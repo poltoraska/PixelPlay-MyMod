@@ -1,6 +1,17 @@
 package com.theveloper.pixelplay.presentation.components
 
+import com.theveloper.pixelplay.presentation.adaptive.LocalSettingsDetailPane
+import com.theveloper.pixelplay.presentation.adaptive.settingsPaneTitleStyle
+import com.theveloper.pixelplay.presentation.adaptive.LocalSettingsRootSection
+import com.theveloper.pixelplay.presentation.adaptive.LocalLibraryDetailPane
+
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Text
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
@@ -59,6 +70,30 @@ fun CollapsibleCommonTopBar(
     supportingContent: (@Composable () -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit = {}
 ) {
+    if (LocalSettingsDetailPane.current) {
+        // The page background masks scrolled content without a separate tonal header panel.
+        Box(modifier.fillMaxWidth().height(headerHeight)
+            .background(MaterialTheme.colorScheme.background).zIndex(5f)) {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp),
+                verticalAlignment = Alignment.Top) {
+                if (!LocalSettingsRootSection.current) {
+                    FilledIconButton(onClick = onBackClick, modifier = Modifier.size(40.dp),
+                        colors = IconButtonDefaults.filledIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.common_back))
+                    }
+                    Spacer(Modifier.width(8.dp))
+                }
+                Column(Modifier.weight(1f)) {
+                    Text(title, style = settingsPaneTitleStyle(), color = contentColor)
+                    subtitle?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = subtitleColor) }
+                    supportingContent?.invoke()
+                }
+                actions()
+            }
+        }
+        return
+    }
     // Logic from GenreDetailScreen:
     // solidAlpha goes from 0 to 1 as collapseFraction goes from 0 to 0.5 (approx).
     // Actually GenreDetailScreen uses: (collapseFraction * 2f).coerceIn(0f, 1f)
@@ -91,7 +126,7 @@ fun CollapsibleCommonTopBar(
                 collapseFraction = collapseFraction,
                 modifier = Modifier.fillMaxSize(),
                 subtitle = subtitle,
-                collapsedTitleStartPadding = collapsedTitleStartPadding,
+                collapsedTitleStartPadding = if (LocalLibraryDetailPane.current || LocalSettingsRootSection.current) expandedTitleStartPadding else collapsedTitleStartPadding,
                 expandedTitleStartPadding = expandedTitleStartPadding,
                 collapsedTitleEndPadding = collapsedTitleEndPadding,
                 expandedTitleEndPadding = expandedTitleEndPadding,
@@ -112,21 +147,23 @@ fun CollapsibleCommonTopBar(
                 supportingContent = supportingContent
             )
 
-            FilledIconButton(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(start = 12.dp, top = 4.dp)
-                    .zIndex(1f),
-                onClick = onBackClick,
-                colors = IconButtonDefaults.filledIconButtonColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                    contentColor = MaterialTheme.colorScheme.onSurface 
-                )
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                    contentDescription = stringResource(R.string.common_back)
-                )
+            if (!LocalLibraryDetailPane.current && !LocalSettingsRootSection.current) {
+                FilledIconButton(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(start = 12.dp, top = 4.dp)
+                        .zIndex(1f),
+                    onClick = onBackClick,
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                        contentDescription = stringResource(R.string.common_back)
+                    )
+                }
             }
 
             // Actions (e.g. Equalizer toggle)

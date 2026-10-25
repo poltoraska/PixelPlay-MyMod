@@ -1,5 +1,6 @@
 package com.theveloper.pixelplay.presentation.screens.search.components
 
+import com.theveloper.pixelplay.ui.theme.GoogleSansNunitoFont
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextLayoutResult
@@ -351,7 +352,7 @@ object GenreTypography {
     ): TextStyle {
         return TextStyle(
             fontFamily = FontFamily(
-                Font(
+                GoogleSansNunitoFont(
                     resId = R.font.gflex_variable,
                     variationSettings = FontVariation.Settings(
                         FontVariation.weight(weight),

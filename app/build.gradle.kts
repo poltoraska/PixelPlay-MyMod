@@ -237,6 +237,7 @@ kotlin {
 }
 
 dependencies {
+    implementation("androidx.window:window:1.5.0")
     implementation(libs.androidx.compose.foundation.layout)
     // Core & Optimization
     coreLibraryDesugaring(libs.desugar.jdk.libs)

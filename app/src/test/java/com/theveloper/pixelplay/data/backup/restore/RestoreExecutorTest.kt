@@ -32,6 +32,7 @@ class RestoreExecutorTest {
     private val playbackHistoryHandler: BackupModuleHandler = mockk(relaxed = true)
 
     private val executor = RestoreExecutor(
+        context = mockk(relaxed = true),
         backupReader = backupReader,
         validationPipeline = validationPipeline,
         handlers = mapOf(

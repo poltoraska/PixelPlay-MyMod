@@ -67,46 +67,24 @@ private const val GoogleSansFlexRond = 100f
 
 @OptIn(ExperimentalTextApi::class)
 val GoogleSansRounded = FontFamily(
-    androidx.compose.ui.text.font.Font(
-        resId = R.font.gflex_variable,
-        weight = FontWeight.Light,
-        variationSettings = FontVariation.Settings(
-            FontVariation.weight(FontWeight.Light.weight),
-            FontVariation.Setting("ROND", GoogleSansFlexRond)
+    listOf(
+        FontWeight.Light,
+        FontWeight.Normal,
+        FontWeight.Medium,
+        FontWeight.SemiBold,
+        FontWeight.Bold,
+        FontWeight.ExtraBold,
+        FontWeight.Black,
+    ).map { weight ->
+        GoogleSansNunitoFont(
+            resId = R.font.gflex_variable,
+            weight = weight,
+            variationSettings = FontVariation.Settings(
+                FontVariation.weight(if (weight == FontWeight.ExtraBold) 850 else weight.weight),
+                FontVariation.Setting("ROND", GoogleSansFlexRond),
+            ),
         )
-    ),
-    androidx.compose.ui.text.font.Font(
-        resId = R.font.gflex_variable,
-        weight = FontWeight.Normal,
-        variationSettings = FontVariation.Settings(
-            FontVariation.weight(FontWeight.Normal.weight),
-            FontVariation.Setting("ROND", GoogleSansFlexRond)
-        )
-    ),
-    androidx.compose.ui.text.font.Font(
-        resId = R.font.gflex_variable,
-        weight = FontWeight.Medium,
-        variationSettings = FontVariation.Settings(
-            FontVariation.weight(FontWeight.Medium.weight),
-            FontVariation.Setting("ROND", GoogleSansFlexRond)
-        )
-    ),
-    androidx.compose.ui.text.font.Font(
-        resId = R.font.gflex_variable,
-        weight = FontWeight.SemiBold,
-        variationSettings = FontVariation.Settings(
-            FontVariation.weight(FontWeight.SemiBold.weight),
-            FontVariation.Setting("ROND", GoogleSansFlexRond)
-        )
-    ),
-    androidx.compose.ui.text.font.Font(
-        resId = R.font.gflex_variable,
-        weight = FontWeight.Bold,
-        variationSettings = FontVariation.Settings(
-            FontVariation.weight(FontWeight.Bold.weight),
-            FontVariation.Setting("ROND", GoogleSansFlexRond)
-        )
-    ),
+    }
 )
 
 // Tipografía - Usar fuentes amigables y modernas.
@@ -114,63 +92,63 @@ val GoogleSansRounded = FontFamily(
 val Typography = Typography(
     displayLarge = TextStyle(
         fontFamily = GoogleSansRounded,
-        fontWeight = FontWeight.Bold,
+        fontWeight = FontWeight.ExtraBold,
         fontSize = 48.sp,
         lineHeight = 56.sp,
         letterSpacing = 0.sp
     ),
     displayMedium = TextStyle(
         fontFamily = GoogleSansRounded,
-        fontWeight = FontWeight.Bold,
+        fontWeight = FontWeight.ExtraBold,
         fontSize = 36.sp,
         lineHeight = 44.sp,
         letterSpacing = 0.sp
     ),
     displaySmall = TextStyle(
         fontFamily = GoogleSansRounded,
-        fontWeight = FontWeight.Normal,
+        fontWeight = FontWeight.ExtraBold,
         fontSize = 30.sp,
         lineHeight = 38.sp,
         letterSpacing = 0.sp
     ),
     headlineLarge = TextStyle(
         fontFamily = GoogleSansRounded,
-        fontWeight = FontWeight.SemiBold,
+        fontWeight = FontWeight.ExtraBold,
         fontSize = 32.sp,
         lineHeight = 40.sp,
         letterSpacing = 0.sp
     ),
     headlineMedium = TextStyle(
         fontFamily = GoogleSansRounded,
-        fontWeight = FontWeight.SemiBold,
+        fontWeight = FontWeight.ExtraBold,
         fontSize = 28.sp,
         lineHeight = 36.sp,
         letterSpacing = 0.sp
     ),
     headlineSmall = TextStyle(
         fontFamily = GoogleSansRounded,
-        fontWeight = FontWeight.SemiBold,
+        fontWeight = FontWeight.ExtraBold,
         fontSize = 24.sp,
         lineHeight = 32.sp,
         letterSpacing = 0.sp
     ),
     titleLarge = TextStyle(
         fontFamily = GoogleSansRounded,
-        fontWeight = FontWeight.Normal,
+        fontWeight = FontWeight.ExtraBold,
         fontSize = 22.sp,
         lineHeight = 28.sp,
         letterSpacing = 0.sp
     ),
     titleMedium = TextStyle(
         fontFamily = GoogleSansRounded,
-        fontWeight = FontWeight.Medium,
+        fontWeight = FontWeight.Bold,
         fontSize = 18.sp,
         lineHeight = 24.sp,
         letterSpacing = 0.15.sp
     ),
     titleSmall = TextStyle(
         fontFamily = GoogleSansRounded,
-        fontWeight = FontWeight.Medium,
+        fontWeight = FontWeight.SemiBold,
         fontSize = 14.sp,
         lineHeight = 20.sp,
         letterSpacing = 0.1.sp
@@ -198,21 +176,21 @@ val Typography = Typography(
     ),
     labelLarge = TextStyle(
         fontFamily = GoogleSansRounded,
-        fontWeight = FontWeight.Medium,
+        fontWeight = FontWeight.Bold,
         fontSize = 16.sp,
         lineHeight = 20.sp,
         letterSpacing = 0.1.sp
     ),
     labelMedium = TextStyle(
         fontFamily = GoogleSansRounded,
-        fontWeight = FontWeight.Medium,
+        fontWeight = FontWeight.SemiBold,
         fontSize = 14.sp,
         lineHeight = 16.sp,
         letterSpacing = 0.5.sp
     ),
     labelSmall = TextStyle(
         fontFamily = GoogleSansRounded,
-        fontWeight = FontWeight.Medium,
+        fontWeight = FontWeight.SemiBold,
         fontSize = 11.sp,
         lineHeight = 16.sp,
         letterSpacing = 0.5.sp

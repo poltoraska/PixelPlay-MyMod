@@ -1,5 +1,7 @@
 package com.theveloper.pixelplay.presentation.screens
 
+import com.theveloper.pixelplay.presentation.adaptive.LocalLibraryDetailPane
+
 import com.theveloper.pixelplay.presentation.navigation.navigateSafely
 import com.theveloper.pixelplay.presentation.navigation.navigateSafelyReplacing
 
@@ -291,16 +293,19 @@ fun PlaylistDetailScreen(
                     )
                 },
                 navigationIcon = {
-                    FilledTonalIconButton(
-                        modifier = Modifier.padding(start = 10.dp),
-                        colors = IconButtonDefaults.filledIconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            contentColor = MaterialTheme.colorScheme.onSurface
-                        ),
-                        onClick = onBackClick
-                    ) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.common_back))
+                    if (!LocalLibraryDetailPane.current) {
+                        FilledTonalIconButton(
+                            modifier = Modifier.padding(start = 10.dp),
+                            colors = IconButtonDefaults.filledIconButtonColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                contentColor = MaterialTheme.colorScheme.onSurface
+                            ),
+                            onClick = onBackClick
+                        ) {
+                            Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.common_back))
+                        }
                     }
+
                 },
                 actions = {
                     IconButton(

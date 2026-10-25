@@ -74,6 +74,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
+import com.theveloper.pixelplay.presentation.adaptive.AdaptiveScreenContent
 import com.theveloper.pixelplay.ui.theme.PixelPlayTheme
 import dagger.hilt.android.AndroidEntryPoint
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
@@ -86,7 +87,9 @@ class NavidromeLoginActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             PixelPlayTheme {
-                NavidromeLoginScreen(onClose = { finish() })
+                AdaptiveScreenContent(maxWidth = 600f) {
+                    NavidromeLoginScreen(onClose = { finish() })
+                }
             }
         }
     }

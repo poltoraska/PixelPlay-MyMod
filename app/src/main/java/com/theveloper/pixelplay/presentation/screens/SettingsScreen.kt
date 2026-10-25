@@ -11,6 +11,10 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.rememberTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -30,6 +34,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.width
+import com.theveloper.pixelplay.presentation.adaptive.LocalAdaptiveLayout
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -199,6 +207,8 @@ fun SettingsScreen(
                     }
     ) {
         val currentTopBarHeightDp = with(density) { topBarHeight.value.toDp() }
+        val useColumns = LocalAdaptiveLayout.current.usesTwoColumns
+        val cardModifier = if (useColumns) Modifier.width(((LocalAdaptiveLayout.current.contentWidth - 44f) / 2f).dp) else Modifier.fillMaxWidth()
         LazyColumn(
                 state = lazyListState,
                 contentPadding = PaddingValues(
@@ -242,9 +252,10 @@ fun SettingsScreen(
                                     navController.navigateSafely(Screen.SettingsCategory.createRoute(category.id))
                                 }
                             },
-                            shape = shapeFor(itemIndex)
+                            shape = if (useColumns) RoundedCornerShape(24.dp) else shapeFor(itemIndex),
+                            modifier = cardModifier
                         )
-                        if (itemIndex < totalItems - 1) {
+                        if (!useColumns && itemIndex < totalItems - 1) {
                             Spacer(modifier = Modifier.height(2.dp))
                         }
                         itemIndex++
@@ -254,9 +265,10 @@ fun SettingsScreen(
                         category = SettingsCategory.DEVICE_CAPABILITIES,
                         customColors = getCategoryColors(SettingsCategory.DEVICE_CAPABILITIES, isDark),
                         onClick = { navController.navigateSafely(Screen.DeviceCapabilities.route) },
-                        shape = shapeFor(itemIndex)
+                        shape = if (useColumns) RoundedCornerShape(24.dp) else shapeFor(itemIndex),
+                            modifier = cardModifier
                     )
-                    if (itemIndex < totalItems - 1) {
+                    if (!useColumns && itemIndex < totalItems - 1) {
                         Spacer(modifier = Modifier.height(2.dp))
                     }
                     itemIndex++
@@ -267,9 +279,10 @@ fun SettingsScreen(
                         icon = Icons.Rounded.AccountCircle,
                         colors = getAccountsColors(isDark),
                         onClick = { navController.navigateSafely(Screen.Accounts.route) },
-                        shape = shapeFor(itemIndex)
+                        shape = if (useColumns) RoundedCornerShape(24.dp) else shapeFor(itemIndex),
+                            modifier = cardModifier
                     )
-                    if (itemIndex < totalItems - 1) {
+                    if (!useColumns && itemIndex < totalItems - 1) {
                         Spacer(modifier = Modifier.height(2.dp))
                     }
                     itemIndex++
@@ -278,7 +291,8 @@ fun SettingsScreen(
                         category = SettingsCategory.ABOUT,
                         customColors = getCategoryColors(SettingsCategory.ABOUT, isDark),
                         onClick = { navController.navigateSafely("about") },
-                        shape = shapeFor(itemIndex)
+                        shape = if (useColumns) RoundedCornerShape(24.dp) else shapeFor(itemIndex),
+                            modifier = cardModifier
                     )
                 }
 
@@ -322,13 +336,14 @@ fun ExpressiveNavigationItem(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     colors: Pair<Color, Color>,
     onClick: () -> Unit,
-    shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(24.dp)
+    shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(24.dp),
+    modifier: Modifier = Modifier.fillMaxWidth()
 ) {
     Surface(
         onClick = onClick,
         shape = shape,
         color = MaterialTheme.colorScheme.surfaceContainer,
-        modifier = Modifier.fillMaxWidth().height(88.dp)
+        modifier = modifier.heightIn(min = 88.dp)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -358,7 +373,7 @@ fun ExpressiveNavigationItem(
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1
+                    maxLines = if (LocalAdaptiveLayout.current.usesTwoColumns) 2 else 1
                 )
                 Text(
                     text = subtitle,
@@ -377,13 +392,14 @@ fun ExpressiveCategoryItem(
     category: SettingsCategory,
     onClick: () -> Unit,
     shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(24.dp),
-    customColors: Pair<Color, Color>? = null
+    customColors: Pair<Color, Color>? = null,
+    modifier: Modifier = Modifier.fillMaxWidth()
 ) {
     Surface(
         onClick = onClick,
         shape = shape,
         color = MaterialTheme.colorScheme.surfaceContainer,
-        modifier = Modifier.fillMaxWidth().height(88.dp) 
+        modifier = modifier.heightIn(min = 88.dp)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -423,7 +439,7 @@ fun ExpressiveCategoryItem(
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1
+                    maxLines = if (LocalAdaptiveLayout.current.usesTwoColumns) 2 else 1
                 )
                 Text(
                     text = stringResource(category.subtitleRes),
@@ -465,7 +481,11 @@ private fun getAccountsColors(isDark: Boolean): Pair<Color, Color> {
 
 @Composable
 fun ExpressiveSettingsGroup(content: @Composable () -> Unit) {
-    Column(
+    val useColumns = LocalAdaptiveLayout.current.usesTwoColumns
+    FlowRow(
+        maxItemsInEachRow = if (useColumns) 2 else 1,
+        horizontalArrangement = Arrangement.spacedBy(if (useColumns) 12.dp else 0.dp),
+        verticalArrangement = Arrangement.spacedBy(if (useColumns) 12.dp else 0.dp),
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(24.dp))
@@ -502,5 +522,85 @@ private fun getCategoryColors(category: SettingsCategory, isDark: Boolean): Pair
             SettingsCategory.DEVICE_CAPABILITIES -> Color(0xFFACEFEE) to Color(0xFF002022)
             SettingsCategory.ABOUT -> Color(0xFFEFF1F7) to Color(0xFF44474F)
         }
+    }
+}
+
+
+/** Compact, persistent category menu for large windows. */
+@Composable
+internal fun SettingsPaneMenu(selectedSection: String, onSelectSection: (String) -> Unit) {
+    val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+    val haptic = LocalHapticFeedback.current
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(
+            start = 8.dp, end = 8.dp, top = 12.dp,
+            bottom = MiniPlayerHeight + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 24.dp,
+        ),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        item(key = "heading") {
+            Text(stringResource(R.string.common_settings),
+                style = com.theveloper.pixelplay.presentation.adaptive.settingsPaneTitleStyle(),
+                modifier = Modifier.padding(start = 8.dp, bottom = 18.dp, top = 4.dp))
+        }
+        SettingsCategory.entries.filter { it != SettingsCategory.ABOUT }.forEach { category ->
+            item(key = category.id) {
+                SettingsPaneMenuItem(
+                    title = stringResource(category.titleRes),
+                    iconColors = getCategoryColors(category, isDark),
+                    selected = selectedSection == category.id,
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        onSelectSection(category.id)
+                    },
+                    icon = {
+                        category.icon?.let { Icon(it, null, Modifier.size(22.dp)) }
+                            ?: category.iconRes?.let { Icon(painterResource(it), null, Modifier.size(22.dp)) }
+                    },
+                )
+            }
+        }
+        item(key = "accounts") {
+            SettingsPaneMenuItem(
+                title = stringResource(R.string.settings_category_accounts_title),
+                iconColors = getAccountsColors(isDark),
+                selected = selectedSection == Screen.Accounts.route,
+                onClick = { haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove); onSelectSection(Screen.Accounts.route) },
+                icon = { Icon(Icons.Rounded.AccountCircle, null, Modifier.size(22.dp)) },
+            )
+        }
+        item(key = "about") {
+            SettingsPaneMenuItem(
+                title = stringResource(SettingsCategory.ABOUT.titleRes),
+                iconColors = getCategoryColors(SettingsCategory.ABOUT, isDark),
+                selected = selectedSection == SettingsCategory.ABOUT.id,
+                onClick = { haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove); onSelectSection(SettingsCategory.ABOUT.id) },
+                icon = { Icon(SettingsCategory.ABOUT.icon!!, null, Modifier.size(22.dp)) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun SettingsPaneMenuItem(
+    title: String, iconColors: Pair<Color, Color>, selected: Boolean,
+    onClick: () -> Unit, icon: @Composable () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp))
+            .background(if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerLow)
+            .selectable(selected = selected, role = Role.Tab, onClick = onClick)
+            .heightIn(min = 72.dp).padding(horizontal = 12.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Surface(shape = CircleShape, color = iconColors.first, contentColor = iconColors.second) {
+            Box(Modifier.size(36.dp), contentAlignment = Alignment.Center) { icon() }
+        }
+        Spacer(Modifier.width(12.dp))
+        Text(title, modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.Bold,
+            color = if (selected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface)
     }
 }

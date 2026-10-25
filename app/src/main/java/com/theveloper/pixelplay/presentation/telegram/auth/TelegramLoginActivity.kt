@@ -107,6 +107,7 @@ import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.presentation.telegram.channel.TelegramChannelSearchSheet
 import com.theveloper.pixelplay.presentation.telegram.dashboard.TelegramDashboardScreen
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
+import com.theveloper.pixelplay.presentation.adaptive.AdaptiveScreenContent
 import com.theveloper.pixelplay.ui.theme.PixelPlayTheme
 import dagger.hilt.android.AndroidEntryPoint
 import org.drinkless.tdlib.TdApi
@@ -122,7 +123,9 @@ class TelegramLoginActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             PixelPlayTheme {
-                TelegramLoginScreen(onFinish = { finish() })
+                AdaptiveScreenContent(maxWidth = 600f) {
+                    TelegramLoginScreen(onFinish = { finish() })
+                }
             }
         }
     }

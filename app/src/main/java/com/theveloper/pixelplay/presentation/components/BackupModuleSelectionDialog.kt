@@ -51,6 +51,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
+import com.theveloper.pixelplay.presentation.adaptive.SetupModalFrame
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -95,8 +96,9 @@ fun BackupModuleSelectionDialog(
     val listState = rememberLazyListState()
     val selectedCount = plan.selectedModules.size
     val availableCount = plan.availableModules.size
-    val dateText = remember(plan.manifest.createdAt) {
-        SimpleDateFormat("MMM d, yyyy 'at' h:mm a", Locale.getDefault())
+    val dateLocale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0]
+    val dateText = remember(plan.manifest.createdAt, dateLocale) {
+        java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.MEDIUM, java.text.DateFormat.SHORT, dateLocale)
             .format(Date(plan.manifest.createdAt))
     }
     val transitionState = remember { MutableTransitionState(false) }
@@ -128,306 +130,308 @@ fun BackupModuleSelectionDialog(
                 decorFitsSystemWindows = false
             )
         ) {
-            AnimatedVisibility(
-                visibleState = transitionState,
-                enter = slideInVertically(initialOffsetY = { it / 6 }) + fadeIn(animationSpec = tween(220)),
-                exit = slideOutVertically(targetOffsetY = { it / 6 }) + fadeOut(animationSpec = tween(200)),
-                label = "import_module_selection_dialog"
-            ) {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.surfaceContainerLowest
+            SetupModalFrame {
+                AnimatedVisibility(
+                    visibleState = transitionState,
+                    enter = slideInVertically(initialOffsetY = { it / 6 }) + fadeIn(animationSpec = tween(220)),
+                    exit = slideOutVertically(targetOffsetY = { it / 6 }) + fadeOut(animationSpec = tween(200)),
+                    label = "import_module_selection_dialog"
                 ) {
-                    Scaffold(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
-                        contentWindowInsets = WindowInsets.systemBars,
-                        topBar = {
-                            CenterAlignedTopAppBar(
-                                title = {
-                                    Text(
-                                        text = stringResource(R.string.settings_restore_modules_title),
-                                        style = MaterialTheme.typography.titleMedium.copy(
-                                            fontSize = 24.sp,
-                                            textGeometricTransform = TextGeometricTransform(scaleX = 1.2f),
-                                        ),
-                                        fontFamily = GoogleSansRounded,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                },
-                                navigationIcon = {
-                                    FilledIconButton(
-                                        modifier = Modifier.padding(start = 6.dp),
-                                        onClick = { closeDialog(onBack) },
-                                        colors = IconButtonDefaults.filledIconButtonColors(
-                                            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
-                                            contentColor = MaterialTheme.colorScheme.onSurface
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = MaterialTheme.colorScheme.surfaceContainerLowest
+                    ) {
+                        Scaffold(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+                            contentWindowInsets = WindowInsets.systemBars,
+                            topBar = {
+                                CenterAlignedTopAppBar(
+                                    title = {
+                                        Text(
+                                            text = stringResource(R.string.settings_restore_modules_title),
+                                            style = MaterialTheme.typography.titleMedium.copy(
+                                                fontSize = 24.sp,
+                                                textGeometricTransform = TextGeometricTransform(scaleX = 1.2f),
+                                            ),
+                                            fontFamily = GoogleSansRounded,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSurface
                                         )
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                                            contentDescription = stringResource(R.string.common_back)
-                                        )
-                                    }
-                                },
-                                colors = TopAppBarDefaults.topAppBarColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceContainer
-                                )
-                            )
-                        },
-                        bottomBar = {
-                            BottomAppBar(
-                                windowInsets = WindowInsets.navigationBars,
-                                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.Absolute.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(start = 10.dp),
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
+                                    },
+                                    navigationIcon = {
                                         FilledIconButton(
-                                            onClick = { onSelectionChanged(plan.availableModules) },
-                                            enabled = !inProgress,
+                                            modifier = Modifier.padding(start = 6.dp),
+                                            onClick = { closeDialog(onBack) },
                                             colors = IconButtonDefaults.filledIconButtonColors(
-                                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                                            )
-                                        ) {
-                                            Icon(
-                                                painter = painterResource(R.drawable.round_select_all_24),
-                                                contentDescription = stringResource(R.string.settings_action_select_all)
-                                            )
-                                        }
-                                        FilledIconButton(
-                                            onClick = { onSelectionChanged(emptySet()) },
-                                            enabled = !inProgress,
-                                            colors = IconButtonDefaults.filledIconButtonColors(
-                                                containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                                                containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
                                                 contentColor = MaterialTheme.colorScheme.onSurface
                                             )
                                         ) {
                                             Icon(
-                                                painter = painterResource(R.drawable.baseline_deselect_24),
-                                                contentDescription = stringResource(R.string.settings_action_clear_selection)
+                                                imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                                                contentDescription = stringResource(R.string.common_back)
                                             )
                                         }
-                                    }
-
-                                    ExtendedFloatingActionButton(
-                                        onClick = { closeDialog(onConfirm) },
-                                        modifier = Modifier
-                                            .padding(end = 6.dp)
-                                            .height(48.dp),
-                                        shape = RoundedCornerShape(16.dp),
-                                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                    },
+                                    colors = TopAppBarDefaults.topAppBarColors(
+                                        containerColor = MaterialTheme.colorScheme.surfaceContainer
+                                    )
+                                )
+                            },
+                            bottomBar = {
+                                BottomAppBar(
+                                    windowInsets = WindowInsets.navigationBars,
+                                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.Absolute.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        if (inProgress) {
-                                            LoadingIndicator(modifier = Modifier.height(20.dp))
-                                            androidx.compose.foundation.layout.Spacer(modifier = Modifier.size(8.dp))
-                                            Text(
-                                                text = stringResource(R.string.settings_backup_restoring),
-                                                style = MaterialTheme.typography.labelLarge,
-                                                fontWeight = FontWeight.SemiBold
-                                            )
-                                        } else {
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                        Row(
+                                            modifier = Modifier.padding(start = 10.dp),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            FilledIconButton(
+                                                onClick = { onSelectionChanged(plan.availableModules) },
+                                                enabled = !inProgress,
+                                                colors = IconButtonDefaults.filledIconButtonColors(
+                                                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                                                )
                                             ) {
                                                 Icon(
-                                                    imageVector = Icons.Rounded.Restore,
-                                                    contentDescription = null
+                                                    painter = painterResource(R.drawable.round_select_all_24),
+                                                    contentDescription = stringResource(R.string.settings_action_select_all)
                                                 )
+                                            }
+                                            FilledIconButton(
+                                                onClick = { onSelectionChanged(emptySet()) },
+                                                enabled = !inProgress,
+                                                colors = IconButtonDefaults.filledIconButtonColors(
+                                                    containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                                                    contentColor = MaterialTheme.colorScheme.onSurface
+                                                )
+                                            ) {
+                                                Icon(
+                                                    painter = painterResource(R.drawable.baseline_deselect_24),
+                                                    contentDescription = stringResource(R.string.settings_action_clear_selection)
+                                                )
+                                            }
+                                        }
+
+                                        ExtendedFloatingActionButton(
+                                            onClick = { closeDialog(onConfirm) },
+                                            modifier = Modifier
+                                                .padding(end = 6.dp)
+                                                .height(48.dp),
+                                            shape = RoundedCornerShape(16.dp),
+                                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                        ) {
+                                            if (inProgress) {
+                                                LoadingIndicator(modifier = Modifier.height(20.dp))
+                                                androidx.compose.foundation.layout.Spacer(modifier = Modifier.size(8.dp))
                                                 Text(
-                                                    text = stringResource(R.string.settings_action_restore_selected),
+                                                    text = stringResource(R.string.settings_backup_restoring),
                                                     style = MaterialTheme.typography.labelLarge,
                                                     fontWeight = FontWeight.SemiBold
                                                 )
+                                            } else {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Rounded.Restore,
+                                                        contentDescription = null
+                                                    )
+                                                    Text(
+                                                        text = stringResource(R.string.settings_action_restore_selected),
+                                                        style = MaterialTheme.typography.labelLarge,
+                                                        fontWeight = FontWeight.SemiBold
+                                                    )
+                                                }
                                             }
                                         }
                                     }
                                 }
                             }
-                        }
-                    ) { innerPadding ->
-                        Column(
-                            modifier = Modifier
-                                .padding(innerPadding)
-                                .fillMaxSize()
-                                .padding(horizontal = 18.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            Surface(
-                                color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.62f),
-                                shape = RoundedCornerShape(18.dp),
+                        ) { innerPadding ->
+                            Column(
                                 modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 12.dp)
+                                    .padding(innerPadding)
+                                    .fillMaxSize()
+                                    .padding(horizontal = 18.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                Column(
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
-                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                Surface(
+                                    color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.62f),
+                                    shape = RoundedCornerShape(18.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 12.dp)
                                 ) {
-                                    Text(
-                                        text = stringResource(R.string.settings_backup_details_title),
-                                        style = MaterialTheme.typography.titleSmall,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                    Column(
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
+                                        verticalArrangement = Arrangement.spacedBy(6.dp)
                                     ) {
-                                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                            Text(
-                                                text = stringResource(R.string.settings_backup_created_label),
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                            Text(
-                                                text = dateText,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurface
-                                            )
-                                        }
-                                    }
+                                        Text(
+                                            text = stringResource(R.string.settings_backup_details_title),
+                                            style = MaterialTheme.typography.titleSmall,
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
 
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                                    ) {
-                                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                            Text(
-                                                text = stringResource(R.string.settings_backup_app_version_label),
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                            Text(
-                                                text = plan.manifest.appVersion.ifEmpty { stringResource(R.string.settings_backup_unknown) },
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurface
-                                            )
-                                        }
-                                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                            Text(
-                                                text = stringResource(R.string.settings_backup_schema_label),
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                            Text(
-                                                text = stringResource(
-                                                    R.string.settings_backup_manifest_schema_v,
-                                                    plan.manifest.schemaVersion
-                                                ),
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurface
-                                            )
-                                        }
-                                        if (plan.manifest.deviceInfo.model.isNotBlank()) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                        ) {
                                             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                                 Text(
-                                                    text = stringResource(R.string.settings_backup_device_label),
+                                                    text = stringResource(R.string.settings_backup_created_label),
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                                Text(
+                                                    text = dateText,
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurface
+                                                )
+                                            }
+                                        }
+
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                        ) {
+                                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                                Text(
+                                                    text = stringResource(R.string.settings_backup_app_version_label),
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                                Text(
+                                                    text = plan.manifest.appVersion.ifEmpty { stringResource(R.string.settings_backup_unknown) },
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurface
+                                                )
+                                            }
+                                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                                Text(
+                                                    text = stringResource(R.string.settings_backup_schema_label),
                                                     style = MaterialTheme.typography.labelSmall,
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
                                                 Text(
                                                     text = stringResource(
-                                                        R.string.settings_backup_manifest_device_line,
-                                                        plan.manifest.deviceInfo.manufacturer,
-                                                        plan.manifest.deviceInfo.model
+                                                        R.string.settings_backup_manifest_schema_v,
+                                                        plan.manifest.schemaVersion
                                                     ),
                                                     style = MaterialTheme.typography.bodySmall,
-                                                    color = MaterialTheme.colorScheme.onSurface,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis
+                                                    color = MaterialTheme.colorScheme.onSurface
+                                                )
+                                            }
+                                            if (plan.manifest.deviceInfo.model.isNotBlank()) {
+                                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                                    Text(
+                                                        text = stringResource(R.string.settings_backup_device_label),
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                    Text(
+                                                        text = stringResource(
+                                                            R.string.settings_backup_manifest_device_line,
+                                                            plan.manifest.deviceInfo.manufacturer,
+                                                            plan.manifest.deviceInfo.model
+                                                        ),
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = MaterialTheme.colorScheme.onSurface,
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis
+                                                    )
+                                                }
+                                            }
+                                        }
+
+                                        Text(
+                                            text = stringResource(R.string.settings_restore_modules_selected, selectedCount, availableCount),
+                                            style = MaterialTheme.typography.titleSmall,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+
+                                        if (inProgress) {
+                                            Row(
+                                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                LoadingIndicator(modifier = Modifier.height(24.dp))
+                                                Text(
+                                                    text = stringResource(R.string.settings_backup_transfer_in_progress),
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
                                             }
                                         }
                                     }
+                                }
 
-                                    Text(
-                                        text = stringResource(R.string.settings_restore_modules_selected, selectedCount, availableCount),
-                                        style = MaterialTheme.typography.titleSmall,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-
-                                    if (inProgress) {
-                                        Row(
-                                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                            verticalAlignment = Alignment.CenterVertically
+                                if (plan.warnings.isNotEmpty()) {
+                                    plan.warnings.forEach { warning ->
+                                        Surface(
+                                            color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
+                                            shape = RoundedCornerShape(14.dp),
+                                            modifier = Modifier.fillMaxWidth()
                                         ) {
-                                            LoadingIndicator(modifier = Modifier.height(24.dp))
-                                            Text(
-                                                text = stringResource(R.string.settings_backup_transfer_in_progress),
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
+                                            Row(
+                                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Outlined.Warning,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.error,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                                Text(
+                                                    text = warning,
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onErrorContainer
+                                                )
+                                            }
                                         }
                                     }
                                 }
-                            }
 
-                            if (plan.warnings.isNotEmpty()) {
-                                plan.warnings.forEach { warning ->
-                                    Surface(
-                                        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
-                                        shape = RoundedCornerShape(14.dp),
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Outlined.Warning,
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.error,
-                                                modifier = Modifier.size(18.dp)
-                                            )
-                                            Text(
-                                                text = warning,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onErrorContainer
-                                            )
-                                        }
+                                LazyColumn(
+                                    state = listState,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentPadding = PaddingValues(bottom = 18.dp),
+                                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    items(plan.availableModules.toList(), key = { it.key }) { section ->
+                                        val isSelected = section in plan.selectedModules
+                                        val detail = plan.moduleDetails[section]
+                                        BackupSectionSelectableCardShared(
+                                            section = section,
+                                            selected = isSelected,
+                                            enabled = !inProgress,
+                                            detail = detail,
+                                            onToggle = {
+                                                onSelectionChanged(
+                                                    if (isSelected) {
+                                                        plan.selectedModules - section
+                                                    } else {
+                                                        plan.selectedModules + section
+                                                    }
+                                                )
+                                            }
+                                        )
                                     }
-                                }
-                            }
-
-                            LazyColumn(
-                                state = listState,
-                                modifier = Modifier.fillMaxSize(),
-                                contentPadding = PaddingValues(bottom = 18.dp),
-                                verticalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                items(plan.availableModules.toList(), key = { it.key }) { section ->
-                                    val isSelected = section in plan.selectedModules
-                                    val detail = plan.moduleDetails[section]
-                                    BackupSectionSelectableCardShared(
-                                        section = section,
-                                        selected = isSelected,
-                                        enabled = !inProgress,
-                                        detail = detail,
-                                        onToggle = {
-                                            onSelectionChanged(
-                                                if (isSelected) {
-                                                    plan.selectedModules - section
-                                                } else {
-                                                    plan.selectedModules + section
-                                                }
-                                            )
-                                        }
-                                    )
                                 }
                             }
                         }
@@ -515,7 +519,7 @@ private fun BackupSectionSelectableCardShared(
                     verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
                     Text(
-                        text = section.label,
+                        text = stringResource(section.labelRes),
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontFamily = GoogleSansRounded
                         ),
@@ -523,7 +527,7 @@ private fun BackupSectionSelectableCardShared(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = section.description,
+                        text = stringResource(section.descriptionRes),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

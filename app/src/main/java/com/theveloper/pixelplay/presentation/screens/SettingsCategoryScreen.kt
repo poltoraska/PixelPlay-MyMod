@@ -167,10 +167,12 @@ import com.theveloper.pixelplay.data.preferences.NavBarStyle
 import com.theveloper.pixelplay.data.preferences.ThemePreference
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.model.LyricsSourcePreference
+import com.theveloper.pixelplay.presentation.adaptive.settingsPaneHeaderHeight
 import com.theveloper.pixelplay.presentation.components.CollapsibleCommonTopBar
 import com.theveloper.pixelplay.presentation.components.ExpressiveTopBarContent
 import com.theveloper.pixelplay.presentation.components.FileExplorerDialog
 import com.theveloper.pixelplay.presentation.components.MiniPlayerHeight
+import com.theveloper.pixelplay.presentation.model.labelRes
 import com.theveloper.pixelplay.presentation.model.SettingsCategory
 import com.theveloper.pixelplay.presentation.navigation.Screen
 import com.theveloper.pixelplay.presentation.viewmodel.LyricsRefreshProgress
@@ -325,31 +327,35 @@ fun SettingsCategoryScreen(
     val lazyListState = rememberLazyListState()
     
     val categoryTitle = stringResource(category.titleRes)
+    val settingsResources = androidx.compose.ui.platform.LocalResources.current
+    val customProviderLabel = stringResource(R.string.settings_ai_custom_provider)
     val isLongTitle = categoryTitle.length > 13
     
     val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    val minTopBarHeight = 64.dp + statusBarHeight
-    val maxTopBarHeight = if (isLongTitle) 200.dp else 180.dp //for 2 lines use 220 and make text use \n
+    val paneHeaderHeight = settingsPaneHeaderHeight(categoryTitle)
+    val minTopBarHeight = paneHeaderHeight ?: (64.dp + statusBarHeight)
+    val maxTopBarHeight = paneHeaderHeight ?: (if (isLongTitle) 200.dp else 180.dp)
 
     val minTopBarHeightPx = with(density) { minTopBarHeight.toPx() }
     val maxTopBarHeightPx = with(density) { maxTopBarHeight.toPx() }
     
     val titleMaxLines = if (isLongTitle) 2 else 1
 
-    val topBarHeight = remember(maxTopBarHeightPx) { Animatable(maxTopBarHeightPx) }
+    val topBarHeight = remember(minTopBarHeightPx, maxTopBarHeightPx) { Animatable(maxTopBarHeightPx) }
     var collapseFraction by remember { mutableStateOf(0f) }
 
     LaunchedEffect(topBarHeight.value, maxTopBarHeightPx) {
         collapseFraction =
                 1f -
                         ((topBarHeight.value - minTopBarHeightPx) /
-                                        (maxTopBarHeightPx - minTopBarHeightPx))
+                                        (maxTopBarHeightPx - minTopBarHeightPx).coerceAtLeast(1f))
                                 .coerceIn(0f, 1f)
     }
 
-    val nestedScrollConnection = remember {
+    val nestedScrollConnection = remember(minTopBarHeightPx, maxTopBarHeightPx) {
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                if (minTopBarHeightPx == maxTopBarHeightPx) return Offset.Zero
                 val delta = available.y
                 val isScrollingDown = delta < 0
 
@@ -449,7 +455,7 @@ fun SettingsCategoryScreen(
                                             settingsViewModel.setMinSongDuration(selectedDuration)
                                         }
                                     },
-                                    valueText = { value -> "${(value / 1000).toInt()}s" }
+                                    valueText = { value -> settingsResources.getString(R.string.settings_duration_seconds, (value / 1000).toInt()) }
                                 )
                                 SliderSettingsItem(
                                     label = stringResource(R.string.settings_min_tracks_per_album),
@@ -477,7 +483,7 @@ fun SettingsCategoryScreen(
                                             settingsViewModel.setAlbumArtCacheLimitMb(selectedLimit)
                                         }
                                     },
-                                    valueText = { value -> "${value.toInt()} MB" }
+                                    valueText = { value -> settingsResources.getString(R.string.settings_size_megabytes, value.toInt()) }
                                 )
                             }
 
@@ -607,7 +613,7 @@ fun SettingsCategoryScreen(
                                 )
                                 SettingsItem(
                                     title = stringResource(R.string.settings_album_art_palette_title),
-                                    subtitle = stringResource(R.string.settings_album_art_palette_subtitle, uiState.albumArtPaletteStyle.label),
+                                    subtitle = stringResource(R.string.settings_album_art_palette_subtitle, stringResource(uiState.albumArtPaletteStyle.labelRes)),
                                     leadingIcon = { Icon(Icons.Outlined.Style, null, tint = MaterialTheme.colorScheme.secondary) },
                                     trailingIcon = { Icon(Icons.Rounded.ChevronRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
                                     onClick = { navController.navigateSafely(Screen.PaletteStyle.route) }
@@ -629,7 +635,7 @@ fun SettingsCategoryScreen(
                                 ThemeSelectorItem(
                                     label = stringResource(R.string.settings_collage_pattern_title),
                                     description = stringResource(R.string.settings_collage_pattern_subtitle),
-                                    options = CollagePattern.entries.associate { it.storageKey to it.label },
+                                    options = CollagePattern.entries.associate { it.storageKey to stringResource(it.labelRes) },
                                     selectedKey = uiState.collagePattern.storageKey,
                                     onSelectionChanged = { key ->
                                         settingsViewModel.setCollagePattern(CollagePattern.fromStorageKey(key))
@@ -842,7 +848,7 @@ fun SettingsCategoryScreen(
                                         valueRange = 1000f..12000f,
                                         steps= 10,
                                         onValueChange = { settingsViewModel.setCrossfadeDuration(it.toInt()) },
-                                        valueText = { value -> "${(value / 1000).toInt()}s" }
+                                        valueText = { value -> settingsResources.getString(R.string.settings_duration_seconds, (value / 1000).toInt()) }
                                     )
                                 }
                                 SwitchSettingItem(
@@ -924,7 +930,7 @@ fun SettingsCategoryScreen(
                                 ThemeSelectorItem(
                                     label = stringResource(R.string.settings_ai_provider_title),
                                     description = stringResource(R.string.settings_ai_provider_subtitle),
-                                    options = com.theveloper.pixelplay.data.ai.provider.AiProvider.entries.associate { it.name to it.displayName },
+                                    options = com.theveloper.pixelplay.data.ai.provider.AiProvider.entries.associate { it.name to if (it == com.theveloper.pixelplay.data.ai.provider.AiProvider.CUSTOM) customProviderLabel else it.displayName },
                                     selectedKey = aiProvider,
                                     onSelectionChanged = { settingsViewModel.onAiProviderChange(it) },
                                     leadingIcon = { Icon(Icons.Rounded.Science, null, tint = MaterialTheme.colorScheme.secondary) }
@@ -961,15 +967,15 @@ fun SettingsCategoryScreen(
                                     com.theveloper.pixelplay.data.ai.provider.AiProvider.KIMI -> stringResource(R.string.settings_ai_source_kimi)
                                     com.theveloper.pixelplay.data.ai.provider.AiProvider.GLM -> stringResource(R.string.settings_ai_source_glm)
                                     com.theveloper.pixelplay.data.ai.provider.AiProvider.OPENAI -> stringResource(R.string.settings_ai_source_openai)
-                                    com.theveloper.pixelplay.data.ai.provider.AiProvider.OPENROUTER -> "OpenRouter (openrouter.ai)"
-                                    com.theveloper.pixelplay.data.ai.provider.AiProvider.OLLAMA -> "Ollama (cloud)"
-                                    com.theveloper.pixelplay.data.ai.provider.AiProvider.CUSTOM -> "Custom Provider"
+                                    com.theveloper.pixelplay.data.ai.provider.AiProvider.OPENROUTER -> stringResource(R.string.settings_ai_source_openrouter)
+                                    com.theveloper.pixelplay.data.ai.provider.AiProvider.OLLAMA -> stringResource(R.string.settings_ai_source_ollama)
+                                    com.theveloper.pixelplay.data.ai.provider.AiProvider.CUSTOM -> stringResource(R.string.settings_ai_custom_provider)
                                 }
                                 
                                 AiApiKeyItem(
                                     apiKey = currentAiApiKey,
                                     onApiKeySave = { settingsViewModel.onAiApiKeyChange(it) },
-                                    title = stringResource(R.string.settings_ai_api_key_title, provider.displayName),
+                                    title = stringResource(R.string.settings_ai_api_key_title, if (provider == com.theveloper.pixelplay.data.ai.provider.AiProvider.CUSTOM) customProviderLabel else provider.displayName),
                                     subtitle = stringResource(R.string.settings_ai_api_key_subtitle, sourceLabel)
                                 )
                             }
@@ -1027,12 +1033,12 @@ fun SettingsCategoryScreen(
 
                             // Base URL Section (only for configurable URL providers)
                             if (provider.hasConfigurableUrl) {
-                                SettingsSubsection(title = "API Base URL") {
+                                SettingsSubsection(title = stringResource(R.string.settings_ai_base_url_section)) {
                                     AiApiKeyItem(
                                         apiKey = currentCustomBaseUrl,
                                         onApiKeySave = { settingsViewModel.onCustomBaseUrlChange(it) },
-                                        title = "Base URL",
-                                        subtitle = "e.g. https://api.example.com/v1"
+                                        title = stringResource(R.string.settings_ai_base_url_title),
+                                        subtitle = stringResource(R.string.settings_ai_base_url_hint)
                                     )
                                 }
                             }
@@ -1053,9 +1059,9 @@ fun SettingsCategoryScreen(
                             }
 
                             // Generation Parameters Section
-                            SettingsSubsection(title = "Generation Parameters") {
+                            SettingsSubsection(title = stringResource(R.string.settings_ai_generation_parameters)) {
                                 SliderSettingsItem(
-                                    label = "Temperature",
+                                    label = stringResource(R.string.settings_ai_temperature),
                                     value = settingsViewModel.aiTemperature.collectAsStateWithLifecycle().value,
                                     valueRange = 0.0f..2.0f,
                                     steps = 20,
@@ -1063,13 +1069,13 @@ fun SettingsCategoryScreen(
                                     valueText = { String.format(Locale.US, "%.2f", it) }
                                 )
                                 Text(
-                                    text = "Controls randomness. Lower = more deterministic, higher = more creative.",
+                                    text = stringResource(R.string.settings_ai_temperature_description),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
                                 )
                                 SliderSettingsItem(
-                                    label = "Top P",
+                                    label = stringResource(R.string.settings_ai_top_p),
                                     value = settingsViewModel.aiTopP.collectAsStateWithLifecycle().value,
                                     valueRange = 0.0f..1.0f,
                                     steps = 20,
@@ -1077,13 +1083,13 @@ fun SettingsCategoryScreen(
                                     valueText = { String.format(Locale.US, "%.2f", it) }
                                 )
                                 Text(
-                                    text = "Nucleus sampling. Higher = more diverse tokens considered.",
+                                    text = stringResource(R.string.settings_ai_top_p_description),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
                                 )
                                 SliderSettingsItem(
-                                    label = "Top K",
+                                    label = stringResource(R.string.settings_ai_top_k),
                                     value = settingsViewModel.aiTopK.collectAsStateWithLifecycle().value.toFloat(),
                                     valueRange = 1f..100f,
                                     steps = 99,
@@ -1091,13 +1097,13 @@ fun SettingsCategoryScreen(
                                     valueText = { it.toInt().toString() }
                                 )
                                 Text(
-                                    text = "Limits token selection to the K most likely candidates.",
+                                    text = stringResource(R.string.settings_ai_top_k_description),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
                                 )
                                 SliderSettingsItem(
-                                    label = "Max Output Tokens",
+                                    label = stringResource(R.string.settings_ai_max_output_tokens),
                                     value = settingsViewModel.aiMaxTokens.collectAsStateWithLifecycle().value.toFloat(),
                                     valueRange = 128f..8192f,
                                     steps = 63,
@@ -1105,13 +1111,13 @@ fun SettingsCategoryScreen(
                                     valueText = { it.toInt().toString() }
                                 )
                                 Text(
-                                    text = "Maximum length of the AI response. Higher = longer but more expensive.",
+                                    text = stringResource(R.string.settings_ai_max_output_tokens_description),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
                                 )
                                 SliderSettingsItem(
-                                    label = "Presence Penalty",
+                                    label = stringResource(R.string.settings_ai_presence_penalty),
                                     value = settingsViewModel.aiPresencePenalty.collectAsStateWithLifecycle().value,
                                     valueRange = -2.0f..2.0f,
                                     steps = 40,
@@ -1119,13 +1125,13 @@ fun SettingsCategoryScreen(
                                     valueText = { String.format(Locale.US, "%.1f", it) }
                                 )
                                 Text(
-                                    text = "Penalizes repeated topics. Positive = more diverse topics.",
+                                    text = stringResource(R.string.settings_ai_presence_penalty_description),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
                                 )
                                 SliderSettingsItem(
-                                    label = "Frequency Penalty",
+                                    label = stringResource(R.string.settings_ai_frequency_penalty),
                                     value = settingsViewModel.aiFrequencyPenalty.collectAsStateWithLifecycle().value,
                                     valueRange = -2.0f..2.0f,
                                     steps = 40,
@@ -1133,7 +1139,7 @@ fun SettingsCategoryScreen(
                                     valueText = { String.format(Locale.US, "%.1f", it) }
                                 )
                                 Text(
-                                    text = "Penalizes repeated phrases. Positive = more natural language.",
+                                    text = stringResource(R.string.settings_ai_frequency_penalty_description),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
@@ -1141,26 +1147,26 @@ fun SettingsCategoryScreen(
                             }
 
                             // Song Data Configuration Section
-                            SettingsSubsection(title = "Song Data Configuration") {
+                            SettingsSubsection(title = stringResource(R.string.settings_ai_song_data_configuration)) {
                                 val aiSampleSize by settingsViewModel.aiSampleSize.collectAsStateWithLifecycle()
                                 SliderSettingsItem(
-                                    label = "Sample Size",
+                                    label = stringResource(R.string.settings_ai_sample_size),
                                     value = aiSampleSize.toFloat(),
                                     valueRange = 10f..120f,
                                     steps = 11,
                                     onValueChange = { settingsViewModel.onAiSampleSizeChange(it.toInt()) },
-                                    valueText = { "${it.toInt()} songs" }
+                                    valueText = { settingsResources.getQuantityString(R.plurals.album_detail_song_count, it.toInt(), it.toInt()) }
                                 )
                                 Text(
-                                    text = "Number of songs sent to the AI for playlist generation. More = better context but higher cost.",
+                                    text = stringResource(R.string.settings_ai_sample_size_description),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
                                 )
                                 ThemeSelectorItem(
-                                    label = "Digest Detail",
-                                    description = "Controls how much listening history data is included",
-                                    options = mapOf("safe" to "Concise (faster)", "full" to "Full (better quality)"),
+                                    label = stringResource(R.string.settings_ai_digest_detail),
+                                    description = stringResource(R.string.settings_ai_digest_detail_description),
+                                    options = mapOf("safe" to stringResource(R.string.settings_ai_digest_concise), "full" to stringResource(R.string.settings_ai_digest_full)),
                                     selectedKey = settingsViewModel.aiDigestMode.collectAsStateWithLifecycle().value,
                                     onSelectionChanged = { settingsViewModel.onAiDigestModeChange(it) },
                                     leadingIcon = {
@@ -1172,8 +1178,8 @@ fun SettingsCategoryScreen(
                                     }
                                 )
                                 SwitchSettingItem(
-                                    title = "Extended Song Fields",
-                                    subtitle = "Include album, year, and genre info in song data sent to AI",
+                                    title = stringResource(R.string.settings_ai_extended_song_fields),
+                                    subtitle = stringResource(R.string.settings_ai_extended_song_fields_description),
                                     checked = settingsViewModel.aiIncludeExtendedFields.collectAsStateWithLifecycle().value,
                                     onCheckedChange = { settingsViewModel.onAiIncludeExtendedFieldsChange(it) },
                                     leadingIcon = {
@@ -1269,7 +1275,7 @@ fun SettingsCategoryScreen(
                                                 .fillMaxWidth()
                                                 .padding(top = 8.dp, bottom = 8.dp)
                                         ) {
-                                            val dateFormat = SimpleDateFormat("MMMM d, yyyy", Locale.getDefault())
+                                            val dateFormat = java.text.DateFormat.getDateInstance(java.text.DateFormat.LONG, settingsResources.configuration.locales[0])
                                             val groupedUsage = recentAiUsage.groupBy { 
                                                 dateFormat.format(Date(it.timestamp)) 
                                             }
@@ -2200,7 +2206,7 @@ private fun BackupSectionSelectableCard(
                     verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
                     Text(
-                        text = section.label,
+                        text = stringResource(section.labelRes),
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontFamily = GoogleSansRounded
                         ),
@@ -2208,7 +2214,7 @@ private fun BackupSectionSelectableCard(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = section.description,
+                        text = stringResource(section.descriptionRes),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -2400,7 +2406,7 @@ private fun BackupTransferProgressDialog(progress: BackupTransferProgressUpdate)
 
                 progress.section?.let { section ->
                     Text(
-                        text = section.label,
+                        text = stringResource(section.labelRes),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary,
                         textAlign = TextAlign.Center
@@ -2641,8 +2647,9 @@ private fun BackupHistoryCard(
     onRemove: () -> Unit
 ) {
     val unknownShort = stringResource(R.string.settings_backup_history_modules_unknown)
-    val dateText = remember(entry.createdAt) {
-        val sdf = java.text.SimpleDateFormat("MMM d, yyyy 'at' h:mm a", java.util.Locale.getDefault())
+    val dateLocale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0]
+    val dateText = remember(entry.createdAt, dateLocale) {
+        val sdf = java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.MEDIUM, java.text.DateFormat.SHORT, dateLocale)
         sdf.format(java.util.Date(entry.createdAt))
     }
     val sizeText = remember(entry.sizeBytes) {

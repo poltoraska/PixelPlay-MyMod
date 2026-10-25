@@ -184,7 +184,7 @@ class DeviceCapabilitiesViewModel @Inject constructor(
                     append(report.toJson())
                 }
             } catch (e: Exception) {
-                "Failed to generate performance report: ${e.message}"
+                context.getString(com.theveloper.pixelplay.R.string.settings_devcaps_report_error, e.message.orEmpty())
             }
             _state.value = _state.value.copy(
                 isGeneratingReport = false,

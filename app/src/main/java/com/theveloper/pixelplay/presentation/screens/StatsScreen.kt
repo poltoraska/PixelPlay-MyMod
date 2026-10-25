@@ -2,6 +2,7 @@
 
 package com.theveloper.pixelplay.presentation.screens
 
+import com.theveloper.pixelplay.ui.theme.GoogleSansNunitoFont
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -966,14 +967,15 @@ private fun rememberStatsSectionTitleStyle(): TextStyle {
     return remember {
         androidx.compose.ui.text.TextStyle(
             fontFamily = FontFamily(
-                Font(
+                GoogleSansNunitoFont(
                     resId = R.font.gflex_variable,
+                    weight = FontWeight.ExtraBold,
                     variationSettings = FontVariation.Settings(
-                        FontVariation.weight(570)
+                        FontVariation.weight(850)
                     )
                 )
             ),
-            fontWeight = FontWeight(570),
+            fontWeight = FontWeight.ExtraBold,
             fontSize = 24.sp,
             lineHeight = 28.sp,
             letterSpacing = (-0.2).sp
@@ -992,7 +994,7 @@ private fun rememberStatsAxisLabelStyle(range: StatsTimeRange): TextStyle {
     return remember(range, fontSize) {
         TextStyle(
             fontFamily = FontFamily(
-                Font(
+                GoogleSansNunitoFont(
                     resId = R.font.gflex_variable,
                     variationSettings = FontVariation.Settings(
                         FontVariation.weight(520)

@@ -1,5 +1,6 @@
 package com.theveloper.pixelplay.presentation.components
 
+import com.theveloper.pixelplay.ui.theme.GoogleSansNunitoFont
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -84,7 +85,7 @@ fun ExpressiveTopBarContent(
     val expandedMinWidthAxis = if (enableExpandedTitleWidthCompression) sanitizedMinWidthAxis else DefaultTopBarTitleWidthAxis
     val collapsedMinWidthAxis = if (enableCollapsedTitleWidthCompression) sanitizedMinWidthAxis else DefaultTopBarTitleWidthAxis
     val currentMinWidthAxis = lerp(expandedMinWidthAxis, collapsedMinWidthAxis, clampedFraction)
-    val titleFontWeight = FontWeight.Bold
+    val titleFontWeight = FontWeight.ExtraBold
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val availableTitleWidthPx = with(density) {
@@ -183,11 +184,11 @@ private fun rememberGoogleSansFlexFontFamily(
     val sanitizedWidthAxis = widthAxis.coerceIn(1f, DefaultTopBarTitleWidthAxis).roundToInt().toFloat()
     return remember(fontWeight, sanitizedWidthAxis) {
         FontFamily(
-            Font(
+            GoogleSansNunitoFont(
                 resId = R.font.gflex_variable,
                 weight = fontWeight,
                 variationSettings = FontVariation.Settings(
-                    FontVariation.weight(fontWeight.weight),
+                    FontVariation.weight(if (fontWeight == FontWeight.ExtraBold) 850 else fontWeight.weight),
                     FontVariation.width(sanitizedWidthAxis),
                     FontVariation.Setting("ROND", TopBarTitleRoundedAxis),
                     FontVariation.Setting("XTRA", TopBarTitleXtraAxis),

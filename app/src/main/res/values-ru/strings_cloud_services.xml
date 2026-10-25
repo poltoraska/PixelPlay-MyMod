@@ -42,17 +42,17 @@
     <string name="telegram_cd_channel_options">Параметры канала</string>
     <string name="telegram_topics_heading">Темы</string>
     <string name="telegram_syncing_channel">Синхронизация канала</string>
-    <string name="telegram_updating_songs_from_telegram">Обновление песен из Telegram</string>
-    <string name="telegram_fetch_latest_songs">Получить последние песни из этого канала</string>
+    <string name="telegram_updating_songs_from_telegram">Обновление песен из\u00A0Telegram</string>
+    <string name="telegram_fetch_latest_songs">Получить последние песни из\u00A0этого канала</string>
     <string name="telegram_remove_channel">Удалить канал</string>
-    <string name="telegram_remove_channel_subtitle">Остановить синхронизацию и удалить кэшированные песни</string>
+    <string name="telegram_remove_channel_subtitle">Остановить синхронизацию и\u00A0удалить кэшированные песни</string>
     <string name="telegram_remove_channel_confirm_title">Удалить канал?</string>
-    <string name="telegram_remove_channel_confirm_body">%1$s будет отключён от синхронизации, а все кэшированные песни из этого канала будут удалены.</string>
+    <string name="telegram_remove_channel_confirm_body">%1$s будет отключён от\u00A0синхронизации, а\u00A0все кэшированные песни из\u00A0этого канала будут удалены.</string>
     <string name="telegram_remove_channel_confirm_action">Удалить</string>
     <string name="telegram_no_channels_synced">Нет синхронизированных каналов</string>
     <string name="telegram_no_channels_body">Добавьте публичные каналы Telegram,\nчтобы синхронизировать музыкальную библиотеку</string>
     <string name="telegram_add_channel_button">Добавить канал</string>
-    <string name="telegram_never_synced">Никогда не синхронизировался</string>
+    <string name="telegram_never_synced">Никогда не\u00A0синхронизировался</string>
     <string name="telegram_synced_relative">Синхронизировано %1$s назад</string>
 
     <!-- Telegram channel search -->
@@ -79,24 +79,24 @@
 
     <!-- Subsonic/Navidrome dashboard -->
     <string name="subsonic_dashboard_title">Subsonic</string>
-    <string name="subsonic_dashboard_quick_actions_subtitle">Управляйте серверами Navidrome, Airsonic и другими совместимыми с Subsonic.</string>
+    <string name="subsonic_dashboard_quick_actions_subtitle">Управляйте серверами Navidrome, Airsonic и\u00A0другими совместимыми с\u00A0Subsonic.</string>
 
     <!-- Jellyfin dashboard -->
     <string name="jellyfin_dashboard_playlists_empty_hint">Нажмите «Синхронизировать», чтобы получить плейлисты Jellyfin</string>
-    <string name="jellyfin_dashboard_quick_actions_subtitle">Управление подключением к серверу Jellyfin.</string>
+    <string name="jellyfin_dashboard_quick_actions_subtitle">Управление подключением к\u00A0серверу Jellyfin.</string>
 
     <!-- Google Drive dashboard -->
     <string name="gdrive_dashboard_music_folders">Музыкальные папки</string>
     <string name="gdrive_dashboard_add_folder_hint">Нажмите +, чтобы добавить папку Drive</string>
-    <string name="gdrive_dashboard_no_folders_yet">Папки ещё не добавлены</string>
+    <string name="gdrive_dashboard_no_folders_yet">Папки ещё не\u00A0добавлены</string>
     <string name="gdrive_dashboard_folders_synced_count">%1$d папок синхронизировано</string>
     <string name="gdrive_cd_add_folder">Добавить папку</string>
 
     <!-- QQ Music dashboard -->
     <string name="qqmusic_select_playlist_type_title">Выберите тип плейлистов</string>
-    <string name="qqmusic_choose_playlists_to_sync">Выберите плейлисты для синхронизации:</string>
+    <string name="qqmusic_choose_playlists_to_sync">Выберите плейлисты для\u00A0синхронизации:</string>
     <string name="qqmusic_all_playlists">Все плейлисты</string>
-    <string name="qqmusic_created_and_collected">Созданные и сохранённые</string>
+    <string name="qqmusic_created_and_collected">Созданные и\u00A0сохранённые</string>
     <string name="qqmusic_created_playlists">Созданные плейлисты</string>
     <string name="qqmusic_collected_playlists">Сохранённые плейлисты</string>
 
@@ -104,7 +104,7 @@
     <string name="cloud_dashboard_playlists_synced_count">%1$d плейлистов синхронизировано</string>
     <string name="cloud_dashboard_title_playlists">Плейлисты</string>
     <string name="cloud_dashboard_action_sync">Синхронизировать</string>
-    <string name="cloud_dashboard_playlists_empty_title">Плейлисты ещё не синхронизированы</string>
+    <string name="cloud_dashboard_playlists_empty_title">Плейлисты ещё не\u00A0синхронизированы</string>
     <string name="cloud_dashboard_playlists_empty_hint">Нажмите «Синхронизировать», чтобы загрузить плейлисты</string>
     <string name="cloud_dashboard_quick_actions">Быстрые действия</string>
     <string name="cloud_dashboard_action_sync_library">Синхронизировать медиатеку</string>

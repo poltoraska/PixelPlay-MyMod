@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="setup_navbar_tablet_subtitle">On a tablet, navigation appears on the left. These options customize the bottom bar used on compact screens.</string>
+</resources>

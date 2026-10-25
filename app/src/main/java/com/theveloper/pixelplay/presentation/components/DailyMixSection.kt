@@ -1,5 +1,6 @@
 package com.theveloper.pixelplay.presentation.components
 
+import com.theveloper.pixelplay.ui.theme.GoogleSansNunitoFont
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -415,10 +416,11 @@ private fun rememberDailyMixTitleStyle(): TextStyle {
     return remember {
         TextStyle(
             fontFamily = FontFamily(
-                Font(
+                GoogleSansNunitoFont(
                     resId = R.font.gflex_variable,
+                    weight = FontWeight.ExtraBold,
                     variationSettings = FontVariation.Settings(
-                        FontVariation.weight(630),
+                        FontVariation.weight(850),
                         FontVariation.width(136f),
                         FontVariation.grade(40),
                         FontVariation.Setting("ROND", 100f),
@@ -428,7 +430,7 @@ private fun rememberDailyMixTitleStyle(): TextStyle {
                     )
                 )
             ),
-            fontWeight = FontWeight(630),
+            fontWeight = FontWeight.ExtraBold,
             fontSize = 20.sp,
             lineHeight = 22.sp,
             letterSpacing = (-0.35).sp

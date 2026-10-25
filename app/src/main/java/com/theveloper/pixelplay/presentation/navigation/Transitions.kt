@@ -4,7 +4,14 @@ import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.Easing
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -16,6 +23,40 @@ import androidx.compose.ui.graphics.TransformOrigin
 // Curva Emphasized oficial de Material 3 (la que usan los Pixel contemporáneos)
 val M3EmphasizedEasing = CubicBezierEasing(0.2f, 0.0f, 0.0f, 1.0f)
 const val AOSP_TRANSITION_DURATION = 350
+
+
+internal val LocalTabletTabDirection = staticCompositionLocalOf { 0 }
+
+// A short, lightly underdamped slide. All tablet surfaces share the same physical spring.
+private val TabletTabSpring = spring<IntOffset>(
+    dampingRatio = 0.72f,
+    stiffness = 900f,
+    visibilityThreshold = IntOffset(1, 1),
+)
+
+@Composable
+internal fun tabletTabTravelPx(): Int = with(LocalDensity.current) { 40.dp.roundToPx() }
+
+@Composable
+internal fun rememberTabletTabDirection(route: String?): Int {
+    val state = remember { TabletTabMotionState() }
+    return remember(route) { state.onDestinationChanged(route) }
+}
+
+internal fun tabletTabEnterTransition(direction: Int, travelPx: Int): EnterTransition =
+    slideInHorizontally(
+        animationSpec = TabletTabSpring,
+        initialOffsetX = { direction * travelPx },
+    ) + fadeIn(
+        animationSpec = tween(160, easing = M3EmphasizedEasing),
+        initialAlpha = 0.72f,
+    )
+
+internal fun tabletTabExitTransition(direction: Int, travelPx: Int): ExitTransition =
+    slideOutHorizontally(
+        animationSpec = TabletTabSpring,
+        targetOffsetX = { -direction * (travelPx / 2) },
+    ) + fadeOut(animationSpec = tween(140, easing = M3EmphasizedEasing))
 
 // Equivale a sud_slide_next_in
 fun aospSharedAxisEnter(): EnterTransition {
@@ -49,16 +90,16 @@ fun aospSharedAxisPopEnter(): EnterTransition {
 }
 
 // Equivale a sud_slide_back_out (la pantalla secundaria se destruye deslizándose a la derecha)
-fun aospSharedAxisPopExit(): ExitTransition {
+fun aospSharedAxisPopExit(durationMillis: Int = AOSP_TRANSITION_DURATION): ExitTransition {
     return slideOutHorizontally(
         targetOffsetX = { it }, // Se desliza completamente fuera de la pantalla
         animationSpec = tween(
-            durationMillis = AOSP_TRANSITION_DURATION,
+            durationMillis = durationMillis,
             easing = Easing { f -> f * f * f } // Durante el arrastre se desplaza muy poco, y al completarse se desliza por completo
         )
     ) + scaleOut(
         targetScale = 0.85f, // Se achica más (efecto de profundidad más pronunciado)
-        animationSpec = tween(durationMillis = AOSP_TRANSITION_DURATION, easing = M3EmphasizedEasing)
+        animationSpec = tween(durationMillis = durationMillis, easing = M3EmphasizedEasing)
     )
 }
 

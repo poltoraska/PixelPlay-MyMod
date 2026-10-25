@@ -6,6 +6,17 @@
 
 package com.theveloper.pixelplay.presentation.screens
 
+import com.theveloper.pixelplay.presentation.adaptive.LocalAdaptiveLayout
+import com.theveloper.pixelplay.presentation.adaptive.LocalLibraryBrowserPane
+import com.theveloper.pixelplay.presentation.adaptive.albumCassetteColumnCount
+
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.platform.LocalDensity
+import com.theveloper.pixelplay.presentation.adaptive.LocalLibraryBrowserTargetWidth
+import com.theveloper.pixelplay.presentation.adaptive.LibraryPaneAnimationDuration
+import com.theveloper.pixelplay.presentation.adaptive.albumCassetteCellWidth
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -100,9 +111,32 @@ fun LibraryAlbumsTab(
             .distinctUntilChanged()
     }.collectAsStateWithLifecycle(initialValue = false)
 
+    val layout = LocalAdaptiveLayout.current
+    // Animate a stable cell width rather than instantly stretching a two-column item
+    // across the entire browser when a detail opens. Grid placement handles row changes.
+    val browserTargetWidth = LocalLibraryBrowserTargetWidth.current.takeIf { it > 0f } ?: layout.contentWidth
+    val cassetteColumns = albumCassetteColumnCount(layout.usesSideNavigation, LocalLibraryBrowserPane.current, browserTargetWidth)
+    val cassetteEndPadding = if (LocalShowScrollbar.current) 24.dp else 14.dp
+    val targetCellWidth = with(LocalDensity.current) {
+        albumCassetteCellWidth(
+            browserTargetWidth.dp.roundToPx(),
+            14.dp.roundToPx() + cassetteEndPadding.roundToPx(),
+            cassetteColumns,
+            12.dp.roundToPx(),
+        ).toDp()
+    }
+    val cassetteCellWidth by animateDpAsState(
+        targetValue = targetCellWidth,
+        animationSpec = tween(LibraryPaneAnimationDuration, easing = FastOutSlowInEasing),
+        label = "albumCassetteCellWidth",
+    )
+    val playback by remember(playerViewModel) {
+        playerViewModel.stablePlayerState.map { it.currentSong?.albumId to it.isPlaying }.distinctUntilChanged()
+    }.collectAsStateWithLifecycle(initialValue = null to false)
+
     val gridState = rememberLazyGridState()
-    val listState = rememberLazyListState()
-    val dummyListState = rememberLazyListState()
+    val listState = rememberLazyGridState()
+    val dummyListState = rememberLazyGridState()
     val dummyGridState = rememberLazyGridState()
     val context = LocalContext.current
     val imageLoader = context.imageLoader
@@ -244,9 +278,11 @@ fun LibraryAlbumsTab(
 
         shouldShowInitialLoading -> {
             if (isListView) {
-                LazyColumn(
+                LazyVerticalGrid(
+                    columns = GridCells.FixedSize(cassetteCellWidth),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier
-                        .padding(start = 14.dp, end = 14.dp, bottom = 6.dp)
+                        .padding(start = 14.dp, end = cassetteEndPadding, bottom = 6.dp)
                         .clip(
                             RoundedCornerShape(
                                 topStart = 16.dp,
@@ -281,7 +317,7 @@ fun LibraryAlbumsTab(
                             )
                         )
                         .fillMaxSize(),
-                    columns = GridCells.Fixed(2),
+                    columns = if (LocalAdaptiveLayout.current.usesSideNavigation) GridCells.FixedSize(160.dp) else GridCells.Fixed(2),
                     contentPadding = PaddingValues(bottom = bottomBarHeight + MiniPlayerHeight + ListExtraBottomGap + 4.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp),
                     horizontalArrangement = Arrangement.spacedBy(14.dp)
@@ -325,9 +361,11 @@ fun LibraryAlbumsTab(
                     Box(modifier = Modifier.fillMaxSize()) {
                         if (isListView) {
                             val activeListState = if (albums.itemCount > 0) listState else dummyListState
-                            LazyColumn(
+                            LazyVerticalGrid(
+                                columns = GridCells.FixedSize(cassetteCellWidth),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 modifier = Modifier
-                                    .padding(start = 14.dp, end = if (LocalShowScrollbar.current && (activeListState.canScrollForward || activeListState.canScrollBackward)) 24.dp else 14.dp, bottom = 6.dp)
+                                    .padding(start = 14.dp, end = cassetteEndPadding, bottom = 6.dp)
                                     .clip(
                                         RoundedCornerShape(
                                             topStart = 16.dp,
@@ -359,6 +397,11 @@ fun LibraryAlbumsTab(
                                             { onAlbumSelectionToggle(album) }
                                         }
                                         AlbumListItem(
+                                            modifier = Modifier.animateItem(
+                                                fadeInSpec = null,
+                                                placementSpec = tween(LibraryPaneAnimationDuration, easing = FastOutSlowInEasing),
+                                                fadeOutSpec = null,
+                                            ),
                                             album = album,
                                             albumColorSchemePairFlow = albumSpecificColorSchemeFlow,
                                             onClick = rememberedOnClick,
@@ -367,7 +410,12 @@ fun LibraryAlbumsTab(
                                             isSelected = selectedAlbumIds.contains(album.id),
                                             selectionIndex = getSelectionIndex(album.id),
                                             onLongPress = rememberedOnLongPress,
-                                            onSelectionToggle = rememberedOnSelectionToggle
+                                            onSelectionToggle = rememberedOnSelectionToggle,
+                                            isPlaying = playback.first == album.id && playback.second,
+                                            onPlayClick = {
+                                                if (playback.first == album.id) playerViewModel.playPause()
+                                                else playerViewModel.playAlbum(album)
+                                            },
                                         )
                                     } else {
                                         AlbumListItem(
@@ -388,7 +436,7 @@ fun LibraryAlbumsTab(
                                 modifier = Modifier
                                     .align(Alignment.CenterEnd)
                                     .padding(end = 4.dp, top = 16.dp, bottom = bottomPadding),
-                                listState = activeListState,
+                                gridState = activeListState,
                                 dragLabelProvider = albumFastScrollLabelProvider
                             )
                         } else {
@@ -405,7 +453,7 @@ fun LibraryAlbumsTab(
                                         )
                                     ),
                                 state = activeGridState,
-                                columns = GridCells.Fixed(2),
+                                columns = if (LocalAdaptiveLayout.current.usesSideNavigation) GridCells.FixedSize(160.dp) else GridCells.Fixed(2),
                                 contentPadding = PaddingValues(bottom = bottomBarHeight + MiniPlayerHeight + ListExtraBottomGap + 4.dp),
                                 verticalArrangement = Arrangement.spacedBy(8.dp),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)

@@ -49,6 +49,8 @@ fun NavController.navigateSafelyReplacing(
 }
 
 fun NavController.navigateToTopLevelSafely(route: String): Boolean {
+    if ((!isMainRootRoute(route) && route != Screen.Settings.route) || !isReadyForNavigation()) return false
+    if (currentDestination?.route == route) return true
     val startDestinationId = runCatching { graph.startDestinationId }.getOrNull() ?: return false
     navigate(route) {
         popUpTo(startDestinationId) {
@@ -57,5 +59,28 @@ fun NavController.navigateToTopLevelSafely(route: String): Boolean {
         launchSingleTop = true
         restoreState = true
     }
-    return true
+    // Restoring a tab can restore its child screen (e.g. Home -> Settings) as well.
+    // A top-level button always shows the requested root while retaining its saved state.
+    if (currentDestination?.route != route) {
+        popBackStack(route, inclusive = false)
+    }
+    return currentDestination?.route == route
+}
+
+
+// Selecting from the persistent library list replaces the right pane, including across categories.
+fun NavController.navigateLibraryDetailSafely(route: String, patternToPop: String): Boolean {
+    if (!isReadyForNavigation()) return false
+    val hasLibrary = runCatching { getBackStackEntry(Screen.Library.route) }.isSuccess
+    if (hasLibrary && com.theveloper.pixelplay.presentation.adaptive.isLibraryDetailRoute(
+            currentDestination?.route
+        )
+    ) {
+        navigate(route) {
+            popUpTo(Screen.Library.route) { inclusive = false }
+            launchSingleTop = true
+        }
+        return true
+    }
+    return navigateSafelyReplacing(route, patternToPop)
 }

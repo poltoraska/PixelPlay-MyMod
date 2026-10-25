@@ -18,6 +18,7 @@ import javax.inject.Singleton
 
 @Singleton
 class RestoreExecutor @Inject constructor(
+    @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context,
     private val backupReader: BackupReader,
     private val validationPipeline: ValidationPipeline,
     private val handlers: Map<BackupSection, @JvmSuppressWildcards BackupModuleHandler>
@@ -36,7 +37,7 @@ class RestoreExecutor @Inject constructor(
         var step = 0
 
         // ---- PHASE 1: SNAPSHOT ----
-        reportProgress(onProgress, ++step, totalSteps, "Creating safety snapshots", "Capturing current state for rollback.")
+        reportProgress(onProgress, ++step, totalSteps, context.getString(com.theveloper.pixelplay.R.string.settings_restore_stage_snapshots), context.getString(com.theveloper.pixelplay.R.string.settings_restore_stage_snapshots_detail))
 
         val snapshots = mutableMapOf<BackupSection, String>()
         try {
@@ -52,7 +53,7 @@ class RestoreExecutor @Inject constructor(
         }
 
         // ---- PHASE 2: READ, VALIDATE, RESTORE ----
-        reportProgress(onProgress, ++step, totalSteps, "Preparing restore", "Selected modules will be processed one at a time.")
+        reportProgress(onProgress, ++step, totalSteps, context.getString(com.theveloper.pixelplay.R.string.settings_restore_stage_preparing), context.getString(com.theveloper.pixelplay.R.string.settings_restore_stage_preparing_detail))
 
         val restoredModules = mutableListOf<BackupSection>()
         var currentSection: BackupSection? = null
@@ -83,15 +84,15 @@ class RestoreExecutor @Inject constructor(
 
                 reportProgress(
                     onProgress, ++step, totalSteps,
-                    "Validated ${section.label}",
-                    section.description,
+                    context.getString(com.theveloper.pixelplay.R.string.settings_restore_stage_validated, context.getString(section.labelRes)),
+                    context.getString(section.descriptionRes),
                     section
                 )
 
                 reportProgress(
                     onProgress, ++step, totalSteps,
-                    "Restoring ${section.label}",
-                    section.description,
+                    context.getString(com.theveloper.pixelplay.R.string.settings_restore_stage_restoring, context.getString(section.labelRes)),
+                    context.getString(section.descriptionRes),
                     section
                 )
 
@@ -135,7 +136,7 @@ class RestoreExecutor @Inject constructor(
         }
 
         // ---- PHASE 3: FINALIZE ----
-        reportProgress(onProgress, ++step, totalSteps, "Restore complete", "All selected modules were restored successfully.")
+        reportProgress(onProgress, ++step, totalSteps, context.getString(com.theveloper.pixelplay.R.string.settings_restore_stage_complete), context.getString(com.theveloper.pixelplay.R.string.settings_restore_stage_complete_detail))
 
         RestoreResult.Success
     }

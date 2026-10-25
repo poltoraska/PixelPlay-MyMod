@@ -92,6 +92,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
 import androidx.navigation.NavController
 import com.theveloper.pixelplay.R
+import com.theveloper.pixelplay.presentation.adaptive.settingsPaneHeaderHeight
 import com.theveloper.pixelplay.presentation.components.CollapsibleCommonTopBar
 import com.theveloper.pixelplay.presentation.components.MiniPlayerHeight
 import com.theveloper.pixelplay.presentation.viewmodel.AudioCapabilities
@@ -125,22 +126,24 @@ fun DeviceCapabilitiesScreen(
     val lazyListState = rememberLazyListState()
 
     val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    val minTopBarHeight = 64.dp + statusBarHeight
-    val maxTopBarHeight = 188.dp
+    val paneHeaderHeight = settingsPaneHeaderHeight(stringResource(R.string.settings_category_device_capabilities_title))
+    val minTopBarHeight = paneHeaderHeight ?: (64.dp + statusBarHeight)
+    val maxTopBarHeight = paneHeaderHeight ?: (188.dp)
     val minTopBarHeightPx = with(density) { minTopBarHeight.toPx() }
     val maxTopBarHeightPx = with(density) { maxTopBarHeight.toPx() }
 
-    val topBarHeight = remember { Animatable(maxTopBarHeightPx) }
+    val topBarHeight = remember(minTopBarHeightPx, maxTopBarHeightPx) { Animatable(maxTopBarHeightPx) }
     var collapseFraction by remember { mutableFloatStateOf(0f) }
 
     LaunchedEffect(topBarHeight.value) {
-        collapseFraction = 1f - ((topBarHeight.value - minTopBarHeightPx) / (maxTopBarHeightPx - minTopBarHeightPx))
+        collapseFraction = 1f - ((topBarHeight.value - minTopBarHeightPx) / (maxTopBarHeightPx - minTopBarHeightPx).coerceAtLeast(1f))
             .coerceIn(0f, 1f)
     }
 
-    val nestedScrollConnection = remember {
+    val nestedScrollConnection = remember(minTopBarHeightPx, maxTopBarHeightPx) {
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                if (minTopBarHeightPx == maxTopBarHeightPx) return Offset.Zero
                 val delta = available.y
                 val isScrollingDown = delta < 0
 

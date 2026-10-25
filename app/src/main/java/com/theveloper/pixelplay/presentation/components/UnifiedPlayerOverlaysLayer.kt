@@ -8,6 +8,12 @@ import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clipToBounds
+import com.theveloper.pixelplay.presentation.components.player.LocalTabletPlayerQueuePane
 import androidx.compose.foundation.layout.offset
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
@@ -98,8 +104,9 @@ internal fun UnifiedPlayerQueueLayer(
         onQueueSheetHeightPxChange(0f)
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        if (queueScrimAlpha > 0f) {
+    val tabletPane = LocalTabletPlayerQueuePane.current
+    Box(modifier = Modifier.fillMaxSize().then(if (tabletPane.enabled) Modifier.clipToBounds() else Modifier)) {
+        if (!tabletPane.enabled && queueScrimAlpha > 0f) {
             Box(
                 modifier = Modifier
                     .matchParentSize()
@@ -120,15 +127,21 @@ internal fun UnifiedPlayerQueueLayer(
                 shapes = MaterialTheme.shapes
             ) {
                 QueueBottomSheet(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .offset {
-                            val offsetVal = queueSheetOffset.value.roundToInt()
-                            IntOffset(0, if (offsetVal < 0) 0 else offsetVal)
+                    embedded = tabletPane.enabled,
+                    shape = if (tabletPane.enabled) RoundedCornerShape(topStart = 28.dp, bottomStart = 28.dp)
+                        else RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+                    modifier = (if (tabletPane.enabled) {
+                        Modifier.align(Alignment.CenterEnd).width(tabletPane.width.dp).fillMaxHeight()
+                            .offset { IntOffset(
+                                ((tabletPane.width - tabletPane.visibleWidth).dp.toPx()).roundToInt(), 0
+                            ) }
+                    } else {
+                        Modifier.fillMaxSize().offset {
+                            IntOffset(0, queueSheetOffset.value.roundToInt().coerceAtLeast(0))
                         }
-                        .graphicsLayer {
-                            alpha = if (showQueueSheet || isQueueCollapsing) 1f else 0f
-                        }
+                    }).graphicsLayer {
+                        alpha = if (showQueueSheet || isQueueCollapsing) 1f else 0f
+                    }
                         .onGloballyPositioned { coordinates ->
                             val measuredHeight = coordinates.size.height.toFloat()
                             if (queueSheetHeightPx != measuredHeight) {
@@ -501,5 +514,3 @@ internal fun UnifiedPlayerCastLayer(
         }
     }
 }
-
-

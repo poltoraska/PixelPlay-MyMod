@@ -73,3 +73,10 @@ The following contributor names were generated from the Git history through `cee
 - jair1c
 - ori
 - Неважно
+
+
+## Nunito
+
+Nunito is bundled from https://github.com/google/fonts/tree/main/ofl/nunito.
+Copyright and SIL Open Font License 1.1 are included in
+`app/src/main/assets/licenses/nunito-OFL.txt`.

@@ -69,6 +69,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.theveloper.pixelplay.presentation.model.localizedDisplayName
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.equalizer.EqualizerPreset
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
@@ -346,7 +347,7 @@ fun ReorderPresetsSheet(
                                                 Spacer(modifier = Modifier.width(14.dp))
 
                                                 Text(
-                                                    text = item.preset.displayName,
+                                                    text = item.preset.localizedDisplayName(),
                                                     style = MaterialTheme.typography.bodyLarge,
                                                     fontWeight = if (item.isPinned) FontWeight.Medium else FontWeight.Normal,
                                                     modifier = Modifier.weight(1f),

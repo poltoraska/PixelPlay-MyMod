@@ -4,6 +4,7 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -88,7 +89,7 @@ fun StatsOverviewCard(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Column(
-                        Modifier.padding(start = 24.dp, top = 24.dp, bottom = 24.dp)
+                        Modifier.weight(1f).padding(start = 24.dp, end = 16.dp, top = 24.dp, bottom = 24.dp)
                     ) {
                         Text(
                             text = stringResource(R.string.home_stats_overview_title),
@@ -134,7 +135,26 @@ fun StatsOverviewCard(
 
 @Composable
 private fun OverviewContent(summary: PlaybackStatsRepository.PlaybackStatsSummary) {
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val wide = maxWidth >= 600.dp
+        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(24.dp)) {
+            if (wide) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(32.dp)) {
+                    OverviewTotals(summary, Modifier.weight(1f))
+                    OverviewTopTrack(summary, Modifier.weight(1f))
+                }
+            } else {
+                OverviewTotals(summary)
+                OverviewTopTrack(summary)
+            }
+            MiniListeningTimeline(summary, AndroidDateFormat.is24HourFormat(LocalContext.current), wide)
+        }
+    }
+}
+
+@Composable
+private fun OverviewTotals(summary: PlaybackStatsRepository.PlaybackStatsSummary, modifier: Modifier = Modifier) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text(
             text = formatListeningDurationLong(summary.totalDurationMs),
             style = MaterialTheme.typography.headlineLarge,
@@ -169,6 +189,12 @@ private fun OverviewContent(summary: PlaybackStatsRepository.PlaybackStatsSummar
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun OverviewTopTrack(summary: PlaybackStatsRepository.PlaybackStatsSummary, modifier: Modifier = Modifier) {
+    Column(modifier) {
         val topTrack = summary.topSongs.firstOrNull()
         if (topTrack != null) {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -197,7 +223,6 @@ private fun OverviewContent(summary: PlaybackStatsRepository.PlaybackStatsSummar
                 )
             }
         }
-        MiniListeningTimeline(summary, AndroidDateFormat.is24HourFormat(LocalContext.current))
     }
 }
 
@@ -217,19 +242,20 @@ private fun PlaceholderOverviewContent() {
 @Composable
 private fun MiniListeningTimeline(
     summary: PlaybackStatsRepository.PlaybackStatsSummary?,
-    use24Hour: Boolean = false
+    use24Hour: Boolean = false,
+    wide: Boolean = false,
 ) {
     val timeline = summary?.timeline ?: emptyList()
     val range = summary?.range ?: StatsTimeRange.WEEK
     if (summary?.range == StatsTimeRange.MONTH && timeline.isNotEmpty()) {
-        MonthlyHorizontalListeningTimeline(timeline)
+        MonthlyHorizontalListeningTimeline(timeline, wide)
         return
     }
     val maxDuration = timeline.maxOfOrNull { it.totalDurationMs }?.takeIf { it > 0 } ?: 1L
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(96.dp),
+            .height(if (wide) 168.dp else 96.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.Bottom
     ) {
@@ -248,7 +274,7 @@ private fun MiniListeningTimeline(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height((70.dp * heightFraction).coerceAtLeast(10.dp))
+                        .height(((if (wide) 140.dp else 70.dp) * heightFraction).coerceAtLeast(10.dp))
                         .clip(CircleShape)
                         .background(
                             color = MaterialTheme.colorScheme.primary
@@ -273,13 +299,14 @@ private fun MiniListeningTimeline(
 
 @Composable
 private fun MonthlyHorizontalListeningTimeline(
-    timeline: List<PlaybackStatsRepository.TimelineEntry>
+    timeline: List<PlaybackStatsRepository.TimelineEntry>,
+    wide: Boolean,
 ) {
     val maxDuration = timeline.maxOfOrNull { it.totalDurationMs }?.takeIf { it > 0 } ?: 1L
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(108.dp),
+            .height(if (wide) 152.dp else 108.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         timeline.forEach { entry ->

@@ -1,5 +1,9 @@
 package com.theveloper.pixelplay.presentation.screens
 
+import com.theveloper.pixelplay.ui.theme.GoogleSansNunitoFont
+import com.theveloper.pixelplay.presentation.adaptive.homeGridColumnCount
+import com.theveloper.pixelplay.presentation.adaptive.LocalAdaptiveLayout
+
 import com.theveloper.pixelplay.presentation.navigation.navigateSafely
 import com.theveloper.pixelplay.presentation.navigation.navigateSafelyReplacing
 
@@ -7,6 +11,9 @@ import android.content.Intent
 import androidx.activity.compose.ReportDrawnWhen
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,7 +27,10 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -85,13 +95,7 @@ import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.preferences.CollagePattern
 import com.theveloper.pixelplay.presentation.components.AlbumArtCollage
-import com.theveloper.pixelplay.presentation.components.BetaInfoBottomSheet
 import com.theveloper.pixelplay.presentation.components.Beta05CleanInstallDisclaimerDialog
-import com.theveloper.pixelplay.presentation.components.ChangelogBottomSheet
-import com.theveloper.pixelplay.presentation.netease.dashboard.NeteaseDashboardViewModel
-import com.theveloper.pixelplay.presentation.jellyfin.dashboard.JellyfinDashboardViewModel
-import com.theveloper.pixelplay.presentation.navidrome.dashboard.NavidromeDashboardViewModel
-import com.theveloper.pixelplay.presentation.qqmusic.dashboard.QqMusicDashboardViewModel
 import com.theveloper.pixelplay.presentation.components.DailyMixSection
 import com.theveloper.pixelplay.presentation.components.HomeGradientTopBar
 import com.theveloper.pixelplay.presentation.components.HomeOptionsBottomSheet
@@ -105,7 +109,6 @@ import com.theveloper.pixelplay.presentation.model.collectRecentlyPlayedSongIds
 import com.theveloper.pixelplay.presentation.model.mapRecentlyPlayedSongs
 import com.theveloper.pixelplay.presentation.components.subcomps.PlayingEqIcon
 import com.theveloper.pixelplay.presentation.navigation.Screen
-import com.theveloper.pixelplay.presentation.components.StreamingProviderSheet
 import com.theveloper.pixelplay.presentation.telegram.auth.TelegramLoginActivity
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
 import com.theveloper.pixelplay.presentation.viewmodel.SettingsViewModel
@@ -131,10 +134,6 @@ fun HomeScreen(
     paddingValuesParent: PaddingValues,
     playerViewModel: PlayerViewModel = hiltViewModel(),
     settingsViewModel: SettingsViewModel = hiltViewModel(),
-    neteaseViewModel: NeteaseDashboardViewModel = hiltViewModel(),
-    qqMusicViewModel: QqMusicDashboardViewModel = hiltViewModel(),
-    navidromeViewModel: NavidromeDashboardViewModel = hiltViewModel(),
-    jellyfinViewModel: JellyfinDashboardViewModel = hiltViewModel(),
     onOpenSidebar: () -> Unit
 ) {
     val context = LocalContext.current
@@ -228,7 +227,7 @@ fun HomeScreen(
         yourMixSongs.isNotEmpty() || hasHomeLoadingMinimumElapsed || isBenchmarkMode
     }
 
-    val yourMixSong: String = "Today's Mix for you"
+    val yourMixSubtitle = stringResource(R.string.home_your_mix_subtitle)
 
     // 2) Observar sólo el currentSong (o null) para saber si mostrar padding
     val currentSong by remember(playerViewModel.stablePlayerState) {
@@ -248,18 +247,16 @@ fun HomeScreen(
     val bottomGradientHeight = resolveMainScreenBottomGradientHeight(navBarCompactMode)
 
     var showOptionsBottomSheet by remember { mutableStateOf(false) }
-    var showChangelogBottomSheet by remember { mutableStateOf(false) }
-    var showBetaInfoBottomSheet by remember { mutableStateOf(false) }
-    var showStreamingProviderSheet by remember { mutableStateOf(false) }
     var cleanInstallDisclaimerDismissedThisSession by rememberSaveable { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
-    val betaSheetState = rememberModalBottomSheetState()
     val scope = rememberCoroutineScope()
     LocalContext.current
 
     val homeStatsOverview by statsViewModel.homeOverview.collectAsStateWithLifecycle()
 
-    val listState = rememberSaveable(saver = LazyListState.Saver) { LazyListState() }
+    val listState = rememberSaveable(saver = LazyGridState.Saver) { LazyGridState() }
+    val adaptiveLayout = LocalAdaptiveLayout.current
+    val homeColumns = homeGridColumnCount(adaptiveLayout.usesSideNavigation, adaptiveLayout.minimumContentWidth)
     val density = LocalDensity.current
     val scrollThresholdPx = remember(density) { with(density) { 180.dp.toPx() } }
     val isScrolledPastThreshold = remember {
@@ -312,27 +309,20 @@ fun HomeScreen(
         Scaffold(
             modifier = Modifier.fillMaxSize(),
             topBar = {
-                HomeGradientTopBar(
-                    onNavigationIconClick = {
-                        navController.navigateSafely(Screen.Settings.route)
-                    },
-                    onMoreOptionsClick = {
-                        showChangelogBottomSheet = true
-                    },
-                    onBetaClick = {
-                        showBetaInfoBottomSheet = true
-                    },
-                    onTelegramClick = {
-                         showStreamingProviderSheet = true
-                    },
-                    onMenuClick = {
-                        // onOpenSidebar() // Disabled
-                    },
-                    isScrolled = isScrolledPastThreshold.value
-                )
+                if (adaptiveLayout.usesSideNavigation) {
+                    Spacer(Modifier.fillMaxWidth().windowInsetsTopHeight(WindowInsets.statusBars)
+                        .background(MaterialTheme.colorScheme.background))
+                } else {
+                    HomeGradientTopBar(
+                        onNavigationIconClick = { navController.navigateSafely(Screen.Settings.route) },
+                        isScrolled = isScrolledPastThreshold.value,
+                    )
+                }
             }
         ) { innerPadding ->
-            LazyColumn(
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(homeColumns),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
                 state = listState,
                 modifier = Modifier
                     .fillMaxSize()
@@ -347,7 +337,8 @@ fun HomeScreen(
                 if (yourMixSongs.isEmpty()) {
                     item(
                         key = "your_mix_placeholder",
-                        contentType = "your_mix_placeholder"
+                        contentType = "your_mix_placeholder",
+                        span = { GridItemSpan(maxLineSpan) }
                     ) {
                         if (shouldShowYourMixLoadingPlaceholder) {
                             YourMixLoadingPlaceholder()
@@ -364,10 +355,11 @@ fun HomeScreen(
                 } else {
                     item(
                         key = "your_mix_header",
-                        contentType = "your_mix_header"
+                        contentType = "your_mix_header",
+                        span = { GridItemSpan(maxLineSpan) }
                     ) {
                         YourMixHeader(
-                            song = yourMixSong,
+                            subtitle = yourMixSubtitle,
                             isShuffleEnabled = isShuffleEnabled,
                             onPlayShuffled = {
                                 if (usesFallbackHomeMix) {
@@ -408,7 +400,7 @@ fun HomeScreen(
                             modifier = Modifier.fillMaxWidth(),
                             songs = yourMixSongs,
                             padding = 14.dp,
-                            height = 400.dp,
+                            height = if (homeColumns == 2) 320.dp else 400.dp,
                             pattern = activePattern,
                             onSongClick = { song ->
                                 if (usesFallbackHomeMix) {
@@ -483,7 +475,8 @@ fun HomeScreen(
                 if (homeStatsOverview != null) {
                     item(
                         key = "listening_stats_preview",
-                        contentType = "listening_stats_preview"
+                        contentType = "listening_stats_preview",
+                        span = { GridItemSpan(maxLineSpan) }
                     ) {
                         StatsOverviewCard(
                             summary = homeStatsOverview,
@@ -530,48 +523,6 @@ fun HomeScreen(
                 }
             )
         }
-    }
-    if (showChangelogBottomSheet) {
-        ModalBottomSheet(
-            onDismissRequest = { showChangelogBottomSheet = false },
-            sheetState = sheetState
-        ) {
-            ChangelogBottomSheet()
-        }
-    }
-    if (showBetaInfoBottomSheet) {
-        ModalBottomSheet(
-            onDismissRequest = { showBetaInfoBottomSheet = false },
-            sheetState = betaSheetState,
-            //contentWindowInsets = { WindowInsets.statusBars.only(WindowInsets.statusBars) }
-        ) {
-            BetaInfoBottomSheet()
-        }
-    }
-    if (showStreamingProviderSheet) {
-        val isNeteaseLoggedIn by neteaseViewModel.isLoggedIn.collectAsStateWithLifecycle()
-        val isQqMusicLoggedIn by qqMusicViewModel.isLoggedIn.collectAsStateWithLifecycle()
-        val isNavidromeLoggedIn by navidromeViewModel.isLoggedIn.collectAsStateWithLifecycle()
-        val isJellyfinLoggedIn by jellyfinViewModel.isLoggedIn.collectAsStateWithLifecycle()
-        StreamingProviderSheet(
-            onDismissRequest = { showStreamingProviderSheet = false },
-            isNeteaseLoggedIn = isNeteaseLoggedIn,
-            onNavigateToNeteaseDashboard = {
-                navController.navigateSafely(Screen.NeteaseDashboard.route)
-            },
-            isQqMusicLoggedIn = isQqMusicLoggedIn,
-            onNavigateToQqMusicDashboard = {
-                navController.navigateSafely(Screen.QqMusicDashboard.route)
-            },
-            isNavidromeLoggedIn = isNavidromeLoggedIn,
-            onNavigateToNavidromeDashboard = {
-                navController.navigateSafely(Screen.NavidromeDashboard.route)
-            },
-            isJellyfinLoggedIn = isJellyfinLoggedIn,
-            onNavigateToJellyfinDashboard = {
-                navController.navigateSafely(Screen.JellyfinDashboard.route)
-            }
-        )
     }
     if (shouldShowCleanInstallDisclaimer) {
         Beta05CleanInstallDisclaimerDialog(
@@ -691,25 +642,33 @@ private fun YourMixEmptyPlaceholder(
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun YourMixHeader(
-    song: String,
+    subtitle: String,
     isShuffleEnabled: Boolean = false,
     onPlayShuffled: () -> Unit
 ) {
     val buttonCorners = 68.dp
     val colors = MaterialTheme.colorScheme
 
-    val titleStyle = rememberYourMixTitleStyle()
+    val adaptiveLayout = LocalAdaptiveLayout.current
+    val titleStyle = rememberYourMixTitleStyle().let {
+        if (adaptiveLayout.usesSideNavigation) it.copy(fontSize = 48.sp, lineHeight = 48.sp) else it
+    }
 
-    Box(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(256.dp)
+            .heightIn(min = if (adaptiveLayout.usesSideNavigation) 180.dp else 256.dp)
             .padding(16.dp)
     ) {
         Column(
             modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(top = 48.dp, start = 12.dp)
+                .weight(1f)
+                .padding(
+                    top = if (adaptiveLayout.usesSideNavigation) 24.dp else 48.dp,
+                    start = 12.dp,
+                    end = 16.dp,
+                    bottom = 8.dp,
+                )
         ) {
             // Your Mix Title
             Text(
@@ -719,18 +678,18 @@ fun YourMixHeader(
                 modifier = Modifier
             )
 
-            // Artist/Song subtitle
+            // The header grows with the text, including larger system font scales.
             Text(
-                text = song,
+                text = subtitle,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                modifier = Modifier.padding(start = 8.dp)
+                modifier = Modifier.padding(top = 4.dp)
             )
         }
         // Play Button - color changes based on shuffle state
         LargeExtendedFloatingActionButton(
             modifier = Modifier
-                .align(Alignment.BottomEnd)
+                .align(Alignment.Bottom)
                 .padding(end = 12.dp),
             onClick = onPlayShuffled,
             containerColor = if (isShuffleEnabled) colors.primary else colors.tertiaryContainer,
@@ -867,10 +826,11 @@ private fun rememberYourMixTitleStyle(): TextStyle {
     return remember {
         TextStyle(
             fontFamily = FontFamily(
-                Font(
+                GoogleSansNunitoFont(
                     resId = R.font.gflex_variable,
+                    weight = FontWeight.ExtraBold,
                     variationSettings = FontVariation.Settings(
-                        FontVariation.weight(636),
+                        FontVariation.weight(850),
                         FontVariation.width(152f),
                         FontVariation.Setting("ROND", 50f),
                         FontVariation.Setting("XTRA", 520f),
@@ -879,7 +839,7 @@ private fun rememberYourMixTitleStyle(): TextStyle {
                     )
                 )
             ),
-            fontWeight = FontWeight(760),
+            fontWeight = FontWeight.ExtraBold,
             fontSize = 64.sp,
             lineHeight = 62.sp
         )

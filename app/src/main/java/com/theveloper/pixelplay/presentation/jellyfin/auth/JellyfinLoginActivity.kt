@@ -74,6 +74,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
+import com.theveloper.pixelplay.presentation.adaptive.AdaptiveScreenContent
 import com.theveloper.pixelplay.ui.theme.PixelPlayTheme
 import dagger.hilt.android.AndroidEntryPoint
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
@@ -86,7 +87,9 @@ class JellyfinLoginActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             PixelPlayTheme {
-                JellyfinLoginScreen(onClose = { finish() })
+                AdaptiveScreenContent(maxWidth = 600f) {
+                    JellyfinLoginScreen(onClose = { finish() })
+                }
             }
         }
     }

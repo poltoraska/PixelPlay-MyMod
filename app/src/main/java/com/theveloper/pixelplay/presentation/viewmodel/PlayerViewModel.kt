@@ -1056,7 +1056,7 @@ class PlayerViewModel @Inject constructor(
         userPreferencesRepository.lastLibraryTabIndexFlow.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
-            initialValue = 0 // Default to Songs tab
+            initialValue = 0 // First tab in the configured order (Albums by default)
         )
 
     val libraryTabsFlow: StateFlow<List<String>> = userPreferencesRepository.libraryTabsOrderFlow
@@ -1065,18 +1065,18 @@ class PlayerViewModel @Inject constructor(
                 try {
                     Json.decodeFromString<List<String>>(orderJson)
                 } catch (e: Exception) {
-                    listOf("SONGS", "ALBUMS", "ARTIST", "PLAYLISTS", "FOLDERS", "LIKED")
+                    LibraryTabId.defaultOrder
                 }
             } else {
-                listOf("SONGS", "ALBUMS", "ARTIST", "PLAYLISTS", "FOLDERS", "LIKED")
+                LibraryTabId.defaultOrder
             }
         }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), listOf("SONGS", "ALBUMS", "ARTIST", "PLAYLISTS", "FOLDERS", "LIKED"))
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), LibraryTabId.defaultOrder)
 
     private val _loadedTabs = MutableStateFlow(emptySet<String>())
     private var lastBlockedDirectories: Set<String>? = null
 
-    private val _currentLibraryTabId = MutableStateFlow(LibraryTabId.SONGS)
+    private val _currentLibraryTabId = MutableStateFlow(LibraryTabId.ALBUMS)
     val currentLibraryTabId: StateFlow<LibraryTabId> = _currentLibraryTabId.asStateFlow()
 
     private val _isSortingSheetVisible = MutableStateFlow(false)
@@ -1100,7 +1100,7 @@ class PlayerViewModel @Inject constructor(
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
-            initialValue = SortOption.SONGS
+            initialValue = SortOption.ALBUMS
         )
 
     val isSyncingStateFlow: StateFlow<Boolean> = syncManager.isSyncing
@@ -3047,7 +3047,7 @@ class PlayerViewModel @Inject constructor(
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
-            initialValue = true
+            initialValue = false
         )
 
     fun toggleGenreViewMode() {

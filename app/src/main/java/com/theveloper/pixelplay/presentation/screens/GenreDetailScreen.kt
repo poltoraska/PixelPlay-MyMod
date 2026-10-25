@@ -1,5 +1,7 @@
 package com.theveloper.pixelplay.presentation.screens
 
+import com.theveloper.pixelplay.presentation.adaptive.LocalLibraryDetailPane
+
 import com.theveloper.pixelplay.presentation.navigation.navigateSafely
 import com.theveloper.pixelplay.presentation.navigation.navigateSafelyReplacing
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -144,7 +146,11 @@ fun GenreDetailScreen(
     val coroutineScope = rememberCoroutineScope()
     val lazyListState = rememberLazyListState()
 
-    val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val statusBarHeight = if (LocalLibraryDetailPane.current) {
+        0.dp
+    } else {
+        WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    }
     val systemNavBarInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val minTopBarHeight = 58.dp + statusBarHeight // Reduced by 6dp from 64.dp
     val maxTopBarHeight = 200.dp
@@ -806,25 +812,27 @@ fun GenreCollapsibleTopBar(
         )
 
         Box(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
-             FilledIconButton(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(start = 12.dp, top = 4.dp)
-                    .zIndex(10f),
-                onClick = onBackPressed,
-                colors = IconButtonDefaults.filledIconButtonColors(
-                    containerColor = animatedContentColor.copy(alpha = 0.1f),
-                    contentColor = animatedContentColor
-                )
-            ) {
-                Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.common_back), tint = animatedContentColor)
+            if (!LocalLibraryDetailPane.current) {
+                FilledIconButton(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(start = 12.dp, top = 4.dp)
+                        .zIndex(10f),
+                    onClick = onBackPressed,
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = animatedContentColor.copy(alpha = 0.1f),
+                        contentColor = animatedContentColor
+                    )
+                ) {
+                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.common_back), tint = animatedContentColor)
+                }
             }
 
             ExpressiveTopBarContent(
                 title = title,
                 collapseFraction = collapseFraction,
                 modifier = Modifier.fillMaxSize(),
-                collapsedTitleStartPadding = 68.dp,
+                collapsedTitleStartPadding = if (LocalLibraryDetailPane.current) 20.dp else 68.dp,
                 expandedTitleStartPadding = 20.dp,
                 maxLines = 1,
                 contentColor = animatedContentColor

@@ -1,5 +1,7 @@
 package com.theveloper.pixelplay.presentation.screens
 
+import com.theveloper.pixelplay.presentation.adaptive.AdaptiveScreenContent
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -81,6 +83,7 @@ fun LibrarySongsTab(
     storageFilter: StorageFilter = StorageFilter.ALL,
     hasCurrentSong: Boolean = false
 ) {
+    AdaptiveScreenContent(maxWidth = 840f) {
     val listState = rememberLazyListState()
     val dummyListState = rememberLazyListState()
     val pullToRefreshState = rememberPullToRefreshState()
@@ -383,5 +386,6 @@ fun LibrarySongsTab(
                 }
             }
         }
+    }
     }
 }

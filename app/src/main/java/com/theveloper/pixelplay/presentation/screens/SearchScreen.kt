@@ -1,5 +1,9 @@
 package com.theveloper.pixelplay.presentation.screens
 
+import com.theveloper.pixelplay.presentation.adaptive.LocalAdaptiveLayout
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import com.theveloper.pixelplay.presentation.navigation.navigateSafely
 import com.theveloper.pixelplay.presentation.navigation.navigateSafelyReplacing
 
@@ -170,7 +174,7 @@ fun SearchScreen(
     val statusBarTopInset = WindowInsets.systemBars.asPaddingValues().calculateTopPadding()
     val systemNavBarInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val navBarCompactMode by playerViewModel.navBarCompactMode.collectAsStateWithLifecycle()
-    val bottomBarHeightDp = resolveNavBarOccupiedHeight(systemNavBarInset, navBarCompactMode)
+    val bottomBarHeightDp = if (LocalAdaptiveLayout.current.usesSideNavigation) systemNavBarInset else resolveNavBarOccupiedHeight(systemNavBarInset, navBarCompactMode)
     val bottomGradientHeight = resolveMainScreenBottomGradientHeight(navBarCompactMode)
     var showPlaylistBottomSheet by remember { mutableStateOf(false) }
     val context = LocalContext.current
@@ -1153,9 +1157,12 @@ fun SearchResultsList(
     )
 
     val imePadding = WindowInsets.ime.getBottom(localDensity).dp
-    val systemBarPaddingBottom = WindowInsets.systemBars.asPaddingValues().calculateBottomPadding() + 94.dp
+    val systemBarPaddingBottom = WindowInsets.systemBars.asPaddingValues().calculateBottomPadding() +
+        if (LocalAdaptiveLayout.current.usesSideNavigation) 16.dp else 94.dp
 
-    LazyColumn(
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(if (LocalAdaptiveLayout.current.usesTwoColumns) 2 else 1),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
         modifier = Modifier
             .fillMaxSize()
             .clip(
@@ -1173,7 +1180,7 @@ fun SearchResultsList(
             val itemsForSection = groupedResults[filterType] ?: emptyList()
 
             if (itemsForSection.isNotEmpty()) {
-                item(key = "header_${filterType.name}") {
+                item(key = "header_${filterType.name}", span = { GridItemSpan(maxLineSpan) }) {
                     SearchResultSectionHeader(
                         title = when (filterType) {
                             SearchFilterType.SONGS -> "Songs"

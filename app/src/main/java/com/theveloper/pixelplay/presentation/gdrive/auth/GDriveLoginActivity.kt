@@ -39,6 +39,7 @@ import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.theveloper.pixelplay.data.gdrive.GDriveConstants
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
+import com.theveloper.pixelplay.presentation.adaptive.AdaptiveScreenContent
 import com.theveloper.pixelplay.ui.theme.PixelPlayTheme
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -54,7 +55,9 @@ class GDriveLoginActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             PixelPlayTheme {
-                GDriveLoginScreen(onClose = { finish() })
+                AdaptiveScreenContent(maxWidth = 600f) {
+                    GDriveLoginScreen(onClose = { finish() })
+                }
             }
         }
     }

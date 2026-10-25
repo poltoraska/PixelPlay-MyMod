@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import com.theveloper.pixelplay.presentation.adaptive.LocalAdaptiveLayout
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -96,7 +97,9 @@ fun GenreCategoriesGrid(
     val navBarCompactMode by playerViewModel.navBarCompactMode.collectAsStateWithLifecycle()
 
     LazyVerticalGrid(
-        columns = if (isGridView) GridCells.Fixed(2) else GridCells.Fixed(1),
+        columns = if (isGridView) {
+            if (LocalAdaptiveLayout.current.usesSideNavigation) GridCells.Adaptive(180.dp) else GridCells.Fixed(2)
+        } else GridCells.Fixed(1),
         modifier = modifier
             .fillMaxSize()
             .padding(horizontal = 18.dp)
@@ -112,7 +115,7 @@ fun GenreCategoriesGrid(
             )),
         contentPadding = PaddingValues(
             top = 8.dp,
-            bottom = 28.dp + resolveNavBarOccupiedHeight(systemNavBarHeight, navBarCompactMode) + MiniPlayerHeight
+            bottom = 28.dp + (if (LocalAdaptiveLayout.current.usesSideNavigation) systemNavBarHeight else resolveNavBarOccupiedHeight(systemNavBarHeight, navBarCompactMode)) + MiniPlayerHeight
         ),
         verticalArrangement = Arrangement.spacedBy(12.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp)

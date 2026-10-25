@@ -98,8 +98,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.theveloper.pixelplay.presentation.model.localizedDisplayName
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.equalizer.EqualizerPreset
+import com.theveloper.pixelplay.presentation.adaptive.settingsPaneHeaderHeight
 import com.theveloper.pixelplay.presentation.components.CollapsibleCommonTopBar
 import com.theveloper.pixelplay.presentation.components.ExpressiveTopBarContent
 import com.theveloper.pixelplay.presentation.viewmodel.EqualizerViewModel
@@ -178,7 +180,7 @@ fun EqualizerScreen(
     
     renameTarget?.let { preset ->
         RenamePresetDialog(
-            currentName = preset.displayName,
+            currentName = preset.localizedDisplayName(),
             onDismiss = { renameTarget = null },
             onRename = { newName ->
                 equalizerViewModel.renameCustomPreset(preset.name, newName)
@@ -228,22 +230,24 @@ fun EqualizerScreen(
     val lazyListState = rememberLazyListState()
     
     val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    val minTopBarHeight = 64.dp + statusBarHeight
-    val maxTopBarHeight = 180.dp
+    val paneHeaderHeight = settingsPaneHeaderHeight(stringResource(R.string.settings_category_equalizer_title))
+    val minTopBarHeight = paneHeaderHeight ?: (64.dp + statusBarHeight)
+    val maxTopBarHeight = paneHeaderHeight ?: (180.dp)
     
     val minTopBarHeightPx = with(density) { minTopBarHeight.toPx() }
     val maxTopBarHeightPx = with(density) { maxTopBarHeight.toPx() }
     
-    val topBarHeight = remember { Animatable(maxTopBarHeightPx) }
+    val topBarHeight = remember(minTopBarHeightPx, maxTopBarHeightPx) { Animatable(maxTopBarHeightPx) }
     var collapseFraction by remember { mutableFloatStateOf(0f) }
     
     LaunchedEffect(topBarHeight.value) {
-        collapseFraction = 1f - ((topBarHeight.value - minTopBarHeightPx) / (maxTopBarHeightPx - minTopBarHeightPx)).coerceIn(0f, 1f)
+        collapseFraction = 1f - ((topBarHeight.value - minTopBarHeightPx) / (maxTopBarHeightPx - minTopBarHeightPx).coerceAtLeast(1f)).coerceIn(0f, 1f)
     }
     
-    val nestedScrollConnection = remember {
+    val nestedScrollConnection = remember(minTopBarHeightPx, maxTopBarHeightPx) {
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                if (minTopBarHeightPx == maxTopBarHeightPx) return Offset.Zero
                 val delta = available.y
                 val isScrollingDown = delta < 0
                 
@@ -490,7 +494,7 @@ private fun PresetTabsRow(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = preset.displayName,
+                        text = preset.localizedDisplayName(),
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = if (selectedIndex == index) FontWeight.Bold else FontWeight.Medium
                     )
@@ -566,7 +570,7 @@ private fun BandSlidersSection(
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
             ) {
                  val isCustomOrSaved = editingPresetName != null || currentPreset.name == "custom" || currentPreset.isCustom
-                 val displayLabel = editingPresetName ?: currentPreset.displayName
+                 val displayLabel = editingPresetName ?: currentPreset.localizedDisplayName()
                  
                  Surface(
                     color = MaterialTheme.colorScheme.secondaryContainer,
@@ -1777,7 +1781,7 @@ private fun HybridHorizontalSlider(
 
         // Value Label
         Text(
-            text = (if (level > 0) "+$level" else "$level") + "dB",
+            text = stringResource(R.string.settings_equalizer_decibels, if (level > 0) "+$level" else "$level"),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             color = if (level != 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,

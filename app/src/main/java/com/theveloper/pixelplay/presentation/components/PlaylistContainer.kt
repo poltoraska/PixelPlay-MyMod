@@ -78,6 +78,7 @@ import com.theveloper.pixelplay.data.model.Playlist
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.model.SortOption
 import com.theveloper.pixelplay.presentation.navigation.Screen
+import com.theveloper.pixelplay.presentation.navigation.navigateLibraryDetailSafely
 import com.theveloper.pixelplay.presentation.screens.PlayerSheetCollapsedCornerRadius
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
 import com.theveloper.pixelplay.presentation.viewmodel.PlaylistUiState
@@ -304,7 +305,7 @@ fun PlaylistItems(
                         } else if (isSelectionMode) {
                             onPlaylistSelectionToggle(playlist)
                         } else {
-                            navController?.navigateSafely(Screen.PlaylistDetail.createRoute(playlist.id))
+                            navController?.navigateLibraryDetailSafely(Screen.PlaylistDetail.createRoute(playlist.id), Screen.PlaylistDetail.route)
                         }
                     }
                 }

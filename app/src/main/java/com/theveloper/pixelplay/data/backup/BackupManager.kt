@@ -51,13 +51,13 @@ class BackupManager @Inject constructor(
             var step = 0
 
             reportProgress(onProgress, BackupOperationType.EXPORT, ++step, totalSteps,
-                "Preparing backup", "Building your selected backup sections.")
+                context.getString(com.theveloper.pixelplay.R.string.settings_backup_stage_preparing), context.getString(com.theveloper.pixelplay.R.string.settings_backup_stage_preparing_detail))
 
             // Collect module payloads
             val modulePayloads = mutableMapOf<String, String>()
             selectedSections.forEach { section ->
                 reportProgress(onProgress, BackupOperationType.EXPORT, ++step, totalSteps,
-                    "Collecting ${section.label}", section.description, section)
+                    context.getString(com.theveloper.pixelplay.R.string.settings_backup_stage_collecting, context.getString(section.labelRes)), context.getString(section.descriptionRes), section)
                 val handler = handlers[section]
                     ?: throw IllegalStateException("No handler for module ${section.key}")
                 modulePayloads[section.key] = handler.export()
@@ -86,12 +86,12 @@ class BackupManager @Inject constructor(
             )
 
             reportProgress(onProgress, BackupOperationType.EXPORT, ++step, totalSteps,
-                "Packaging backup", "Creating .pxpl archive.")
+                context.getString(com.theveloper.pixelplay.R.string.settings_backup_stage_packaging), context.getString(com.theveloper.pixelplay.R.string.settings_backup_stage_packaging_detail))
 
             backupWriter.write(uri, manifest, modulePayloads).getOrThrow()
 
             reportProgress(onProgress, BackupOperationType.EXPORT, ++step, totalSteps,
-                "Backup complete", "Your PixelPlay backup was created successfully.")
+                context.getString(com.theveloper.pixelplay.R.string.settings_backup_stage_complete), context.getString(com.theveloper.pixelplay.R.string.settings_backup_stage_complete_detail))
         }
     }
 

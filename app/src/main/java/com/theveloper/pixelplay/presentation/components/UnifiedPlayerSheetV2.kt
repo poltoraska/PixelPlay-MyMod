@@ -17,6 +17,11 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.ui.layout.layout
@@ -45,6 +50,12 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.util.VelocityTracker
+import com.theveloper.pixelplay.presentation.components.player.LocalTabletPlayerQueuePane
+import androidx.compose.runtime.CompositionLocalProvider
+import com.theveloper.pixelplay.presentation.components.player.TabletPlayerQueuePane
+import com.theveloper.pixelplay.presentation.components.player.tabletQueuePaneWidth
+import com.theveloper.pixelplay.presentation.adaptive.usesLandscapeCassettePlayer
+import com.theveloper.pixelplay.presentation.adaptive.LocalAdaptiveLayout
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -223,8 +234,20 @@ fun UnifiedPlayerSheetV2(
     val scope = rememberCoroutineScope()
 
     val offsetAnimatable = remember { Animatable(0f) }
-    val screenWidthPx = remember(configuration, density) {
-        with(density) { configuration.screenWidthDp.dp.toPx() }
+    val adaptiveLayout = LocalAdaptiveLayout.current
+    val landscapeCassette = usesLandscapeCassettePlayer(
+        configuration.smallestScreenWidthDp,
+        configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE,
+        adaptiveLayout.isTabletop,
+    )
+    val isTabletPlayer = adaptiveLayout.usesSideNavigation && !landscapeCassette
+    val tabletTopInset = if (isTabletPlayer) {
+        WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 8.dp
+    } else 0.dp
+    val playerViewportHeight = (containerHeight - tabletTopInset).coerceAtLeast(0.dp)
+    val availableWidth = LocalAdaptiveLayout.current.contentWidth.takeIf { it > 0f } ?: configuration.screenWidthDp.toFloat()
+    val screenWidthPx = remember(availableWidth, density) {
+        with(density) { availableWidth.dp.toPx() }
     }
     val dismissThresholdPx = remember(screenWidthPx) { screenWidthPx * 0.4f }
     val swipeDismissProgress by remember(dismissThresholdPx) {
@@ -234,8 +257,8 @@ fun UnifiedPlayerSheetV2(
         }
     }
 
-    val screenHeightPx = remember(configuration, density) {
-        with(density) { configuration.screenHeightDp.dp.toPx() }
+    val screenHeightPx = remember(containerHeight, density) {
+        with(density) { containerHeight.toPx() }
     }
     val miniPlayerContentHeightPx = remember { with(density) { MiniPlayerHeight.toPx() } }
 
@@ -256,7 +279,7 @@ fun UnifiedPlayerSheetV2(
     val motionScheme = remember { MotionScheme.expressive() }
     val sheetAnimationSpec = remember { motionScheme.defaultSpatialSpec<Float>() }
     val sheetAnimationMutex = remember { MutatorMutex() }
-    val sheetExpandedTargetY = 0f
+    val sheetExpandedTargetY = with(density) { tabletTopInset.toPx() }
     val initialY =
         if (currentSheetContentState == PlayerSheetState.COLLAPSED) sheetCollapsedTargetY
         else sheetExpandedTargetY
@@ -265,7 +288,8 @@ fun UnifiedPlayerSheetV2(
         currentSheetTranslationY,
         playerContentExpansionFraction,
         sheetAnimationMutex,
-        sheetAnimationSpec
+        sheetAnimationSpec,
+        sheetExpandedTargetY,
     ) {
         SheetMotionController(
             translationY = currentSheetTranslationY,
@@ -408,7 +432,10 @@ fun UnifiedPlayerSheetV2(
     val baseBottomPadding = sheetVisualState.baseBottomPadding
     val playerContentAreaHeightPxProvider = sheetVisualState.playerContentAreaHeightPxProvider
     val visualSheetTranslationYProvider = sheetVisualState.visualSheetTranslationYProvider
-    val overallSheetTopCornerRadiusProvider = sheetVisualState.overallSheetTopCornerRadiusProvider
+    val baseTopCornerRadiusProvider = sheetVisualState.overallSheetTopCornerRadiusProvider
+    val overallSheetTopCornerRadiusProvider = remember(isTabletPlayer, baseTopCornerRadiusProvider) {
+        { if (isTabletPlayer) maxOf(32.dp, baseTopCornerRadiusProvider()) else baseTopCornerRadiusProvider() }
+    }
     val playerContentActualBottomRadiusProvider = sheetVisualState.playerContentActualBottomRadiusProvider
     val currentHorizontalPaddingStartPxProvider = sheetVisualState.currentHorizontalPaddingStartPxProvider
     val currentHorizontalPaddingEndPxProvider = sheetVisualState.currentHorizontalPaddingEndPxProvider
@@ -515,11 +542,22 @@ fun UnifiedPlayerSheetV2(
     val internalIsKeyboardVisible = sheetOverlayState.internalIsKeyboardVisible
     val actuallyShowSheetContent = sheetOverlayState.actuallyShowSheetContent
     val isQueueVisible = sheetOverlayState.isQueueVisible
-    val bottomSheetOpenFraction = sheetOverlayState.bottomSheetOpenFraction
+    // An adjacent queue must keep the left player active, without modal dim/scale effects.
+    val bottomSheetOpenFraction = if (isTabletPlayer) castSheetState.castSheetOpenFraction
+        else sheetOverlayState.bottomSheetOpenFraction
+    val tabletQueuePane = TabletPlayerQueuePane(
+        width = if (isTabletPlayer) tabletQueuePaneWidth(availableWidth) else 0f,
+        openFraction = sheetOverlayState.queueVisualOpenFraction,
+        viewportTop = tabletTopInset.value,
+    )
+    val onQueueButtonClick: () -> Unit = {
+        if (isTabletPlayer && showQueueSheet) sheetActionHandlers.animateQueueSheet(false)
+        else sheetActionHandlers.openQueueSheet()
+    }
     val queueScrimAlpha = sheetOverlayState.queueScrimAlpha
-    val shouldRenderQueueHost by remember(internalIsKeyboardVisible, selectedSongForInfo) {
+    val shouldRenderQueueHost by remember(isTabletPlayer, internalIsKeyboardVisible, selectedSongForInfo) {
         derivedStateOf {
-            !internalIsKeyboardVisible || selectedSongForInfo != null
+            isTabletPlayer || !internalIsKeyboardVisible || selectedSongForInfo != null
         }
     }
     val isQueueTelemetryActive = showQueueSheet
@@ -617,11 +655,14 @@ fun UnifiedPlayerSheetV2(
             (infrequentPlayerState.currentSong?.title ?: "")
     }
 
+    CompositionLocalProvider(LocalTabletPlayerQueuePane provides tabletQueuePane) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .layout { measurable, constraints ->
-                val translationY = visualSheetTranslationYProvider().roundToInt()
+                val rawTranslation = visualSheetTranslationYProvider()
+                val translationY = (if (isTabletPlayer) maxOf(rawTranslation, sheetExpandedTargetY)
+                    else rawTranslation).roundToInt()
                 val overshoot = if (currentSheetContentState == PlayerSheetState.EXPANDED && !isDragging) {
                     -translationY
                 } else {
@@ -639,6 +680,7 @@ fun UnifiedPlayerSheetV2(
                 }
             },
         shadowElevation = 0.dp,
+        shape = if (isTabletPlayer) RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp) else RectangleShape,
         color = Color.Transparent
     ) {
         Box(
@@ -705,7 +747,7 @@ fun UnifiedPlayerSheetV2(
                             // clip/background/shadow so that they are perfectly constrained to the miniplayer card bounds.
                             // During drag/animation, we measure at stable full-screen constraints to prevent jank.
                             .layout { measurable, constraints ->
-                                val targetContentHeightPx = containerHeight.roundToPx()
+                                val targetContentHeightPx = playerViewportHeight.roundToPx()
                                 val fraction = playerContentExpansionFraction.value
                                 val startPaddingPx = currentHorizontalPaddingStartPxProvider().toInt()
                                 val measureWidth = if (fraction > 0f) {
@@ -756,7 +798,7 @@ fun UnifiedPlayerSheetV2(
                             albumColorScheme = albumColorScheme,
                             bottomSheetOpenFraction = bottomSheetOpenFraction,
                             fullPlayerVisualState = fullPlayerVisualState,
-                            containerHeight = containerHeight,
+                            containerHeight = playerViewportHeight,
                             currentQueueSourceName = currentQueueSourceName,
                             currentSheetContentState = currentSheetContentState,
                             carouselStyle = carouselStyle,
@@ -768,7 +810,7 @@ fun UnifiedPlayerSheetV2(
                             shouldRenderFullPlayer = shouldRenderFullPlayer,
                             currentHorizontalPaddingStartPxProvider = currentHorizontalPaddingStartPxProvider,
                             currentHorizontalPaddingEndPxProvider = currentHorizontalPaddingEndPxProvider,
-                            onShowQueueClicked = sheetActionHandlers.openQueueSheet,
+                            onShowQueueClicked = onQueueButtonClick,
                             onQueueDragStart = sheetActionHandlers.beginQueueDrag,
                             onQueueDrag = sheetActionHandlers.dragQueueBy,
                             onQueueRelease = sheetActionHandlers.endQueueDrag,
@@ -780,7 +822,7 @@ fun UnifiedPlayerSheetV2(
                 UnifiedPlayerPrewarmLayer(
                     prewarmFullPlayer = prewarmFullPlayer && !shouldRenderFullPlayer,
                     currentSong = infrequentPlayerState.currentSong,
-                    containerHeight = containerHeight,
+                    containerHeight = playerViewportHeight,
                     albumColorScheme = albumColorScheme,
                     currentQueueSourceName = currentQueueSourceName,
                     infrequentPlayerState = infrequentPlayerState,
@@ -790,7 +832,7 @@ fun UnifiedPlayerSheetV2(
                     currentPositionProvider = positionToDisplayProvider,
                     isCastConnecting = isCastConnecting,
                     isFavorite = isFavorite,
-                    onShowQueueClicked = sheetActionHandlers.openQueueSheet,
+                    onShowQueueClicked = onQueueButtonClick,
                     onQueueDragStart = sheetActionHandlers.beginQueueDrag,
                     onQueueDrag = sheetActionHandlers.dragQueueBy,
                     onQueueRelease = sheetActionHandlers.endQueueDrag
@@ -865,6 +907,7 @@ fun UnifiedPlayerSheetV2(
                 queuePredictiveBackSwipeEdge = queuePredictiveBackSwipeEdgeState
             )
         }
+    }
     }
 
     UnifiedPlayerCastLayer(

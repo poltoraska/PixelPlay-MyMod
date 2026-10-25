@@ -31,6 +31,7 @@ import androidx.media3.common.Player
 import androidx.media3.common.Timeline
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.CommandButton
+import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.LibraryResult
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
@@ -887,10 +888,12 @@ class MusicService : MediaLibraryService() {
             .setBitmapLoader(CoilBitmapLoader(this, serviceScope))
             .build()
 
-        val localOnlyProvider = LocalOnlyMediaNotificationProvider(this).also {
+        // Keep the MediaStyle notification eligible for the system Wear OS remote,
+        // including Media3's asynchronous large-icon updates from the session bitmap loader.
+        val notificationProvider = DefaultMediaNotificationProvider.Builder(this).build().also {
             it.setSmallIcon(R.drawable.monochrome_player)
         }
-        setMediaNotificationProvider(localOnlyProvider)
+        setMediaNotificationProvider(notificationProvider)
         if (temporaryForegroundStartedInOnCreate) {
             serviceScope.launch {
                 delay(2_000L)

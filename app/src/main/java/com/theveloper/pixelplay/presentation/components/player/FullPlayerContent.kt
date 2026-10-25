@@ -29,6 +29,8 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -43,6 +45,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -79,9 +82,15 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import com.theveloper.pixelplay.presentation.adaptive.usesLandscapeCassettePlayer
+import com.theveloper.pixelplay.presentation.adaptive.LocalAdaptiveLayout
+import com.theveloper.pixelplay.presentation.adaptive.calculateTabletopPlayerLayout
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -324,8 +333,17 @@ fun FullPlayerContent(
     val placeholderColor = playerOnBaseColor.copy(alpha = 0.1f)
     val placeholderOnColor = playerOnBaseColor.copy(alpha = 0.2f)
 
-    val isLandscape =
-        LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val layout = LocalAdaptiveLayout.current
+    val configuration = LocalConfiguration.current
+    val landscapeCassette = usesLandscapeCassettePlayer(
+        configuration.smallestScreenWidthDp,
+        configuration.orientation == Configuration.ORIENTATION_LANDSCAPE,
+        layout.isTabletop,
+    )
+    val isTabletPlayer = layout.usesSideNavigation && !landscapeCassette
+    val tabletQueuePane = LocalTabletPlayerQueuePane.current
+    val isLandscape = !isTabletPlayer && if (layout.contentWidth > 0f) layout.usesHorizontalPlayer
+        else LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
 
     // Lógica para el botón de Lyrics en el reproductor expandido
@@ -563,7 +581,8 @@ fun FullPlayerContent(
             isFavoriteProvider = isFavoriteProvider,
             onShuffleToggle = onShuffleToggle,
             onRepeatToggle = onRepeatToggle,
-            onFavoriteToggle = onFavoriteToggle
+            onFavoriteToggle = onFavoriteToggle,
+            compact = isTabletPlayer && layout.isTabletop,
         )
     }
 
@@ -615,7 +634,10 @@ fun FullPlayerContent(
 
     Scaffold(
         containerColor = Color.Transparent,
-        modifier = Modifier.pointerInput(currentSheetState, queueGestureBottomExclusionPx) {
+        contentWindowInsets = if (isTabletPlayer) WindowInsets.navigationBars
+            else androidx.compose.material3.ScaffoldDefaults.contentWindowInsets,
+        modifier = Modifier.pointerInput(currentSheetState, queueGestureBottomExclusionPx, isTabletPlayer) {
+            if (isTabletPlayer) return@pointerInput
             val queueDragActivationThresholdPx = 4.dp.toPx()
             val quickFlickVelocityThreshold = -520f
 
@@ -671,9 +693,21 @@ fun FullPlayerContent(
             }
         },
         topBar = {
+            if (isTabletPlayer) {
+                val collapseLabel = stringResource(R.string.common_back)
+                Box(
+                    Modifier.fillMaxWidth().height(28.dp)
+                        .semantics { contentDescription = collapseLabel }
+                        .clickable(role = Role.Button, onClick = onCollapse),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Box(Modifier.size(40.dp, 4.dp).clip(RoundedCornerShape(2.dp))
+                        .background(playerOnBaseColor.copy(alpha = 0.35f)))
+                }
+            }
             // MD3: TopAppBar 在竖屏时滑入，横屏时向上滑出淡出
             AnimatedVisibility(
-                visible = !isLandscape,
+                visible = !isTabletPlayer && !isLandscape,
                 enter = fadeIn(animationSpec = tween(350, easing = FastOutSlowInEasing)) +
                         slideInVertically(
                             initialOffsetY = { -it / 2 },
@@ -911,7 +945,43 @@ fun FullPlayerContent(
                 .fillMaxSize()
                 .graphicsLayer { alpha = contentAlpha }
         ) {
-            if (isLandscape) {
+            if (landscapeCassette) {
+                LandscapeCassettePlayer(
+                    song = song,
+                    paddingValues = paddingValues,
+                    colors = LocalMaterialTheme.current,
+                    isPlayingProvider = isPlayingProvider,
+                    isFavoriteProvider = isFavoriteProvider,
+                    isShuffleEnabled = isShuffleEnabledProvider(),
+                    repeatMode = repeatModeProvider(),
+                    shuffleEnabled = !shuffleTransitionInProgress,
+                    isCastConnecting = isCastConnecting,
+                    animateReels = allowRealtimeUpdates && !isSheetDragGestureActive &&
+                        currentSheetState == PlayerSheetState.EXPANDED,
+                    progressSection = playerProgressSection,
+                    onPlayPause = onPlayPause,
+                    onPrevious = onPreviousWithOptimisticCarousel,
+                    onNext = onNextWithOptimisticCarousel,
+                    onShuffle = onShuffleToggle,
+                    onRepeat = onRepeatToggle,
+                    onFavorite = onFavoriteToggle,
+                    onAlbum = { playerViewModel.triggerAlbumNavigationFromPlayer(song.albumId) },
+                    onArtist = onSongMetadataArtistClick,
+                    onLyrics = onLyricsClick,
+                    onQueue = onSongMetadataQueueClick,
+                    onCast = onShowCastClicked,
+                    onCollapse = onCollapse,
+                )
+            } else if (isTabletPlayer) {
+                FullPlayerTabletContent(
+                    paddingValues = paddingValues,
+                    queuePane = tabletQueuePane,
+                    albumCoverSection = albumCoverSection,
+                    songMetadataSection = landscapeSongMetadataSection,
+                    playerProgressSection = playerProgressSection,
+                    controlsSection = controlsSection,
+                )
+            } else if (isLandscape) {
                 FullPlayerLandscapeContent(
                     paddingValues = paddingValues,
                     albumCoverSection = albumCoverSection,
@@ -1126,7 +1196,8 @@ private fun FullPlayerControlsSection(
     isFavoriteProvider: () -> Boolean,
     onShuffleToggle: () -> Unit,
     onRepeatToggle: () -> Unit,
-    onFavoriteToggle: () -> Unit
+    onFavoriteToggle: () -> Unit,
+    compact: Boolean = false,
 ) {
     val motionScheme = remember { MotionScheme.expressive() }
     val controlSpatialSpec = remember { motionScheme.fastSpatialSpec<Float>() }
@@ -1138,7 +1209,7 @@ private fun FullPlayerControlsSection(
         applyPlaceholderDelayOnClose = loadingTweaks.applyPlaceholdersOnClose,
         switchOnDragRelease = loadingTweaks.switchOnDragRelease,
         isSheetDragGestureActive = isSheetDragGestureActive,
-        sharedBoundsModifier = Modifier.fillMaxWidth().height(182.dp),
+        sharedBoundsModifier = Modifier.fillMaxWidth().height(if (compact) 144.dp else 182.dp),
         expansionFractionProvider = expansionFractionProvider,
         isExpandedOverride = currentSheetState == PlayerSheetState.EXPANDED,
         normalStartThreshold = 0.42f,
@@ -1146,9 +1217,9 @@ private fun FullPlayerControlsSection(
         delayCloseThreshold = 1f - (loadingTweaks.contentCloseThresholdPercent / 100f),
         placeholder = {
             if (loadingTweaks.transparentPlaceholders) {
-                Box(Modifier.fillMaxWidth().height(182.dp))
+                Box(Modifier.fillMaxWidth().height(if (compact) 144.dp else 182.dp))
             } else {
-                ControlsPlaceholder(placeholderColor, placeholderOnColor)
+                ControlsPlaceholder(placeholderColor, placeholderOnColor, compact)
             }
         }
     ) {
@@ -1157,12 +1228,12 @@ private fun FullPlayerControlsSection(
         ) {
             AnimatedPlaybackControls(
                 modifier = Modifier
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                    .padding(horizontal = 12.dp, vertical = if (compact) 4.dp else 8.dp),
                 isPlayingProvider = isPlayingProvider,
                 onPrevious = onPrevious,
                 onPlayPause = onPlayPause,
                 onNext = onNext,
-                height = 80.dp,
+                height = if (compact) 64.dp else 80.dp,
                 pressAnimationSpec = controlSpatialSpec,
                 releaseDelay = 220L,
                 colorOtherButtons = transportSkipColors.container,
@@ -1175,12 +1246,12 @@ private fun FullPlayerControlsSection(
                 tintNextIcon = transportSkipColors.content
             )
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(if (compact) 8.dp else 14.dp))
 
             BottomToggleRow(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 66.dp, max = 86.dp)
+                    .heightIn(min = if (compact) 56.dp else 66.dp, max = if (compact) 64.dp else 86.dp)
                     .padding(horizontal = 26.dp, vertical = 0.dp)
                     .padding(bottom = 6.dp),
                 isShuffleEnabled = isShuffleEnabledProvider(),
@@ -1381,6 +1452,7 @@ private fun FullPlayerPortraitContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(paddingValues)
             .padding(
                 horizontal = 24.dp,
@@ -1389,7 +1461,7 @@ private fun FullPlayerPortraitContent(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceAround
     ) {
-        albumCoverSection(Modifier)
+        albumCoverSection(Modifier.widthIn(max = 460.dp))
 
         Column(
             modifier = Modifier.fillMaxWidth(),
@@ -1406,6 +1478,78 @@ private fun FullPlayerPortraitContent(
 }
 
 @Composable
+private fun FullPlayerTabletContent(
+    paddingValues: PaddingValues,
+    queuePane: TabletPlayerQueuePane,
+    albumCoverSection: @Composable (Modifier) -> Unit,
+    songMetadataSection: @Composable () -> Unit,
+    playerProgressSection: @Composable () -> Unit,
+    controlsSection: @Composable () -> Unit,
+) {
+    val layout = LocalAdaptiveLayout.current
+    // The queue remains a full-height sibling; only the left player is divided by the fold.
+    BoxWithConstraints(Modifier.fillMaxSize().padding(end = queuePane.visibleWidth.dp)) {
+        val tabletop = calculateTabletopPlayerLayout(
+            viewportHeight = maxHeight.value,
+            viewportTop = queuePane.viewportTop,
+            foldStart = layout.horizontalFoldStart,
+            foldEnd = layout.horizontalFoldEnd,
+        )
+        if (tabletop != null) {
+            BoxWithConstraints(
+                Modifier.fillMaxWidth().height(tabletop.artworkHeight.dp)
+                    .padding(horizontal = 24.dp)
+                    .padding(top = paddingValues.calculateTopPadding() + 8.dp, bottom = 8.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                val artworkWidth = minOf(maxWidth, (maxHeight - 16.dp).coerceAtLeast(0.dp), 400.dp)
+                if (artworkWidth > 0.dp) albumCoverSection(Modifier.width(artworkWidth))
+            }
+            Box(
+                Modifier.absoluteOffset(y = tabletop.controlsTop.dp)
+                    .fillMaxWidth().height(tabletop.controlsHeight.dp)
+                    .padding(horizontal = 24.dp)
+                    .padding(top = 8.dp, bottom = paddingValues.calculateBottomPadding() + 8.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Column(
+                    Modifier.widthIn(max = 560.dp).fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.SpaceEvenly,
+                ) {
+                    songMetadataSection()
+                    playerProgressSection()
+                    controlsSection()
+                }
+            }
+        } else {
+            Column(
+                Modifier.fillMaxSize().padding(paddingValues)
+                    .padding(horizontal = 24.dp, vertical = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                // Controls are measured first; the artwork receives the remaining height.
+                BoxWithConstraints(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    val artworkWidth = minOf(maxWidth, (maxHeight - 16.dp).coerceAtLeast(0.dp), 400.dp)
+                    if (artworkWidth > 0.dp) albumCoverSection(Modifier.width(artworkWidth))
+                }
+                Column(
+                    Modifier.widthIn(max = 560.dp).fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    songMetadataSection()
+                    playerProgressSection()
+                    controlsSection()
+                }
+            }
+        }
+    }
+}
+
+
+@Composable
 private fun FullPlayerLandscapeContent(
     paddingValues: PaddingValues,
     albumCoverSection: @Composable (Modifier) -> Unit,
@@ -1413,6 +1557,11 @@ private fun FullPlayerLandscapeContent(
     playerProgressSection: @Composable () -> Unit,
     controlsSection: @Composable () -> Unit
 ) {
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+    val artworkWidth = minOf(
+        (maxWidth - 72.dp) / 2,
+        maxHeight - paddingValues.calculateTopPadding() - paddingValues.calculateBottomPadding() - 24.dp
+    ).coerceIn(80.dp, 520.dp)
     Row(
         modifier = Modifier
             .fillMaxSize()
@@ -1425,14 +1574,14 @@ private fun FullPlayerLandscapeContent(
     ) {
         albumCoverSection(
             Modifier
-                .fillMaxHeight()
-                .weight(1f)
+                .width(artworkWidth)
         )
-        Spacer(Modifier.width(9.dp))
+        Spacer(Modifier.width(24.dp))
         Column(
             modifier = Modifier
                 .fillMaxHeight()
                 .weight(1f)
+                .verticalScroll(rememberScrollState())
                 .padding(
                     horizontal = 0.dp,
                     vertical = 0.dp
@@ -1444,6 +1593,7 @@ private fun FullPlayerLandscapeContent(
             playerProgressSection()
             controlsSection()
         }
+    }
     }
 }
 
@@ -2435,7 +2585,7 @@ private fun ProgressPlaceholder(
 }
 
 @Composable
-private fun ControlsPlaceholder(color: Color, onColor: Color) {
+private fun ControlsPlaceholder(color: Color, onColor: Color, compact: Boolean = false) {
     val rowCorners = 60.dp
 
     Column(
@@ -2444,9 +2594,9 @@ private fun ControlsPlaceholder(color: Color, onColor: Color) {
     ) {
         Box(
             modifier = Modifier
-                .padding(horizontal = 12.dp, vertical = 8.dp)
+                .padding(horizontal = 12.dp, vertical = if (compact) 4.dp else 8.dp)
                 .fillMaxWidth()
-                .height(80.dp)
+                .height(if (compact) 64.dp else 80.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxSize(),
@@ -2487,12 +2637,12 @@ private fun ControlsPlaceholder(color: Color, onColor: Color) {
             }
         }
 
-        Spacer(modifier = Modifier.height(14.dp))
+        Spacer(modifier = Modifier.height(if (compact) 8.dp else 14.dp))
 
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 66.dp, max = 86.dp)
+                .heightIn(min = if (compact) 56.dp else 66.dp, max = if (compact) 64.dp else 86.dp)
                 .padding(horizontal = 26.dp)
                 .padding(bottom = 6.dp)
                 .background(

@@ -12,6 +12,36 @@ import java.nio.file.Files
 class UserPreferencesRepositoryTest {
 
     @Test
+    fun `fresh view defaults use lists and explicit saved choices remain authoritative`() = runTest {
+        val tempDir = Files.createTempDirectory("user-preferences-view-defaults-test")
+        try {
+            val repository = UserPreferencesRepository(
+                dataStore = PreferenceDataStoreFactory.create(
+                    scope = backgroundScope,
+                    produceFile = { tempDir.resolve("settings.preferences_pb").toFile() }
+                ),
+                json = Json
+            )
+
+            assertEquals(false, repository.isGenreGridViewFlow.first())
+            assertEquals(true, repository.isAlbumsListViewFlow.first())
+
+            repository.setGenreGridView(true)
+            repository.setAlbumsListView(false)
+            repository.saveLibraryTabsOrder("[\"SONGS\",\"ALBUMS\",\"ARTIST\",\"PLAYLISTS\",\"FOLDERS\",\"LIKED\"]")
+
+            assertEquals(true, repository.isGenreGridViewFlow.first())
+            assertEquals(false, repository.isAlbumsListViewFlow.first())
+            assertEquals(
+                "[\"SONGS\",\"ALBUMS\",\"ARTIST\",\"PLAYLISTS\",\"FOLDERS\",\"LIKED\"]",
+                repository.libraryTabsOrderFlow.first()
+            )
+        } finally {
+            tempDir.toFile().deleteRecursively()
+        }
+    }
+
+    @Test
     fun `default artist delimiters avoid common characters inside artist names`() {
         assertEquals(listOf(";"), UserPreferencesRepository.DEFAULT_ARTIST_DELIMITERS)
     }

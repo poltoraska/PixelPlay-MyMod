@@ -1,6 +1,17 @@
 
 package com.theveloper.pixelplay.presentation.screens
 
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.consumeWindowInsets
+import com.theveloper.pixelplay.presentation.adaptive.SetupAdaptiveHost
+import com.theveloper.pixelplay.presentation.adaptive.SetupPageFrame
+import com.theveloper.pixelplay.presentation.adaptive.SetupPageHeading
+import com.theveloper.pixelplay.presentation.adaptive.SetupBottomBarFrame
+import com.theveloper.pixelplay.presentation.adaptive.SetupModalFrame
+import com.theveloper.pixelplay.presentation.adaptive.LocalSetupTablet
 import android.Manifest
 import android.content.Context
 import android.content.Intent
@@ -168,6 +179,14 @@ fun SetupScreen(
     setupViewModel: SetupViewModel = hiltViewModel(),
     onSetupComplete: () -> Unit
 ) {
+    SetupAdaptiveHost {
+        SetupContent(setupViewModel, onSetupComplete)
+    }
+}
+
+@OptIn(ExperimentalPermissionsApi::class, ExperimentalFoundationApi::class)
+@Composable
+private fun SetupContent(setupViewModel: SetupViewModel, onSetupComplete: () -> Unit) {
     val context = LocalContext.current
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     val uiState by setupViewModel.uiState.collectAsStateWithLifecycle()
@@ -280,30 +299,32 @@ fun SetupScreen(
     }
     Scaffold(
         bottomBar = {
-            SetupBottomBar(
-                pagerState = pagerState,
-                animated = (pagerState.currentPage != 0),
-                isNextButtonEnabled = isNextButtonEnabled,
-                isFinishButtonEnabled = uiState.allPermissionsGranted,
-                onNextClicked = {
-                    val page = pages[pagerState.currentPage]
-                    if (isPermissionGateSatisfied(context, page, uiState)) {
-                        navigateToPage(pagerState.currentPage + 1)
-                    } else {
-                        setupViewModel.checkPermissions(context)
-                        Toast.makeText(context, context.getString(R.string.setup_toast_grant_permission_first), Toast.LENGTH_SHORT).show()
+            SetupBottomBarFrame {
+                SetupBottomBar(
+                    pagerState = pagerState,
+                    animated = (pagerState.currentPage != 0),
+                    isNextButtonEnabled = isNextButtonEnabled,
+                    isFinishButtonEnabled = uiState.allPermissionsGranted,
+                    onNextClicked = {
+                        val page = pages[pagerState.currentPage]
+                        if (isPermissionGateSatisfied(context, page, uiState)) {
+                            navigateToPage(pagerState.currentPage + 1)
+                        } else {
+                            setupViewModel.checkPermissions(context)
+                            Toast.makeText(context, context.getString(R.string.setup_toast_grant_permission_first), Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    onFinishClicked = {
+                        if (allRequiredPermissionsGrantedNow(context)) {
+                            setupViewModel.setSetupComplete()
+                            onSetupComplete()
+                        } else {
+                            setupViewModel.checkPermissions(context)
+                            Toast.makeText(context, context.getString(R.string.setup_toast_grant_all_permissions), Toast.LENGTH_SHORT).show()
+                        }
                     }
-                },
-                onFinishClicked = {
-                    if (allRequiredPermissionsGrantedNow(context)) {
-                        setupViewModel.setSetupComplete()
-                        onSetupComplete()
-                    } else {
-                        setupViewModel.checkPermissions(context)
-                        Toast.makeText(context, context.getString(R.string.setup_toast_grant_all_permissions), Toast.LENGTH_SHORT).show()
-                    }
-                }
-            )
+                )
+            }
         }
     ) { paddingValues ->
         HorizontalPager(
@@ -314,17 +335,12 @@ fun SetupScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .consumeWindowInsets(paddingValues)
         ) { pageIndex ->
             val page = pages[pageIndex]
-            val pageOffset = pagerState.currentPageOffsetFraction
-
             Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .graphicsLayer {
-                        alpha = 1f - pageOffset.coerceIn(0f, 1f)
-                        translationX = size.width * pageOffset
-                    },
+                    .fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
                 when (page) {
@@ -436,13 +452,18 @@ fun SetupScreen(
         BackHandler {
             showCornerRadiusOverlay = false
         }
-        NavBarCornerRadiusContent(
-            initialRadius = uiState.navBarCornerRadius.toFloat(),
-            onRadiusChange = { setupViewModel.setNavBarCornerRadius(it) },
-            onDone = { showCornerRadiusOverlay = false },
-            onBack = { showCornerRadiusOverlay = false },
-            isFullWidth = uiState.navBarStyle == "full_width"
-        )
+        Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f))
+            .pointerInput(Unit) { detectTapGestures(onTap = {}) }) {
+            SetupModalFrame {
+                NavBarCornerRadiusContent(
+                    initialRadius = uiState.navBarCornerRadius.toFloat(),
+                    onRadiusChange = { setupViewModel.setNavBarCornerRadius(it) },
+                    onDone = { showCornerRadiusOverlay = false },
+                    onBack = { showCornerRadiusOverlay = false },
+                    isFullWidth = uiState.navBarStyle == "full_width"
+                )
+            }
+        }
     }
 }
 
@@ -642,118 +663,102 @@ private fun isIgnoringBatteryOptimizationsNow(context: Context): Boolean {
 
 @Composable
 fun WelcomePage() {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween,
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .padding(horizontal = 8.dp)
-                .padding(top = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Text(
-                text = stringResource(R.string.setup_welcome_prefix),
-                style = ExpTitleTypography.displayLarge.copy(
-                    fontSize = 42.sp,
-                    lineHeight = 1.1.em
-                ),
-            )
-            Text(
-                text = stringResource(R.string.app_name),
-                style = MaterialTheme.typography.displayLarge.copy(
-                    fontFamily = GoogleSansRounded,
-                    fontSize = 46.sp,
-                    color = MaterialTheme.colorScheme.primary,
-                    lineHeight = 1.1.em
-                ),
-            )
-        }
-        Spacer(modifier = Modifier.height(10.dp))
-        Surface(
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.onSurface,
-            tonalElevation = 2.dp,
-            shadowElevation = 0.dp
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Text(
-                    text = stringResource(R.string.setup_beta_symbol),
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Black
-                )
-                Text(
-                    text = stringResource(R.string.setup_beta_label),
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold
-                )
+    SetupPageFrame(
+        header = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(stringResource(R.string.setup_welcome_prefix), style = ExpTitleTypography.displayLarge.copy(
+                    fontSize = 42.sp, lineHeight = 1.1.em))
+                Text(stringResource(R.string.app_name), style = MaterialTheme.typography.displayLarge.copy(
+                    fontFamily = GoogleSansRounded, fontSize = 46.sp,
+                    color = MaterialTheme.colorScheme.primary, lineHeight = 1.1.em))
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.surface,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
+                    tonalElevation = 2.dp,
+                    shadowElevation = 0.dp
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.setup_beta_symbol),
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Black
+                        )
+                        Text(
+                            text = stringResource(R.string.setup_beta_label),
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
             }
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-        // Placeholder for vector art
+        },
+        visual = { WelcomeArtwork() },
+        actions = {
+            Text(stringResource(R.string.setup_intro_body), style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        },
+    )
+}
+
+@Composable
+private fun WelcomeArtwork() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .fillMaxHeight()
+            //.background(color = Color.Red)
+            .clip(RoundedCornerShape(20.dp))
+    ){
+        MaterialYouVectorDrawable(
+            modifier = Modifier.fillMaxSize(),
+            drawableResId = R.drawable.welcome_art
+        )
+        SineWaveLine(
+            modifier = Modifier
+            .fillMaxWidth()
+            .align(Alignment.BottomCenter)
+            .height(32.dp)
+            .padding(horizontal = 8.dp)
+            .padding(bottom = 4.dp),
+            animate = true,
+            color = MaterialTheme.colorScheme.surface,
+            alpha = 0.95f,
+            strokeWidth = 16.dp,
+            amplitude = 4.dp,
+            waves = 7.6f,
+            phase = 0f
+        )
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(240.dp)
-                //.background(color = Color.Red)
-                .clip(RoundedCornerShape(20.dp))
+                .align(Alignment.BottomCenter)
+                .height(22.dp)
+                .background(color = MaterialTheme.colorScheme.surface)
+                .padding(horizontal = 8.dp)
+                .padding(bottom = 4.dp)
         ){
-            MaterialYouVectorDrawable(
-                modifier = Modifier.fillMaxSize(),
-                drawableResId = R.drawable.welcome_art
-            )
-            SineWaveLine(
-                modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomCenter)
-                .height(32.dp)
-                .padding(horizontal = 8.dp)
-                .padding(bottom = 4.dp),
-                animate = true,
-                color = MaterialTheme.colorScheme.surface,
-                alpha = 0.95f,
-                strokeWidth = 16.dp,
-                amplitude = 4.dp,
-                waves = 7.6f,
-                phase = 0f
-            )
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.BottomCenter)
-                    .height(22.dp)
-                    .background(color = MaterialTheme.colorScheme.surface)
-                    .padding(horizontal = 8.dp)
-                    .padding(bottom = 4.dp)
-            ){
 
-            }
-            SineWaveLine(
-                modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomCenter)
-                .height(32.dp)
-                .padding(horizontal = 8.dp)
-                .padding(bottom = 4.dp),
-                animate = true,
-                color = MaterialTheme.colorScheme.primary, //Container.copy(alpha = 0.9f),
-                alpha = 0.95f,
-                strokeWidth = 4.dp,
-                amplitude = 4.dp,
-                waves = 7.6f,
-                phase = 0f
-            )
         }
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(text = stringResource(R.string.setup_intro_body), style = MaterialTheme.typography.bodyLarge)
+        SineWaveLine(
+            modifier = Modifier
+            .fillMaxWidth()
+            .align(Alignment.BottomCenter)
+            .height(32.dp)
+            .padding(horizontal = 8.dp)
+            .padding(bottom = 4.dp),
+            animate = true,
+            color = MaterialTheme.colorScheme.primary, //Container.copy(alpha = 0.9f),
+            alpha = 0.95f,
+            strokeWidth = 4.dp,
+            amplitude = 4.dp,
+            waves = 7.6f,
+            phase = 0f
+        )
     }
 }
 
@@ -975,10 +980,7 @@ private data class ThemeOptionItem(
 
 @OptIn(ExperimentalAnimationApi::class, ExperimentalMaterial3Api::class)
 @Composable
-fun ThemeSelectionPage(
-    uiState: SetupUiState,
-    onModeSelected: (String) -> Unit
-) {
+fun ThemeSelectionPage(uiState: SetupUiState, onModeSelected: (String) -> Unit) {
     val themeOptions = listOf(
         ThemeOptionItem(
             mode = AppThemeMode.DARK,
@@ -1001,53 +1003,61 @@ fun ThemeSelectionPage(
         )
     )
 
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween,
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp)
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = stringResource(R.string.setup_theme_title),
-                style = MaterialTheme.typography.displayMedium.copy(
-                    fontFamily = GoogleSansRounded,
-                    fontSize = 32.sp
-                ),
-                textAlign = TextAlign.Center
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = stringResource(R.string.setup_theme_subtitle),
-                style = MaterialTheme.typography.bodyLarge,
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+    SetupPageFrame(
+        header = { SetupPageHeading(stringResource(R.string.setup_theme_title), stringResource(R.string.setup_theme_subtitle)) },
+        visual = { ThemeSetupPreview() },
+        actions = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                themeOptions.forEach { option ->
+                    ThemeModeOptionCard(
+                        option = option,
+                        selected = uiState.appThemeMode == option.mode,
+                        onClick = { onModeSelected(option.mode) }
+                    )
+                }
 
-        Column(
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            themeOptions.forEach { option ->
-                ThemeModeOptionCard(
-                    option = option,
-                    selected = uiState.appThemeMode == option.mode,
-                    onClick = { onModeSelected(option.mode) }
+                Text(
+                    text = stringResource(R.string.setup_theme_footer),
+                    style = MaterialTheme.typography.labelMedium,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
                 )
             }
+        },
+    )
+}
 
-            Text(
-                text = stringResource(R.string.setup_theme_footer),
-                style = MaterialTheme.typography.labelMedium,
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 6.dp)
-            )
+@Composable
+private fun ThemeSetupPreview() {
+    Surface(shape = RoundedCornerShape(32.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        modifier = Modifier.fillMaxWidth().heightIn(max = 260.dp)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = RoundedCornerShape(18.dp)) {
+                    Icon(Icons.Rounded.MusicNote, null, Modifier.padding(10.dp).size(24.dp),
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                }
+                Text(stringResource(R.string.app_name), modifier = Modifier.weight(1f),
+                    maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.titleLarge)
+            }
+            repeat(3) { index ->
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Box(Modifier.size(28.dp).clip(RoundedCornerShape(10.dp))
+                        .background(MaterialTheme.colorScheme.secondaryContainer))
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Box(Modifier.fillMaxWidth(if (index == 1) 0.65f else 0.85f).height(8.dp)
+                            .clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.65f)))
+                        Box(Modifier.fillMaxWidth(0.45f).height(6.dp).clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.25f)))
+                    }
+                }
+            }
         }
     }
 }
@@ -1177,105 +1187,64 @@ private fun ThemeModeOptionCard(
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
-fun LibraryLayoutPage(
-    uiState: SetupUiState,
-    onModeSelected: (String) -> Unit,
-    onSkip: () -> Unit
-) {
+fun LibraryLayoutPage(uiState: SetupUiState, onModeSelected: (String) -> Unit, onSkip: () -> Unit) {
     val isCompact = uiState.libraryNavigationMode == "compact_pill"
-
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween,
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp)
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            //modifier = Modifier.padding(top = 24.dp)
-        ) {
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = stringResource(R.string.setup_library_layout_title),
-                style = MaterialTheme.typography.displayMedium.copy(
-                    fontFamily = GoogleSansRounded,
-                    fontSize = 32.sp
-                ),
-                textAlign = TextAlign.Center
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = stringResource(R.string.setup_library_layout_subtitle),
-                style = MaterialTheme.typography.bodyLarge,
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-
-        // Preview Section
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f),
-            contentAlignment = Alignment.Center
-        ) {
-            LibraryHeaderPreview(isCompact = isCompact)
-        }
-        
-        // Controls Section
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer
-                ),
-                shape = RoundedCornerShape(24.dp),
-                onClick = { onModeSelected(if (isCompact) "tab_row" else "compact_pill") }
+    SetupPageFrame(
+        header = { SetupPageHeading(stringResource(R.string.setup_library_layout_title), stringResource(R.string.setup_library_layout_subtitle)) },
+        visual = { LibraryHeaderPreview(isCompact = isCompact) },
+        actions = {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Row(
-                   modifier = Modifier
-                       .padding(horizontal = 20.dp, vertical = 16.dp)
-                       .fillMaxWidth(),
-                   verticalAlignment = Alignment.CenterVertically
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer
+                    ),
+                    shape = RoundedCornerShape(24.dp),
+                    onClick = { onModeSelected(if (isCompact) "tab_row" else "compact_pill") }
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = stringResource(R.string.setup_compact_mode),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = if (isCompact) stringResource(R.string.setup_compact_mode_pill_hint) else stringResource(R.string.setup_compact_mode_tab_hint),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                    Row(
+                       modifier = Modifier
+                           .padding(horizontal = 20.dp, vertical = 16.dp)
+                           .fillMaxWidth(),
+                       verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = stringResource(R.string.setup_compact_mode),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = if (isCompact) stringResource(R.string.setup_compact_mode_pill_hint) else stringResource(R.string.setup_compact_mode_tab_hint),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = isCompact,
+                            onCheckedChange = { checked ->
+                                onModeSelected(if (checked) "compact_pill" else "tab_row")
+                            }
                         )
                     }
-                    Switch(
-                        checked = isCompact,
-                        onCheckedChange = { checked ->
-                            onModeSelected(if (checked) "compact_pill" else "tab_row")
-                        }
-                    )
                 }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = stringResource(R.string.setup_library_layout_footer),
+                    style = MaterialTheme.typography.labelMedium,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+
+
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            Text(
-                text = stringResource(R.string.setup_library_layout_footer),
-                style = MaterialTheme.typography.labelMedium,
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                modifier = Modifier.padding(horizontal = 16.dp)
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-        }
-    }
+        },
+    )
 }
 
 @Composable
@@ -1323,7 +1292,7 @@ fun LibraryHeaderPreview(isCompact: Boolean) {
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             LibraryNavigationPillSetupShow(
-                                title = stringResource(R.string.setup_preview_songs_label),
+                                title = stringResource(R.string.library_tab_albums),
                                 isExpanded = false,
                                 iconRes = R.drawable.rounded_music_note_24,
                                 pageIndex = 0,
@@ -1349,6 +1318,7 @@ fun LibraryHeaderPreview(isCompact: Boolean) {
                         )
                         Spacer(modifier = Modifier.height(18.dp))
                         Row(
+                            modifier = Modifier.horizontalScroll(rememberScrollState()),
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -1363,7 +1333,7 @@ fun LibraryHeaderPreview(isCompact: Boolean) {
                                 ) {
                                     Text(
                                         modifier = Modifier.padding(vertical = 10.dp, horizontal = 14.dp),
-                                        text = stringResource(R.string.setup_tab_songs),
+                                        text = stringResource(R.string.setup_tab_albums),
                                         style = MaterialTheme.typography.titleMedium.copy(fontSize = 13.sp),
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.primary
@@ -1391,7 +1361,7 @@ fun LibraryHeaderPreview(isCompact: Boolean) {
                                 ) {
                                     Text(
                                         modifier = Modifier.padding(vertical = 10.dp, horizontal = 14.dp),
-                                        text = stringResource(R.string.setup_tab_albums),
+                                        text = stringResource(R.string.setup_tab_artists),
                                         style = MaterialTheme.typography.titleMedium.copy(fontSize = 13.sp),
                                         fontWeight = FontWeight.Medium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -1419,7 +1389,7 @@ fun LibraryHeaderPreview(isCompact: Boolean) {
                                 ) {
                                     Text(
                                         modifier = Modifier.padding(vertical = 10.dp, horizontal = 14.dp),
-                                        text = stringResource(R.string.setup_tab_artists),
+                                        text = stringResource(R.string.setup_tab_songs),
                                         style = MaterialTheme.typography.titleMedium.copy(fontSize = 13.sp),
                                         fontWeight = FontWeight.Medium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -1516,29 +1486,14 @@ fun BatteryOptimizationPage(
 @Composable
 fun FinishPage() {
     val finishIcons = persistentListOf(
-        R.drawable.rounded_check_circle_24,
-        R.drawable.round_favorite_24,
-        R.drawable.rounded_celebration_24,
-        R.drawable.round_favorite_24,
-        R.drawable.rounded_explosion_24
+        R.drawable.rounded_check_circle_24, R.drawable.round_favorite_24,
+        R.drawable.rounded_celebration_24, R.drawable.round_favorite_24,
+        R.drawable.rounded_explosion_24,
     )
-
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        Text(text = stringResource(R.string.setup_all_set_title), style = MaterialTheme.typography.headlineLarge)
-        Spacer(modifier = Modifier.height(16.dp))
-        PermissionIconCollage(
-            modifier = Modifier.height(230.dp),
-            icons = finishIcons
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(text = stringResource(R.string.setup_all_set_body), style = MaterialTheme.typography.bodyLarge)
-    }
+    SetupPageFrame(
+        header = { SetupPageHeading(stringResource(R.string.setup_all_set_title), stringResource(R.string.setup_all_set_body)) },
+        visual = { PermissionIconCollage(modifier = Modifier.fillMaxWidth(), height = 240.dp, icons = finishIcons) },
+    )
 }
 
 @Composable
@@ -1552,73 +1507,30 @@ fun PermissionPageLayout(
     onGrantClicked: () -> Unit,
     content: @Composable () -> Unit = {}
 ) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween,
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp)
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-             Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = title,
-                style = MaterialTheme.typography.displayMedium.copy(
-                    fontFamily = GoogleSansRounded,
-                    fontSize = 32.sp
-                ),
-                textAlign = TextAlign.Center
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = description,
-                style = MaterialTheme.typography.bodyLarge,
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth(),
-            contentAlignment = Alignment.Center
-        ) {
-            PermissionIconCollage(
-                modifier = Modifier.height(220.dp),
-                icons = icons
-            )
-        }
-
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            content()
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(
-                onClick = onGrantClicked,
-                enabled = buttonEnabled,
-                contentPadding = PaddingValues(horizontal = 32.dp, vertical = 16.dp)
-            ) {
-                AnimatedContent(targetState = granted, label = "ButtonAnim") { isGranted ->
-                    if (isGranted) {
+    SetupPageFrame(
+        header = { SetupPageHeading(title, description) },
+        visual = { PermissionIconCollage(modifier = Modifier.fillMaxWidth(), height = 240.dp, icons = icons) },
+        actions = {
+            Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                content()
+                Button(onClick = onGrantClicked, enabled = buttonEnabled,
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+                    contentPadding = PaddingValues(horizontal = 24.dp, vertical = 16.dp)) {
+                    AnimatedContent(targetState = granted, label = "ButtonAnim") { isGranted ->
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Rounded.Check, null)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(buttonText)
+                            if (isGranted) {
+                                Icon(Icons.Rounded.Check, null)
+                                Spacer(Modifier.width(8.dp))
+                            }
+                            Text(buttonText, style = MaterialTheme.typography.titleMedium,
+                                textAlign = TextAlign.Center)
                         }
-                    } else {
-                        Text(
-                            text = buttonText,
-                            style = MaterialTheme.typography.titleMedium
-                        )
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(16.dp))
-        }
-    }
+        },
+    )
 }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -2100,6 +2012,7 @@ fun SetupBottomBar(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .navigationBarsPadding()
                 .padding(bottom = 14.dp)
         ) {
             Row(
@@ -2207,131 +2120,90 @@ fun SetupBottomBar(
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
-fun NavBarLayoutPage(
-    uiState: SetupUiState,
-    onModeSelected: (String) -> Unit,
-    onCustomizeRadius: () -> Unit,
-    onSkip: () -> Unit
-) {
-    val isDefault = uiState.navBarStyle != "full_width" // Default or null is default
-
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween,
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp)
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = stringResource(R.string.setup_app_navigation_title),
-                style = MaterialTheme.typography.displayMedium.copy(
-                    fontFamily = GoogleSansRounded,
-                    fontSize = 32.sp
-                ),
-                textAlign = TextAlign.Center
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = stringResource(R.string.setup_app_navigation_subtitle),
-                style = MaterialTheme.typography.bodyLarge,
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-
-        // Preview Section
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f),
-            contentAlignment = Alignment.Center
-        ) {
-            NavBarPreview(isDefault = isDefault)
-        }
-        
-        // Controls Section
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer
-                ),
-                shape = RoundedCornerShape(24.dp),
-                onClick = { onModeSelected(if (isDefault) "full_width" else "default") }
+fun NavBarLayoutPage(uiState: SetupUiState, onModeSelected: (String) -> Unit, onCustomizeRadius: () -> Unit, onSkip: () -> Unit) {
+    val isDefault = uiState.navBarStyle != "full_width"
+    SetupPageFrame(
+        header = { SetupPageHeading(stringResource(R.string.setup_app_navigation_title), stringResource(if (LocalSetupTablet.current) R.string.setup_navbar_tablet_subtitle else R.string.setup_app_navigation_subtitle)) },
+        visual = { NavBarPreview(isDefault = isDefault) },
+        actions = {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Column(
-                    modifier = Modifier
-                       .padding(horizontal = 20.dp, vertical = 16.dp)
-                       .fillMaxWidth()
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer
+                    ),
+                    shape = RoundedCornerShape(24.dp),
+                    onClick = { onModeSelected(if (isDefault) "full_width" else "default") }
                 ) {
-                    Row(
-                       modifier = Modifier.fillMaxWidth(),
-                       verticalAlignment = Alignment.CenterVertically
+                    Column(
+                        modifier = Modifier
+                           .padding(horizontal = 20.dp, vertical = 16.dp)
+                           .fillMaxWidth()
                     ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = stringResource(R.string.setup_navbar_default_style),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = if (isDefault) stringResource(R.string.setup_nav_floating_pill_description) else stringResource(R.string.setup_nav_full_width_description),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                        Row(
+                           modifier = Modifier.fillMaxWidth(),
+                           verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = stringResource(R.string.setup_navbar_default_style),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = if (isDefault) stringResource(R.string.setup_nav_floating_pill_description) else stringResource(R.string.setup_nav_full_width_description),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Switch(
+                                checked = isDefault,
+                                onCheckedChange = { checked ->
+                                    onModeSelected(if (checked) "default" else "full_width")
+                                }
                             )
                         }
-                        Switch(
-                            checked = isDefault,
-                            onCheckedChange = { checked ->
-                                onModeSelected(if (checked) "default" else "full_width")
-                            }
-                        )
-                    }
-                    
-                    AnimatedVisibility(
-                        visible = true, // Always visible now
-                        enter =   androidx.compose.animation.expandVertically() + fadeIn(),
-                        exit = androidx.compose.animation.shrinkVertically() + fadeOut()
-                    ) {
-                         Column {
-                             Spacer(modifier = Modifier.height(16.dp))
-                             FilledTonalButton(
-                                 onClick = onCustomizeRadius,
-                                 modifier = Modifier.fillMaxWidth(),
-                                 colors = ButtonDefaults.filledTonalButtonColors(
-                                     containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                     contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                                 )
-                             ) {
-                                 Icon(Icons.Rounded.RoundedCorner, contentDescription = null, modifier = Modifier.size(18.dp))
-                                 Spacer(modifier = Modifier.width(8.dp))
-                                 Text(stringResource(R.string.setup_customize_corner_radius))
+
+                        AnimatedVisibility(
+                            visible = true, // Always visible now
+                            enter =   androidx.compose.animation.expandVertically() + fadeIn(),
+                            exit = androidx.compose.animation.shrinkVertically() + fadeOut()
+                        ) {
+                             Column {
+                                 Spacer(modifier = Modifier.height(16.dp))
+                                 FilledTonalButton(
+                                     onClick = onCustomizeRadius,
+                                     modifier = Modifier.fillMaxWidth(),
+                                     colors = ButtonDefaults.filledTonalButtonColors(
+                                         containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                         contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                                     )
+                                 ) {
+                                     Icon(Icons.Rounded.RoundedCorner, contentDescription = null, modifier = Modifier.size(18.dp))
+                                     Spacer(modifier = Modifier.width(8.dp))
+                                     Text(stringResource(R.string.setup_customize_corner_radius))
+                                 }
                              }
-                         }
+                        }
                     }
                 }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = stringResource(R.string.setup_navbar_footer),
+                    style = MaterialTheme.typography.labelMedium,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+
+
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            Text(
-                text = stringResource(R.string.setup_navbar_footer),
-                style = MaterialTheme.typography.labelMedium,
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                modifier = Modifier.padding(horizontal = 16.dp)
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-        }
-    }
+        },
+    )
 }
 
 @Composable

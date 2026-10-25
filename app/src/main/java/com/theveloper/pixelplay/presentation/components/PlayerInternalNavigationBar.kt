@@ -22,6 +22,8 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
@@ -108,6 +110,7 @@ private fun PlayerInternalNavigationItemsRow(
     val latestCurrentRoute by rememberUpdatedState(currentRoute)
     val latestOnSearchIconDoubleTap by rememberUpdatedState(onSearchIconDoubleTap)
     val latestNavigationEnabled by rememberUpdatedState(currentRoute != null)
+    val hapticFeedback = LocalHapticFeedback.current
 
     val rowModifier = if (navBarStyle == NavBarStyle.FULL_WIDTH) {
         modifier
@@ -160,12 +163,14 @@ private fun PlayerInternalNavigationItemsRow(
                     { Text(localizedLabel) }
                 }
             }
-            val onClickLambda: () -> Unit = remember(item.screen.route, navController, scope) {
+            val onClickLambda: () -> Unit = remember(item.screen.route, navController, scope, hapticFeedback) {
                 click@{
                     if (!latestNavigationEnabled) {
                         lastSearchTapTimestamp = 0L
                         return@click
                     }
+
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
 
                     val itemRoute = item.screen.route
                     val isSearchTab = itemRoute == Screen.Search.route

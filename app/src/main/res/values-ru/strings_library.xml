@@ -514,6 +514,13 @@
     <string name="album_detail_id_not_found">ID альбома не найден</string>
     <string name="album_detail_error_loading_album">Ошибка загрузки данных альбома: %s</string>
     <string name="album_detail_not_found">Альбом не найден</string>
+    <string name="album_action_play">Воспроизвести</string>
+    <plurals name="album_detail_song_count">
+        <item quantity="one">%1$d песня</item>
+        <item quantity="few">%1$d песни</item>
+        <item quantity="many">%1$d песен</item>
+        <item quantity="other">%1$d песни</item>
+    </plurals>
 
     <!-- ArtistDetailViewModel -->
     <string name="artist_detail_invalid_id">Недопустимый ID исполнителя</string>

@@ -461,12 +461,12 @@ fun SearchableModelSelector(
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
-                    placeholder = { Text("Search models...") },
-                    leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = "Search") },
+                    placeholder = { Text(stringResource(R.string.settings_ai_search_models)) },
+                    leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = stringResource(R.string.common_search)) },
                     trailingIcon = {
                         if (searchQuery.isNotEmpty()) {
                             IconButton(onClick = { searchQuery = "" }) {
-                                Icon(Icons.Rounded.Clear, contentDescription = "Clear")
+                                Icon(Icons.Rounded.Clear, contentDescription = stringResource(R.string.common_clear_search))
                             }
                         }
                     },
@@ -492,7 +492,7 @@ fun SearchableModelSelector(
                 }
 
                 Text(
-                    text = "${filteredModels.size} model${if (filteredModels.size != 1) "s" else ""} available",
+                    text = androidx.compose.ui.res.pluralStringResource(R.plurals.settings_ai_models_available, filteredModels.size, filteredModels.size),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp)
@@ -538,7 +538,7 @@ fun SearchableModelSelector(
                                 if (isSelected) {
                                     Icon(
                                         imageVector = Icons.Rounded.CheckCircle,
-                                        contentDescription = "Selected",
+                                        contentDescription = stringResource(R.string.common_selected),
                                         tint = MaterialTheme.colorScheme.primary
                                     )
                                 }

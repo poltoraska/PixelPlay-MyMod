@@ -39,7 +39,7 @@
     <string name="playstore_dialog_coming_soon">Скоро</string>
 
     <!-- Brick breaker -->
-    <string name="easter_egg_thank_you">Спасибо за использование PixelPlayer!</string>
+    <string name="easter_egg_thank_you">Спасибо за\u00A0использование PixelPlayer!</string>
     <string name="brick_high">РЕК %1$d</string>
     <string name="brick_cd_close">Закрыть</string>
     <string name="brick_stat_score">ОЧКИ</string>
@@ -51,9 +51,9 @@
     <string name="brick_try_again">Попробовать снова?</string>
     <string name="brick_next_level">Следующий уровень</string>
     <string name="brick_restart">Начать заново</string>
-    <string name="brick_tap_relaunch">НАЖМИТЕ ДЛЯ ПЕРЕЗАПУСКА</string>
+    <string name="brick_tap_relaunch">НАЖМИТЕ ДЛЯ\u00A0ПЕРЕЗАПУСКА</string>
     <string name="brick_play_random">Случайная музыка</string>
-    <string name="brick_title">Brick Breaker</string>
+    <string name="brick_title">Арканоид</string>
     <string name="brick_high_score">РЕКОРД %1$d</string>
     <string name="brick_play">Играть</string>
     <string name="brick_drag_paddle">Перетаскивайте платформу</string>
@@ -116,6 +116,7 @@
     <string name="common_shuffle_play">Случайное воспроизведение</string>
     <string name="common_more_options_for">Дополнительные параметры: %1$s</string>
     <string name="common_expand_menu">Развернуть меню</string>
+    <string name="common_collapse_menu">Свернуть меню</string>
     <string name="common_next">Далее</string>
     <string name="common_finish">Готово</string>
     <string name="common_reset_defaults">Сбросить настройки</string>

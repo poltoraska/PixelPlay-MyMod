@@ -667,7 +667,7 @@ suspend fun markDirectoryRulesVersionApplied(version: Int) {
 
     val isGenreGridViewFlow: Flow<Boolean> =
         dataStore.data.map { preferences ->
-            preferences[PreferencesKeys.IS_GENRE_GRID_VIEW] ?: true
+            preferences[PreferencesKeys.IS_GENRE_GRID_VIEW] ?: false
         }
 
     suspend fun setGenreGridView(isGrid: Boolean) {
@@ -678,7 +678,7 @@ suspend fun markDirectoryRulesVersionApplied(version: Int) {
 
     val isAlbumsListViewFlow: Flow<Boolean> =
         dataStore.data.map { preferences ->
-            preferences[PreferencesKeys.IS_ALBUMS_LIST_VIEW] ?: false
+            preferences[PreferencesKeys.IS_ALBUMS_LIST_VIEW] ?: true
         }
 
     suspend fun setAlbumsListView(isList: Boolean) {

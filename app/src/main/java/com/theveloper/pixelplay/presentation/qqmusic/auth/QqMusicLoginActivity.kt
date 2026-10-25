@@ -1,5 +1,6 @@
 package com.theveloper.pixelplay.presentation.qqmusic.auth
 
+import com.theveloper.pixelplay.ui.theme.GoogleSansNunitoFont
 import android.annotation.SuppressLint
 import android.os.Build
 import android.os.Bundle
@@ -76,6 +77,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
+import com.theveloper.pixelplay.presentation.adaptive.AdaptiveScreenContent
 import com.theveloper.pixelplay.ui.theme.PixelPlayTheme
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
@@ -99,7 +101,9 @@ class QqMusicLoginActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             PixelPlayTheme {
-                QqMusicLoginScreen(onClose = { finish() })
+                AdaptiveScreenContent(maxWidth = 600f) {
+                    QqMusicLoginScreen(onClose = { finish() })
+                }
             }
         }
     }
@@ -491,10 +495,11 @@ private fun rememberQqMusicLoginTitleStyle(): TextStyle {
     return remember {
         TextStyle(
             fontFamily = FontFamily(
-                Font(
+                GoogleSansNunitoFont(
                     resId = R.font.gflex_variable,
+                    weight = FontWeight.ExtraBold,
                     variationSettings = FontVariation.Settings(
-                        FontVariation.weight(620),
+                        FontVariation.weight(850),
                         FontVariation.width(128f),
                         FontVariation.Setting("ROND", 88f),
                         FontVariation.Setting("XTRA", 520f),
@@ -503,7 +508,7 @@ private fun rememberQqMusicLoginTitleStyle(): TextStyle {
                     )
                 )
             ),
-            fontWeight = FontWeight(700),
+            fontWeight = FontWeight.ExtraBold,
             fontSize = 18.sp,
             lineHeight = 28.sp,
             letterSpacing = (-0.2).sp
