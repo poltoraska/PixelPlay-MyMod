@@ -1,211 +1,230 @@
-# PixelPlayer 🎵
+# PixelPlayer — неофициальный форк @poltoraska 🎵
 
 <p align="center">
-  <img src="assets/icon.png" alt="App Icon" width="128"/>
-</p>
-<p align="center">
-<a href="https://trendshift.io/repositories/15551" target="_blank"><img src="https://trendshift.io/api/badge/repositories/15551" alt="PixelPlayerHQ%2FPixelPlayer | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
-</p>
-<p align="center">
-  <strong>A beautiful, feature-rich music player for Android</strong><br>
-  Built with Jetpack Compose and Material Design 3
+  <img src="assets/icon.png" alt="Значок приложения PixelPlayer" width="128"/>
 </p>
 
 <p align="center">
-  <img src="assets/screenshot1.jpg" alt="Screenshot 1" width="200" style="border-radius:26px;"/>
-  <img src="assets/screenshot2.jpg" alt="Screenshot 2" width="200" style="border-radius:26px;"/>
-  <img src="assets/screenshot3.jpg" alt="Screenshot 3" width="200" style="border-radius:26px;"/>
-  <img src="assets/screenshot4.jpg" alt="Screenshot 4" width="200" style="border-radius:26px;"/>
+  <strong>Музыкальный плеер для Android с интерфейсом на Jetpack Compose и Material Design 3</strong><br>
+  Адаптация для планшетов и Fold, кассетный интерфейс и доработанная русская локализация
 </p>
+
+> **Это не официальный репозиторий PixelPlayer.** Это личный форк [@poltoraska](https://github.com/poltoraska) с собственными изменениями интерфейса, навигации и первоначальной настройки приложения. Репозиторий форка: [poltoraska/PixelPlay-MyMod](https://github.com/poltoraska/PixelPlay-MyMod).
+>
+> Исходный проект создан [theovilardo](https://github.com/theovilardo): [оригинальный репозиторий PixelPlayer](https://github.com/theovilardo/PixelPlayer). Авторы оригинального проекта не отвечают за изменения и поддержку этого форка. Об ошибках этой версии сообщайте в [Issues форка](https://github.com/poltoraska/PixelPlay-MyMod/issues).
 
 <p align="center">
-    <a href="https://github.com/theovilardo/PixelPlayer/releases/latest">
-        <img src="https://img.shields.io/github/v/release/theovilardo/PixelPlayer?include_prereleases&logo=github&style=for-the-badge&label=Latest%20Release" alt="Latest Release">
-    </a>
-    <a href="https://github.com/theovilardo/PixelPlayer/releases">
-        <img src="https://img.shields.io/github/downloads/theovilardo/PixelPlayer/total?logo=github&style=for-the-badge" alt="Total Downloads">
-    </a>
-    <img src="https://img.shields.io/badge/Android-11%2B-green?style=for-the-badge&logo=android" alt="Android 11+">
-    <img src="https://img.shields.io/badge/Kotlin-100%25-purple?style=for-the-badge&logo=kotlin" alt="Kotlin">
+  <img src="https://img.shields.io/badge/Android-11%2B-green?style=for-the-badge&amp;logo=android" alt="Android 11 и новее">
+  <img src="https://img.shields.io/badge/Kotlin-100%25-purple?style=for-the-badge&amp;logo=kotlin" alt="Kotlin">
+  <a href="https://github.com/poltoraska/PixelPlay-MyMod">
+    <img src="https://img.shields.io/badge/Неофициальный_форк-poltoraska-blue?style=for-the-badge&amp;logo=github" alt="Неофициальный форк poltoraska">
+  </a>
 </p>
 
----
+## ✨ Что добавлено в этом форке
 
-## ‼️ DISCLAIMER
-- No fork of this project will recieve support, if you use a fork, ask the forker to support you.
+### Планшеты и складные устройства
 
----
+- Сворачиваемая боковая навигация с разделами «Главная», «Поиск», «Библиотека» и «Настройки».
+- Двухпанельная библиотека: список слева, выбранный альбом, исполнитель или плейлист справа.
+- Настройки с постоянным списком разделов и открытием их содержимого в соседней панели.
+- Полноэкранный планшетный плеер с очередью справа и без боковой навигации.
+- Компоновка плеера для Fold в режиме tabletop: обложка над горизонтальным сгибом, управление под ним.
+- Адаптивные страницы онбординга и диалоги первоначальной настройки.
+- Мягкие пружинные переходы между основными вкладками и доработанные анимации панелей.
 
-## ✨ Features
+### Кассетный интерфейс
 
-### 🎨 Modern UI/UX
-- **Material You** - Dynamic color theming that adapts to your wallpaper
-- **Smooth Animations** - Fluid transitions and micro-interactions
-- **Customizable UI** - Adjustable corner radius and navigation bar settings
-- **Dark/Light Theme** - Automatic or manual theme switching
-- **Album Art Colors** - Dynamic color extraction from album artwork
+- Карточки альбомов в виде кассет при отображении библиотеки списком.
+- Одна кассета в строке на смартфонах, две на планшетах и одна при открытой панели альбома.
+- Вращение катушек у воспроизводимого альбома с остановкой на паузе.
+- Отдельный кассетный плеер для смартфона в горизонтальной ориентации: переключение треков в центрах катушек, воспроизведение между ними, прогресс и дополнительные действия снизу.
+- Общая анимация катушек с учётом жизненного цикла приложения и системного отключения анимаций.
 
-### 🎵 Powerful Playback
-- **Media3 ExoPlayer** - Industry-leading audio engine with FFmpeg support
-- **Background Playback** - Full media session integration
-- **Queue Management** - Drag-and-drop reordering
-- **Shuffle & Repeat** - All playback modes supported
-- **Gapless Playback** - Seamless transitions between tracks
-- **Custom Transitions** - Configure crossfades between songs
+### Интерфейс и удобство
 
-### 📚 Library Management
-- **Multi-format Support** - MP3, FLAC, AAC, OGG, WAV, and more
-- **Browse By** - Songs, Albums, Artists, Genres, Folders
-- **Smart Artist Parsing** - Configurable delimiters for multi-artist tracks
-- **Album Artist Grouping** - Proper album organization
-- **Folder Filtering** - Choose which directories to scan
+- Переработанная главная страница, адаптивная статистика и выровненные заголовки.
+- Полные названия альбомов и обновлённый блок информации об альбоме.
+- Связанная группа кнопок «Воспроизвести» и «Перемешать» с переключением воспроизведения и паузы.
+- Автоматический переход в библиотеку при открытии альбома по обложке из планшетного плеера.
+- Виброотклик нижней навигации на смартфонах с учётом пользовательской настройки.
+- Доработанная передача обложки в стандартный музыкальный пульт Wear OS.
 
-### 🔍 Discovery & Organization
-- **Full-text Search** - Search across your entire library
-- **Daily Mix** - AI-powered personalized playlist based on listening habits
-- **Playlists** - Create and manage custom playlists
-- **Statistics** - Track your listening history and habits
+### Русский язык и первоначальные настройки
 
-### 🎤 Lyrics
-- **Synchronized Lyrics** - LRC format via LRCLIB API
-- **Lyrics Editing** - Modify or add lyrics to your tracks
-- **Scrolling Display** - Follow along as you listen
+- Дополненная русская локализация настроек и связанных диалогов.
+- Кириллический шрифт Nunito, согласованный с оформлением Google Sans, и более выразительные заголовки.
+- Корректные переносы коротких предлогов и союзов в локализованных строках.
+- Поиск и библиотека по умолчанию отображаются списком.
+- Порядок вкладок при первом запуске: «Альбомы», «Исполнители», «Песни», «Плейлисты», «Папки», «Избранное».
+- Уже сохранённые пользовательские настройки не перезаписываются новыми значениями по умолчанию.
 
-### 🖼️ Artist Artwork
-- **Deezer Integration** - Automatic artist images from Deezer API
-- **Smart Caching** - Memory (LRU) + database caching for offline access
-- **Fallback Icons** - Beautiful placeholders when images unavailable
+## 🖼️ Скриншоты
 
-### 📲 Connectivity
-- **Chromecast** - Stream to your TV or smart speakers
-- **Android Auto** - Full Android Auto support for in-car playback (Soon)
-- **Widgets** - Home screen control with Glance widgets
+Ниже сохранены иллюстрации из исходного README. Они показывают базовый интерфейс PixelPlayer и могут отличаться от текущего оформления форка.
 
-### ⚙️ Advanced Features
-- **Tag Editor** - Edit metadata with TagLib (MP3, FLAC, M4A support)
-- **AI Playlists** - Generate playlists with AI (Supports Gemini, Deepseek, OpenAI, etc.)
+<p align="center">
+  <img src="assets/screenshot1.jpg" alt="Главный экран PixelPlayer" width="200" style="border-radius:26px;"/>
+  <img src="assets/screenshot2.jpg" alt="Экран приложения PixelPlayer — пример 2" width="200" style="border-radius:26px;"/>
+  <img src="assets/screenshot3.jpg" alt="Экран приложения PixelPlayer — пример 3" width="200" style="border-radius:26px;"/>
+  <img src="assets/screenshot4.jpg" alt="Экран приложения PixelPlayer — пример 4" width="200" style="border-radius:26px;"/>
+</p>
 
----
+## 🎵 Основные возможности PixelPlayer
 
-## 🛠️ Tech Stack
+### Современный интерфейс
 
-| Category | Technology |
-|----------|------------|
-| **Language** | [Kotlin](https://kotlinlang.org/) 100% |
-| **UI Framework** | [Jetpack Compose](https://developer.android.com/jetpack/compose) |
-| **Design System** | [Material Design 3](https://m3.material.io/) |
-| **Audio Engine** | [Media3 ExoPlayer](https://developer.android.com/guide/topics/media/media3) + FFmpeg |
-| **Architecture** | MVVM with StateFlow/SharedFlow |
-| **DI** | [Hilt](https://dagger.dev/hilt/) |
-| **Database** | [Room](https://developer.android.com/training/data-storage/room) |
-| **Networking** | [Retrofit](https://square.github.io/retrofit/) + OkHttp |
-| **Image Loading** | [Coil](https://coil-kt.github.io/coil/) |
-| **Async** | Kotlin Coroutines & Flow |
-| **Background Tasks** | WorkManager |
-| **Metadata** | [TagLib](https://github.com/nicholaus/taglib-android) |
-| **Widgets** | [Glance](https://developer.android.com/jetpack/compose/glance) |
+- **Material You** — динамические цвета на основе обоев устройства.
+- **Анимации** — переходы между экранами и отклик элементов управления.
+- **Настройка оформления** — радиусы скругления и параметры навигационной панели.
+- **Светлая и тёмная темы** — автоматическое или ручное переключение.
+- **Цвета обложки** — оформление плеера на основе изображения альбома.
 
----
+### Воспроизведение
 
-## 📱 Requirements
+- **Media3 ExoPlayer и FFmpeg** — воспроизведение аудио разных форматов.
+- **Фоновое воспроизведение** — интеграция с системной медиасессией.
+- **Очередь** — изменение порядка треков перетаскиванием.
+- **Перемешивание и повтор** — управление порядком воспроизведения.
+- **Воспроизведение без пауз** — непрерывные переходы между треками.
+- **Кроссфейд** — настройка плавного перехода между композициями.
 
-- **Android 11** (API 30) or higher
-- **6GB RAM** recommended for smooth performance
+### Медиатека
 
----
+- **Форматы** — MP3, FLAC, AAC, OGG, WAV и другие.
+- **Разделы** — песни, альбомы, исполнители, жанры и папки.
+- **Несколько исполнителей** — настраиваемые разделители в названиях исполнителей.
+- **Исполнитель альбома** — группировка и организация альбомов по метаданным.
+- **Выбор папок** — настройка каталогов для сканирования и исключений.
 
-## 🚀 Getting Started
+### Поиск и подборки
 
-### Prerequisites
+- **Поиск по медиатеке** — поиск композиций, альбомов и исполнителей.
+- **Daily Mix** — персональные подборки на основе истории прослушивания.
+- **Плейлисты** — создание и редактирование собственных списков воспроизведения.
+- **Статистика** — история прослушивания и сведения о музыкальных предпочтениях.
 
-- Android Studio Ladybug | 2024.2.1 or newer
-- Android SDK 29+
-- JDK 11+
+### Тексты песен
 
-### Installation
+- **Синхронизированные тексты** — поддержка LRC и поиск через LRCLIB API.
+- **Редактирование** — добавление и изменение текстов композиций.
+- **Прокрутка** — отображение текста по мере воспроизведения.
 
-1. **Clone the repository**
+### Изображения исполнителей
+
+- **Интеграция с Deezer** — автоматическая загрузка изображений через API.
+- **Кэширование** — хранение изображений в памяти и базе данных для повторного использования.
+- **Изображения-заглушки** — оформление на случай отсутствия фотографии.
+
+### Подключения и дополнительные функции
+
+- **Chromecast** — трансляция музыки на телевизор или совместимую акустику.
+- **Виджеты** — управление воспроизведением с главного экрана через Glance.
+- **Редактор тегов** — изменение метаданных с помощью TagLib, включая MP3, FLAC и M4A.
+- **Плейлисты с ИИ** — генерация подборок с поддержкой Gemini, DeepSeek, OpenAI и других поставщиков.
+- **Android Auto** — в исходном README эта возможность обозначена как планируемая.
+
+## 🛠️ Технологии
+
+| Категория | Технология |
+|-----------|------------|
+| Язык | [Kotlin](https://kotlinlang.org/) |
+| Интерфейс | [Jetpack Compose](https://developer.android.com/jetpack/compose) |
+| Дизайн | [Material Design 3](https://m3.material.io/) и выразительные компоненты Material |
+| Аудиодвижок | [Media3 ExoPlayer](https://developer.android.com/guide/topics/media/media3) и FFmpeg |
+| Архитектура | MVVM, StateFlow и SharedFlow |
+| Внедрение зависимостей | [Hilt](https://dagger.dev/hilt/) |
+| База данных | [Room](https://developer.android.com/training/data-storage/room) |
+| Сеть | [Retrofit](https://square.github.io/retrofit/) и OkHttp |
+| Изображения | [Coil](https://coil-kt.github.io/coil/) |
+| Асинхронные операции | Kotlin Coroutines и Flow |
+| Фоновые задачи | WorkManager |
+| Метаданные | [TagLib](https://github.com/nicholaus/taglib-android) |
+| Виджеты | [Glance](https://developer.android.com/jetpack/compose/glance) |
+
+## 📱 Требования к устройству
+
+- Android 11 (API 30) или новее.
+- Для комфортной работы рекомендуется 6 ГБ оперативной памяти.
+
+## 🚀 Сборка и запуск
+
+### Необходимые инструменты
+
+- Android Studio с поддержкой версии Android Gradle Plugin, указанной в [каталоге версий](gradle/libs.versions.toml).
+- Android SDK Platform 37; минимальная версия Android для установки приложения — API 30.
+- JDK 21.
+- Gradle Wrapper из репозитория; отдельно устанавливать Gradle не требуется.
+
+Актуальные параметры сборки находятся в [app/build.gradle.kts](app/build.gradle.kts), [gradle/libs.versions.toml](gradle/libs.versions.toml) и [gradle-wrapper.properties](gradle/wrapper/gradle-wrapper.properties).
+
+### Порядок действий
+
+1. Клонируйте **этот форк**:
+
    ```sh
-   git clone https://github.com/theovilardo/PixelPlayer.git
+   git clone https://github.com/poltoraska/PixelPlay-MyMod.git
+   cd PixelPlay-MyMod
    ```
 
-2. **Open in Android Studio**
-   - Open Android Studio
-   - Select "Open an Existing Project"
-   - Navigate to the cloned directory
+2. Откройте каталог проекта в Android Studio через **Open**.
+3. Выберите JDK 21 для Gradle и дождитесь синхронизации зависимостей.
+4. Подключите устройство с Android 11 или новее либо запустите подходящий эмулятор.
+5. Выберите модуль `app` и нажмите **Run**.
 
-3. **Sync and Build**
-   - Wait for Gradle to sync dependencies
-   - Build the project (Build → Make Project)
+Для отдельной проверки компиляции Kotlin:
 
-4. **Run**
-   - Connect a device or start an emulator
-   - Click Run (▶️)
-
----
-
-## ⬇️ Download
-
-<p align="center">
-  <a href="https://github.com/theovilardo/PixelPlayer/releases/latest">
-    <img src="https://raw.githubusercontent.com/Kunzisoft/Github-badge/main/get-it-on-github.png" alt="Get it on GitHub" height="60">
-  </a>
-</p>
-
-<p align="center">
-  <a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22com.theveloper.pixelplay%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2Ftheovilardo%2FPixelPlayer%22%2C%22author%22%3A%22theovilardo%22%2C%22name%22%3A%22PixelPlayer%22%2C%22supportFixedAPKURL%22%3Afalse%7D">
-    <img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" alt="Get it on Obtainium" height="50">
-  </a>
-</p>
-
----
-
-## 📂 Project Structure
-
+```sh
+./gradlew :app:compileDebugKotlin
 ```
+
+Для запуска локальных JVM-тестов:
+
+```sh
+./gradlew :app:testDebugUnitTest
+```
+
+## ⬇️ Загрузка
+
+- **Этот форк:** [релизы poltoraska/PixelPlay-MyMod](https://github.com/poltoraska/PixelPlay-MyMod/releases). Если опубликованных сборок нет, используйте инструкцию по сборке выше.
+- **Исходный проект:** [релизы theovilardo/PixelPlayer](https://github.com/theovilardo/PixelPlayer/releases). Они относятся к оригинальному приложению и не содержат изменений этого форка.
+
+## 📂 Структура проекта
+
+```text
 app/src/main/java/com/theveloper/pixelplay/
 ├── data/
-│   ├── database/       # Room entities, DAOs, migrations
-│   ├── model/          # Domain models (Song, Album, Artist, etc.)
-│   ├── network/        # API services (LRCLIB, Deezer)
-│   ├── preferences/    # DataStore preferences
-│   ├── repository/     # Data repositories
-│   ├── service/        # MusicService, HTTP server
-│   └── worker/         # WorkManager sync workers
-├── di/                 # Hilt dependency injection modules
+│   ├── database/       # Сущности Room, DAO и миграции
+│   ├── model/          # Модели: Song, Album, Artist и другие
+│   ├── network/        # Сетевые API, включая LRCLIB и Deezer
+│   ├── preferences/    # Настройки DataStore
+│   ├── repository/     # Репозитории данных
+│   ├── service/        # MusicService и HTTP-сервер
+│   └── worker/         # Фоновые задачи WorkManager
+├── di/                 # Модули внедрения зависимостей Hilt
 ├── presentation/
-│   ├── components/     # Reusable Compose components
-│   ├── navigation/     # Navigation graph
-│   ├── screens/        # Screen composables
-│   └── viewmodel/      # ViewModels
+│   ├── adaptive/       # Адаптивная навигация и компоновка панелей
+│   ├── components/     # Переиспользуемые компоненты Compose
+│   ├── navigation/     # Граф навигации и переходы
+│   ├── screens/        # Экраны приложения
+│   └── viewmodel/      # ViewModel экранов
 ├── ui/
-│   ├── glancewidget/   # Home screen widgets
-│   └── theme/          # Colors, typography, theming
-└── utils/              # Extensions and utilities
+│   ├── glancewidget/   # Виджеты главного экрана
+│   └── theme/          # Цвета, шрифты и темы
+└── utils/              # Вспомогательные функции и расширения
 ```
 
----
+## 🤝 Обратная связь и участие
 
-## 🤝 Contributing
+Предложения и сообщения об ошибках этой версии оставляйте в [Issues форка](https://github.com/poltoraska/PixelPlay-MyMod/issues). В отчёте укажите устройство, версию Android, версию приложения, ориентацию экрана и шаги воспроизведения проблемы. Для Fold также полезно указать положение сгиба.
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Изменения можно предложить через Pull Request в этот репозиторий. Приложите описание решаемой задачи и выполненных проверок. Учитывайте условия [лицензии проекта](LICENSE).
 
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+## 📄 Лицензия и авторство
 
----
+PixelPlayer распространяется на условиях **Proprietary License**. Полный текст и ограничения использования приведены в [LICENSE](LICENSE). Статус неофициального форка не изменяет эти условия и права автора исходного проекта.
 
-## 📄 License
+Части проекта, внесённые до 12 мая 2026 года, остаются доступны на условиях MIT. Подробности и сведения о сторонних компонентах находятся в [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Лицензия шрифта Nunito включена в [nunito-OFL.txt](app/src/main/assets/licenses/nunito-OFL.txt).
 
-This project is licensed under a Proprietary License - see the [LICENSE](LICENSE) file for details.
-
-Portions contributed before 2026-05-12 remain available under the MIT License; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
-
----
-
-<p align="center">
-  Made with ❤️ by <a href="https://github.com/theovilardo">theovilardo</a>
-</p>
+- **Автор исходного проекта:** [theovilardo](https://github.com/theovilardo).
+- **Автор изменений этого форка:** [poltoraska](https://github.com/poltoraska).
