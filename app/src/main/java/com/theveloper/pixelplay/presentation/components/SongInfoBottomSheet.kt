@@ -28,6 +28,7 @@ import androidx.compose.runtime.withFrameNanos
 
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
@@ -102,7 +103,6 @@ import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
 import com.theveloper.pixelplay.utils.AudioMetaUtils
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.sp
-import com.theveloper.pixelplay.presentation.components.subcomps.TightWrapText
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.animation.core.spring
@@ -708,11 +708,7 @@ fun SongInfoBottomSheet(
                                 modifier = Modifier.padding(horizontal = 4.dp)
                             )
                             Spacer(Modifier.width(4.dp))
-                            Text(
-                                stringResource(R.string.song_info_tab_options_badge),
-                                fontFamily = GoogleSansRounded,
-                                fontWeight = FontWeight.Bold,
-                            )
+                            SongActionLabel(stringResource(R.string.song_info_tab_options_badge))
                         }
                     }
 
@@ -734,11 +730,7 @@ fun SongInfoBottomSheet(
                                 modifier = Modifier.padding(horizontal = 4.dp)
                             )
                             Spacer(Modifier.width(4.dp))
-                            Text(
-                                stringResource(R.string.song_info_tab_info_badge),
-                                fontFamily = GoogleSansRounded,
-                                fontWeight = FontWeight.Bold
-                            )
+                            SongActionLabel(stringResource(R.string.song_info_tab_info_badge))
                         }
                     }
                 }
@@ -1012,6 +1004,26 @@ private fun ToneDialogIcon(
     }
 }
 
+// Keep action labels consistent and let longer translations fit the available button width.
+private val SongActionTextAutoSize = TextAutoSize.StepBased(
+    minFontSize = 12.sp,
+    maxFontSize = 14.sp,
+    stepSize = 0.5.sp,
+)
+
+@Composable
+private fun SongActionLabel(text: String, modifier: Modifier = Modifier) {
+    Text(
+        text = text,
+        modifier = modifier,
+        style = MaterialTheme.typography.labelLarge.copy(fontSize = 14.sp, lineHeight = 18.sp),
+        autoSize = SongActionTextAutoSize,
+        maxLines = 1,
+        softWrap = false,
+        overflow = TextOverflow.Ellipsis,
+    )
+}
+
 @Composable
 private fun RingtoneActionButton(
     modifier: Modifier,
@@ -1040,12 +1052,10 @@ private fun RingtoneActionButton(
                 contentDescription = stringResource(R.string.song_info_cd_set_sound_as),
             )
             Spacer(Modifier.width(if (compactText) 6.dp else 8.dp))
-            Text(
+            SongActionLabel(
                 text = stringResource(
                     if (compactText) R.string.song_info_set_sound_as_short else R.string.song_info_set_sound_as_long
                 ),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
             )
         }
     } else {
@@ -1257,16 +1267,10 @@ private fun Row1Actions(
             Icon(
                 Icons.Rounded.PlayArrow,
                 contentDescription = stringResource(R.string.song_info_cd_play),
+                modifier = Modifier.size(20.dp),
             )
-            Spacer(Modifier.width(6.dp))
-            TightWrapText(
-                text = stringResource(R.string.song_info_action_play),
-                modifier = Modifier.padding(end = 4.dp),
-                overflow = TextOverflow.Ellipsis,
-                maxLines = 2,
-                lineHeight = 22.sp,
-                style = MaterialTheme.typography.titleLarge
-            )
+            Spacer(Modifier.width(4.dp))
+            SongActionLabel(text = stringResource(R.string.song_info_action_play))
         }
 
         FilledIconButton(
@@ -1416,13 +1420,7 @@ private fun Row2Actions(
                 contentDescription = stringResource(R.string.song_info_cd_add_to_queue),
             )
             Spacer(Modifier.width(6.dp))
-            TightWrapText(
-                text = stringResource(R.string.song_info_action_add_to_queue),
-                modifier = Modifier.padding(end = 4.dp),
-                overflow = TextOverflow.Ellipsis,
-                maxLines = 2,
-                lineHeight = 20.sp
-            )
+            SongActionLabel(text = stringResource(R.string.song_info_action_add_to_queue))
         }
 
         FilledTonalButton(
@@ -1454,13 +1452,7 @@ private fun Row2Actions(
                 contentDescription = stringResource(R.string.song_info_cd_queue_next)
             )
             Spacer(Modifier.width(6.dp))
-            TightWrapText(
-                text = stringResource(R.string.song_info_action_queue_next),
-                modifier = Modifier.padding(end = 4.dp),
-                overflow = TextOverflow.Ellipsis,
-                maxLines = 2,
-                lineHeight = 20.sp
-            )
+            SongActionLabel(text = stringResource(R.string.song_info_action_queue_next))
         }
     }
 }
@@ -1552,13 +1544,7 @@ private fun Row3Actions(
                 contentDescription = stringResource(R.string.song_info_cd_add_to_playlist)
             )
             Spacer(Modifier.width(6.dp))
-            TightWrapText(
-                text = stringResource(R.string.common_playlist),
-                modifier = Modifier.padding(end = 4.dp),
-                overflow = TextOverflow.Ellipsis,
-                maxLines = 2,
-                lineHeight = 20.sp
-            )
+            SongActionLabel(text = stringResource(R.string.common_playlist))
         }
 
         FilledTonalButton(
@@ -1590,13 +1576,7 @@ private fun Row3Actions(
                 contentDescription = stringResource(R.string.song_info_action_delete)
             )
             Spacer(Modifier.width(6.dp))
-            TightWrapText(
-                text = stringResource(R.string.song_info_action_delete),
-                modifier = Modifier.padding(end = 4.dp),
-                overflow = TextOverflow.Ellipsis,
-                maxLines = 2,
-                lineHeight = 20.sp
-            )
+            SongActionLabel(text = stringResource(R.string.song_info_action_delete))
         }
     }
 }
@@ -1744,15 +1724,11 @@ private fun Row4Actions(
             if (shouldShowWatchTransferLoading) {
                 LoadingIndicator(modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(10.dp))
-                Text(
-                    text = stringResource(R.string.song_info_checking_watch),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                SongActionLabel(text = stringResource(R.string.song_info_checking_watch))
             } else if (isSendingToWatch) {
                 LoadingIndicator(modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(10.dp))
-                Text(
+                SongActionLabel(
                     text = when {
                         currentSongTransferStatus == com.theveloper.pixelplay.shared.WearTransferProgress.STATUS_TRANSFERRING && currentSongTransferTotalBytes > 0L ->
                             stringResource(
@@ -1764,8 +1740,6 @@ private fun Row4Actions(
                         else ->
                             stringResource(R.string.song_info_transfer_in_progress)
                     },
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
                 )
             } else {
                 Icon(
@@ -1779,7 +1753,7 @@ private fun Row4Actions(
                     )
                 )
                 Spacer(Modifier.width(8.dp))
-                Text(
+                SongActionLabel(
                     text = stringResource(
                         if (isPixelPlayWatchAvailable) {
                             R.string.song_info_send_to_watch
@@ -1787,8 +1761,6 @@ private fun Row4Actions(
                             R.string.song_info_watch_unavailable
                         }
                     ),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
                 )
             }
         }

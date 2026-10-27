@@ -20,21 +20,29 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.isActive
 import kotlin.math.cos
 import kotlin.math.sin
-import kotlin.math.roundToInt
 
 /** Shared reels read their rotation only while drawing, without recomposing their controls. */
 @Composable
-internal fun CassetteWindow(modifier: Modifier, container: Color, reel: Color, hub: Color, isPlaying: Boolean) {
+internal fun CassetteWindow(
+    modifier: Modifier,
+    container: Color,
+    reel: Color,
+    hub: Color,
+    isPlaying: Boolean,
+    isSeeking: Boolean = false,
+    seekDirection: Int = 0,
+) {
     val rotation = remember { Animatable(0f) }
     val lifecycle = LocalLifecycleOwner.current.lifecycle
-    LaunchedEffect(isPlaying, lifecycle) {
-        if (!isPlaying) return@LaunchedEffect
+    val direction = if (isSeeking) seekDirection else if (isPlaying) 1 else 0
+    LaunchedEffect(direction, isSeeking, lifecycle) {
+        if (direction == 0) return@LaunchedEffect
         lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
             while (isActive) {
                 if (currentCoroutineContext()[MotionDurationScale]?.scaleFactor == 0f) awaitCancellation()
-                val remainingDuration = ((360f - rotation.value) / 360f * 6000).roundToInt().coerceAtLeast(1)
-                rotation.animateTo(360f, tween(remainingDuration, easing = LinearEasing))
-                rotation.snapTo(0f)
+                val duration = if (isSeeking) 1100 else 6000
+                rotation.animateTo(rotation.value + direction * 360f, tween(duration, easing = LinearEasing))
+                rotation.snapTo(((rotation.value % 360f) + 360f) % 360f)
                 // Yield even if system animation scale changes to zero during a turn.
                 withFrameNanos { }
             }

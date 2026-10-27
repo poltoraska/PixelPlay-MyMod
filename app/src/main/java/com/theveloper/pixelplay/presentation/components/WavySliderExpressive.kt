@@ -79,7 +79,9 @@ fun WavySliderExpressive(
     waveAmplitudeWhenPlaying: Dp = 4.dp,
     thumbLineHeightWhenInteracting: Dp = 24.dp,
     semanticsLabel: String? = null,
-    semanticsProgressStep: Float = 0.01f
+    semanticsProgressStep: Float = 0.01f,
+    onPointerSeekStart: () -> Unit = {},
+    onPointerSeekEnd: () -> Unit = {},
 ) {
     val density = LocalDensity.current
     val strokeWidthPx = with(density) { strokeWidth.toPx() }
@@ -114,6 +116,8 @@ fun WavySliderExpressive(
     val latestOnValueChange by rememberUpdatedState(onValueChange)
     val latestOnValueChangeFinished by rememberUpdatedState(onValueChangeFinished)
     val latestOnValueCommit by rememberUpdatedState(onValueCommit)
+    val latestOnPointerSeekStart by rememberUpdatedState(onPointerSeekStart)
+    val latestOnPointerSeekEnd by rememberUpdatedState(onPointerSeekEnd)
     var isPointerSeeking by remember { mutableStateOf(false) }
     val isInteracting = isPointerSeeking
 
@@ -306,6 +310,7 @@ fun WavySliderExpressive(
                         try {
                             val down = awaitFirstDown(requireUnconsumed = false)
                             isPointerSeeking = true
+                            latestOnPointerSeekStart()
                             down.consume()
                             var latestGestureValue = valueForX(down.position.x)
                             latestOnValueChange(latestGestureValue)
@@ -333,6 +338,7 @@ fun WavySliderExpressive(
                             latestOnValueCommit?.invoke(latestGestureValue)
                                 ?: latestOnValueChangeFinished?.invoke()
                         } finally {
+                            if (isPointerSeeking) latestOnPointerSeekEnd()
                             isPointerSeeking = false
                         }
                     }

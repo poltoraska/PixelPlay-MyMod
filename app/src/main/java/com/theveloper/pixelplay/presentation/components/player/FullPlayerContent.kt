@@ -539,6 +539,7 @@ fun FullPlayerContent(
         )
     }
 
+    val cassetteSeekState = remember(song.id) { CassetteSeekState() }
     val playerProgressSection: @Composable () -> Unit = {
         FullPlayerProgressSection(
             song = song,
@@ -557,7 +558,8 @@ fun FullPlayerContent(
             playerOnBaseColor = playerOnBaseColor,
             allowRealtimeUpdates = allowRealtimeUpdates,
             isSheetDragGestureActive = isSheetDragGestureActive,
-            loadingTweaks = loadingTweaks
+            loadingTweaks = loadingTweaks,
+            cassetteSeekState = cassetteSeekState.takeIf { landscapeCassette && allowRealtimeUpdates },
         )
     }
 
@@ -958,6 +960,7 @@ fun FullPlayerContent(
                     isCastConnecting = isCastConnecting,
                     animateReels = allowRealtimeUpdates && !isSheetDragGestureActive &&
                         currentSheetState == PlayerSheetState.EXPANDED,
+                    seekState = cassetteSeekState,
                     progressSection = playerProgressSection,
                     onPlayPause = onPlayPause,
                     onPrevious = onPreviousWithOptimisticCarousel,
@@ -1284,7 +1287,8 @@ private fun FullPlayerProgressSection(
     playerOnBaseColor: Color,
     allowRealtimeUpdates: Boolean,
     isSheetDragGestureActive: Boolean,
-    loadingTweaks: FullPlayerLoadingTweaks
+    loadingTweaks: FullPlayerLoadingTweaks,
+    cassetteSeekState: CassetteSeekState?,
 ) {
     val isMetadataForCurrentSong = playbackMetadataMediaId == song.id
     val audioMimeType = if (isMetadataForCurrentSong) {
@@ -1322,7 +1326,8 @@ private fun FullPlayerProgressSection(
         timeTextColor = playerOnBaseColor,
         allowRealtimeUpdates = allowRealtimeUpdates,
         isSheetDragGestureActive = isSheetDragGestureActive,
-        loadingTweaks = loadingTweaks
+        loadingTweaks = loadingTweaks,
+        cassetteSeekState = cassetteSeekState,
     )
 }
 
@@ -1799,6 +1804,7 @@ private fun PlayerProgressBarSection(
     allowRealtimeUpdates: Boolean = true,
     isSheetDragGestureActive: Boolean = false,
     loadingTweaks: FullPlayerLoadingTweaks? = null,
+    cassetteSeekState: CassetteSeekState? = null,
     modifier: Modifier = Modifier
 ) {
     val progressSectionHorizontalInset = 0.dp
@@ -1959,7 +1965,15 @@ private fun PlayerProgressBarSection(
             ) {
                 EfficientSlider(
                     valueState = animatedProgressState,
-                    onValueChange = { sliderDragValue = it },
+                    onValueChange = {
+                        sliderDragValue = it
+                        cassetteSeekState?.move(it)
+                    },
+                    onPointerSeekStart = { cassetteSeekState?.begin() },
+                    onPointerSeekEnd = {
+                        cassetteSeekState?.end()
+                        sliderDragValue = null
+                    },
                     onValueCommit = { finalValue ->
                         val targetMs = (finalValue * durationForCalc).roundToLong()
                         targetSeekFraction = finalValue
@@ -2004,6 +2018,8 @@ private fun EfficientSlider(
     valueState: androidx.compose.runtime.State<Float>,
     onValueChange: (Float) -> Unit,
     onValueCommit: (Float) -> Unit,
+    onPointerSeekStart: () -> Unit,
+    onPointerSeekEnd: () -> Unit,
     thumbColor: Color,
     activeTrackColor: Color,
     inactiveTrackColor: Color,
@@ -2031,6 +2047,8 @@ private fun EfficientSlider(
         value = { valueState.value },
         onValueChange = onValueChangeWithHaptics,
         onValueCommit = onValueCommit,
+        onPointerSeekStart = onPointerSeekStart,
+        onPointerSeekEnd = onPointerSeekEnd,
         interactionSource = interactionSource,
         activeTrackColor = activeTrackColor,
         inactiveTrackColor = inactiveTrackColor,

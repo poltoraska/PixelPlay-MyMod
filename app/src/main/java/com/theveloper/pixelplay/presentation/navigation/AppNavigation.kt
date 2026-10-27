@@ -287,8 +287,23 @@ fun AppNavigation(
                         )
                     },
                 ) {
-                    // The persistent browser is composed beside the NavHost by LibraryAdaptiveContent.
-                    Box(Modifier.fillMaxSize())
+                    if (tabletNavigation) {
+                        // Tablets keep the browser beside the detail pane.
+                        Box(Modifier.fillMaxSize())
+                    } else {
+                        // On phones the browser participates in the same NavHost transition
+                        // and lifecycle as the other bottom-navigation destinations.
+                        ScreenWrapper(
+                            navController = navController,
+                            playerViewModel = playerViewModel,
+                            animatedVisibilityScope = this,
+                        ) {
+                            LibraryScreen(
+                                navController = navController,
+                                playerViewModel = playerViewModel,
+                            )
+                        }
+                    }
                 }
                 composable(
                     Screen.Settings.route,
@@ -725,8 +740,8 @@ private enum class MainRootDirection {
     BACKWARD
 }
 
-// Base duration for bottom-nav switches at 1x — at 0.5x system scale = ~190 ms.
-private const val BOTTOM_NAV_TRANSITION_DURATION = 380
+// A short directional motion keeps bottom-navigation switches responsive.
+private const val BOTTOM_NAV_TRANSITION_DURATION = 240
 
 // MD3 Expressive easing for bottom-nav switches
 private val BottomNavEasing = CubicBezierEasing(0.2f, 0f, 0f, 1f)
@@ -762,14 +777,14 @@ private fun mainRootEnterTransition(
         MainRootDirection.FORWARD -> {
             slideInHorizontally(
                 animationSpec = MAIN_ROOT_TRANSITION_SPEC,
-                initialOffsetX = { (it * 0.5f).toInt() }
+                initialOffsetX = { (it * 0.2f).toInt() }
             ) + fadeIn(animationSpec = MAIN_ROOT_FADE_SPEC)
         }
 
         MainRootDirection.BACKWARD -> {
             slideInHorizontally(
                 animationSpec = MAIN_ROOT_TRANSITION_SPEC,
-                initialOffsetX = { -(it * 0.5f).toInt() }
+                initialOffsetX = { -(it * 0.2f).toInt() }
             ) + fadeIn(animationSpec = MAIN_ROOT_FADE_SPEC)
         }
 
@@ -792,14 +807,14 @@ private fun mainRootExitTransition(
         MainRootDirection.FORWARD -> {
             slideOutHorizontally(
                 animationSpec = MAIN_ROOT_TRANSITION_SPEC,
-                targetOffsetX = { -(it * 0.5f).toInt() }
+                targetOffsetX = { -(it * 0.2f).toInt() }
             ) + fadeOut(animationSpec = MAIN_ROOT_FADE_SPEC)
         }
 
         MainRootDirection.BACKWARD -> {
             slideOutHorizontally(
                 animationSpec = MAIN_ROOT_TRANSITION_SPEC,
-                targetOffsetX = { (it * 0.5f).toInt() }
+                targetOffsetX = { (it * 0.2f).toInt() }
             ) + fadeOut(animationSpec = MAIN_ROOT_FADE_SPEC)
         }
 

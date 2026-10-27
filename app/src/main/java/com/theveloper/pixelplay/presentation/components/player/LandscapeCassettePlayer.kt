@@ -2,7 +2,12 @@ package com.theveloper.pixelplay.presentation.components.player
 
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
@@ -11,19 +16,30 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.Player
 import coil.size.Size
@@ -46,6 +62,7 @@ internal fun LandscapeCassettePlayer(
     shuffleEnabled: Boolean,
     isCastConnecting: Boolean,
     animateReels: Boolean,
+    seekState: CassetteSeekState,
     progressSection: @Composable () -> Unit,
     onPlayPause: () -> Unit,
     onPrevious: () -> Unit,
@@ -62,6 +79,15 @@ internal fun LandscapeCassettePlayer(
 ) {
     val isPlaying = isPlayingProvider()
     val favorite = isFavoriteProvider()
+    val haptics = LocalHapticFeedback.current
+    val seekGeneration = seekState.generation
+    LaunchedEffect(seekState, seekGeneration) {
+        if (seekState.isSeeking && seekState.direction != 0) {
+            delay(180)
+            seekState.stopIfUnchanged(seekGeneration)
+        }
+    }
+    if (animateReels) CassetteSeekSound(direction = seekState.direction, enabled = seekState.isSeeking)
     MaterialTheme(colorScheme = colors) {
         Surface(
             modifier = Modifier.fillMaxSize().padding(paddingValues).padding(horizontal = 8.dp, vertical = 4.dp),
@@ -130,51 +156,87 @@ internal fun LandscapeCassettePlayer(
                             reel = colors.onSurfaceVariant,
                             hub = colors.surfaceContainerLow,
                             isPlaying = isPlaying && animateReels,
+                            isSeeking = seekState.isSeeking && animateReels,
+                            seekDirection = seekState.direction,
                         )
                         // Match the shared renderer's physical reel centers exactly.
                         val hubSize = minOf(48.dp, maxHeight)
                         val playSize = minOf(72.dp, maxHeight)
-                        FilledIconButton(
-                            onClick = onPrevious,
+                        CassetteTransportButton(
+                            onClick = {
+                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                onPrevious()
+                            },
+                            label = stringResource(R.string.common_previous_track),
+                            size = hubSize,
+                            restingCorner = hubSize / 2,
                             modifier = Modifier.align(Alignment.CenterStart)
-                                .absoluteOffset(x = maxWidth * 0.26f - hubSize / 2).size(hubSize),
+                                .absoluteOffset(x = maxWidth * 0.26f - hubSize / 2),
                             colors = IconButtonDefaults.filledIconButtonColors(
                                 containerColor = colors.primary,
                                 contentColor = colors.onPrimary,
                             ),
-                        ) {
-                            Icon(painterResource(R.drawable.rounded_skip_previous_24), stringResource(R.string.common_previous_track))
+                        ) { iconScale ->
+                            Icon(
+                                painterResource(R.drawable.rounded_skip_previous_24),
+                                contentDescription = null,
+                                modifier = Modifier.graphicsLayer { scaleX = iconScale; scaleY = iconScale },
+                            )
                         }
-                        FilledIconButton(
-                            onClick = onPlayPause,
+                        CassetteTransportButton(
+                            onClick = {
+                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                onPlayPause()
+                            },
+                            label = stringResource(if (isPlaying) R.string.common_pause else R.string.common_play),
+                            size = playSize,
+                            restingCorner = if (isPlaying) playSize / 3 else playSize / 2,
                             enabled = !isCastConnecting,
-                            modifier = Modifier.size(playSize),
-                            shape = RoundedCornerShape(if (isPlaying) 24.dp else 36.dp),
                             colors = IconButtonDefaults.filledIconButtonColors(
                                 containerColor = colors.tertiaryContainer,
                                 contentColor = colors.onTertiaryContainer,
                             ),
-                        ) {
+                        ) { iconScale ->
                             if (isCastConnecting) {
                                 CircularProgressIndicator(Modifier.size(28.dp), strokeWidth = 2.dp)
                             } else {
-                                Icon(
-                                    painterResource(if (isPlaying) R.drawable.rounded_pause_24 else R.drawable.rounded_play_arrow_24),
-                                    stringResource(if (isPlaying) R.string.common_pause else R.string.common_play),
-                                    Modifier.size(32.dp),
-                                )
+                                val motionScheme = remember { MotionScheme.expressive() }
+                                Crossfade(
+                                    targetState = isPlaying,
+                                    animationSpec = motionScheme.fastEffectsSpec(),
+                                    label = "cassettePlayPauseIcon",
+                                ) { playing ->
+                                    Icon(
+                                        painterResource(if (playing) R.drawable.rounded_pause_24 else R.drawable.rounded_play_arrow_24),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(32.dp).graphicsLayer {
+                                            scaleX = iconScale
+                                            scaleY = iconScale
+                                        },
+                                    )
+                                }
                             }
                         }
-                        FilledIconButton(
-                            onClick = onNext,
+                        CassetteTransportButton(
+                            onClick = {
+                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                onNext()
+                            },
+                            label = stringResource(R.string.common_next_track),
+                            size = hubSize,
+                            restingCorner = hubSize / 2,
                             modifier = Modifier.align(Alignment.CenterStart)
-                                .absoluteOffset(x = maxWidth * 0.74f - hubSize / 2).size(hubSize),
+                                .absoluteOffset(x = maxWidth * 0.74f - hubSize / 2),
                             colors = IconButtonDefaults.filledIconButtonColors(
                                 containerColor = colors.primary,
                                 contentColor = colors.onPrimary,
                             ),
-                        ) {
-                            Icon(painterResource(R.drawable.rounded_skip_next_24), stringResource(R.string.common_next_track))
+                        ) { iconScale ->
+                            Icon(
+                                painterResource(R.drawable.rounded_skip_next_24),
+                                contentDescription = null,
+                                modifier = Modifier.graphicsLayer { scaleX = iconScale; scaleY = iconScale },
+                            )
                         }
                     }
                     // The lower tape-head panel holds the timeline and secondary controls in one row.
@@ -200,6 +262,54 @@ internal fun LandscapeCassettePlayer(
                 }
             }
         }
+    }
+}
+
+/** Animate only the visible shape and icon, keeping the touch target and reel centers stable. */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun CassetteTransportButton(
+    onClick: () -> Unit,
+    label: String,
+    size: Dp,
+    restingCorner: Dp,
+    colors: IconButtonColors,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    content: @Composable (Float) -> Unit,
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    var visualPressed by remember { mutableStateOf(false) }
+    LaunchedEffect(pressed, enabled) {
+        if (pressed && enabled) {
+            visualPressed = true
+        } else {
+            // Briefly retain the visual state for quick taps; the action itself remains immediate.
+            delay(90)
+            visualPressed = false
+        }
+    }
+    val motionScheme = remember { MotionScheme.expressive() }
+    val corner by animateDpAsState(
+        targetValue = if (visualPressed) size * 0.24f else restingCorner,
+        animationSpec = motionScheme.fastSpatialSpec(),
+        label = "cassetteButtonCorner",
+    )
+    val iconScale by animateFloatAsState(
+        targetValue = if (visualPressed) 0.84f else 1f,
+        animationSpec = motionScheme.fastSpatialSpec(),
+        label = "cassetteButtonIconScale",
+    )
+    FilledIconButton(
+        onClick = onClick,
+        modifier = modifier.size(size).semantics { contentDescription = label },
+        enabled = enabled,
+        shape = RoundedCornerShape(corner.coerceAtLeast(0.dp)),
+        colors = colors,
+        interactionSource = interactionSource,
+    ) {
+        content(iconScale)
     }
 }
 
