@@ -9,12 +9,15 @@ import com.theveloper.pixelplay.presentation.navigation.navigateSafelyReplacing
 
 import android.content.Intent
 import androidx.activity.compose.ReportDrawnWhen
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -27,6 +30,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -312,11 +316,6 @@ fun HomeScreen(
                 if (adaptiveLayout.usesSideNavigation) {
                     Spacer(Modifier.fillMaxWidth().windowInsetsTopHeight(WindowInsets.statusBars)
                         .background(MaterialTheme.colorScheme.background))
-                } else {
-                    HomeGradientTopBar(
-                        onNavigationIconClick = { navController.navigateSafely(Screen.Settings.route) },
-                        isScrolled = isScrolledPastThreshold.value,
-                    )
                 }
             }
         ) { innerPadding ->
@@ -332,8 +331,16 @@ fun HomeScreen(
                     bottom = paddingValuesParent.calculateBottomPadding()
                             + 38.dp + bottomPadding
                 ),
-                verticalArrangement = Arrangement.spacedBy(24.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                if (!adaptiveLayout.usesSideNavigation) {
+                    item(key = "home_settings", span = { GridItemSpan(maxLineSpan) }) {
+                        HomeGradientTopBar(
+                            onNavigationIconClick = { navController.navigateSafely(Screen.Settings.route) },
+                            isScrolled = false,
+                        )
+                    }
+                }
                 if (yourMixSongs.isEmpty()) {
                     item(
                         key = "your_mix_placeholder",
@@ -396,6 +403,15 @@ fun HomeScreen(
                             basePattern
                         }
 
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Image(
+                                painter = painterResource(R.drawable.mascot_home),
+                                contentDescription = null,
+                                contentScale = ContentScale.Fit,
+                                modifier = Modifier.padding(horizontal = 16.dp)
+                                    .widthIn(max = 480.dp).fillMaxWidth()
+                                    .aspectRatio(672f / 424f),
+                            )
                         AlbumArtCollage(
                             modifier = Modifier.fillMaxWidth(),
                             songs = yourMixSongs,
@@ -410,6 +426,7 @@ fun HomeScreen(
                                 }
                             }
                         )
+                        }
                     }
                 }
 
@@ -657,14 +674,14 @@ fun YourMixHeader(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = if (adaptiveLayout.usesSideNavigation) 180.dp else 256.dp)
+            .heightIn(min = 180.dp)
             .padding(16.dp)
     ) {
         Column(
             modifier = Modifier
                 .weight(1f)
                 .padding(
-                    top = if (adaptiveLayout.usesSideNavigation) 24.dp else 48.dp,
+                    top = 0.dp,
                     start = 12.dp,
                     end = 16.dp,
                     bottom = 8.dp,
@@ -689,7 +706,7 @@ fun YourMixHeader(
         // Play Button - color changes based on shuffle state
         LargeExtendedFloatingActionButton(
             modifier = Modifier
-                .align(Alignment.Bottom)
+                .align(Alignment.CenterVertically)
                 .padding(end = 12.dp),
             onClick = onPlayShuffled,
             containerColor = if (isShuffleEnabled) colors.primary else colors.tertiaryContainer,

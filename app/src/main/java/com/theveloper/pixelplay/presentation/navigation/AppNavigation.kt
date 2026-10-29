@@ -96,7 +96,7 @@ fun AppNavigation(
     startDestination?.let { initialRoute ->
         SettingsAdaptiveContent(navController) { settingsModifier ->
           Box(settingsModifier) {
-           LibraryAdaptiveContent(navController, playerViewModel) { navigationModifier ->
+           LibraryAdaptiveContent(navController, playerViewModel, paddingValues, onOpenSidebar) { navigationModifier ->
             val tabletNavigation = LocalAdaptiveLayout.current.usesSideNavigation
             val tabletTravelPx = tabletTabTravelPx()
             // Keep callbacks stable while using the latest selection during interrupted transitions.
@@ -153,7 +153,8 @@ fun AppNavigation(
                         )
                     },
                     popEnterTransition = {
-                        mainRootEnterTransition(
+                        if (libraryDetailPane && initialState.destination.route == Screen.DailyMixScreen.route) EnterTransition.None
+                        else mainRootEnterTransition(
                             fromRoute = initialState.destination.route,
                             toRoute = targetState.destination.route,
                             tabletNavigation = tabletNavigation,
@@ -173,17 +174,21 @@ fun AppNavigation(
                         )
                     },
                 ) {
-                    ScreenWrapper(
-                        navController = navController,
-                        playerViewModel = playerViewModel,
-                        animatedVisibilityScope = this
-                    ) {
-                        HomeScreen(
+                    if (tabletNavigation) {
+                        Box(Modifier.fillMaxSize())
+                    } else {
+                        ScreenWrapper(
                             navController = navController,
-                            paddingValuesParent = paddingValues,
                             playerViewModel = playerViewModel,
-                            onOpenSidebar = onOpenSidebar
-                        )
+                            animatedVisibilityScope = this
+                        ) {
+                            HomeScreen(
+                                navController = navController,
+                                paddingValuesParent = paddingValues,
+                                playerViewModel = playerViewModel,
+                                onOpenSidebar = onOpenSidebar
+                            )
+                        }
                     }
                 }
                 composable(

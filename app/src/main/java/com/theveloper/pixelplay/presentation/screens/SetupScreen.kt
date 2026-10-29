@@ -1,6 +1,8 @@
 
 package com.theveloper.pixelplay.presentation.screens
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.horizontalScroll
@@ -127,6 +129,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -150,7 +153,6 @@ import com.theveloper.pixelplay.data.backup.model.RestorePlan
 import com.theveloper.pixelplay.data.preferences.AppThemeMode
 import com.theveloper.pixelplay.presentation.components.PermissionIconCollage
 import com.theveloper.pixelplay.presentation.components.BackupModuleSelectionDialog
-import com.theveloper.pixelplay.presentation.components.subcomps.MaterialYouVectorDrawable
 import com.theveloper.pixelplay.presentation.components.subcomps.SineWaveLine
 import com.theveloper.pixelplay.presentation.components.FileExplorerDialog
 import com.theveloper.pixelplay.presentation.viewmodel.DirectoryEntry
@@ -172,6 +174,7 @@ import java.util.Locale
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextGeometricTransform
 
 @OptIn(ExperimentalPermissionsApi::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
@@ -666,8 +669,17 @@ fun WelcomePage() {
     SetupPageFrame(
         header = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(stringResource(R.string.setup_welcome_prefix), style = ExpTitleTypography.displayLarge.copy(
-                    fontSize = 42.sp, lineHeight = 1.1.em))
+                Text(
+                    text = stringResource(R.string.setup_welcome_prefix),
+                    style = ExpTitleTypography.displayLarge.copy(
+                        fontSize = 42.sp,
+                        lineHeight = 1.1.em,
+                        textGeometricTransform = TextGeometricTransform(scaleX = 1f),
+                    ),
+                    // Keep the entire localized welcome in two lines without stretching glyphs.
+                    autoSize = TextAutoSize.StepBased(minFontSize = 20.sp, maxFontSize = 42.sp, stepSize = 1.sp),
+                    maxLines = 2,
+                )
                 Text(stringResource(R.string.app_name), style = MaterialTheme.typography.displayLarge.copy(
                     fontFamily = GoogleSansRounded, fontSize = 46.sp,
                     color = MaterialTheme.colorScheme.primary, lineHeight = 1.1.em))
@@ -698,6 +710,7 @@ fun WelcomePage() {
             }
         },
         visual = { WelcomeArtwork() },
+        largeVisual = true,
         actions = {
             Text(stringResource(R.string.setup_intro_body), style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -707,57 +720,25 @@ fun WelcomePage() {
 
 @Composable
 private fun WelcomeArtwork() {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .fillMaxHeight()
-            //.background(color = Color.Red)
-            .clip(RoundedCornerShape(20.dp))
-    ){
-        MaterialYouVectorDrawable(
-            modifier = Modifier.fillMaxSize(),
-            drawableResId = R.drawable.welcome_art
+    Column(
+        modifier = Modifier.fillMaxSize().padding(horizontal = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Image(
+            painter = painterResource(R.drawable.mascot_welcome),
+            contentDescription = null, // The welcome heading describes this decorative illustration.
+            contentScale = ContentScale.Fit,
+            modifier = Modifier.weight(1f).fillMaxWidth(),
         )
         SineWaveLine(
-            modifier = Modifier
-            .fillMaxWidth()
-            .align(Alignment.BottomCenter)
-            .height(32.dp)
-            .padding(horizontal = 8.dp)
-            .padding(bottom = 4.dp),
+            modifier = Modifier.fillMaxWidth().height(24.dp),
             animate = true,
-            color = MaterialTheme.colorScheme.surface,
-            alpha = 0.95f,
-            strokeWidth = 16.dp,
-            amplitude = 4.dp,
+            color = MaterialTheme.colorScheme.primary,
+            alpha = 0.8f,
+            strokeWidth = 3.dp,
+            amplitude = 3.dp,
             waves = 7.6f,
-            phase = 0f
-        )
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomCenter)
-                .height(22.dp)
-                .background(color = MaterialTheme.colorScheme.surface)
-                .padding(horizontal = 8.dp)
-                .padding(bottom = 4.dp)
-        ){
-
-        }
-        SineWaveLine(
-            modifier = Modifier
-            .fillMaxWidth()
-            .align(Alignment.BottomCenter)
-            .height(32.dp)
-            .padding(horizontal = 8.dp)
-            .padding(bottom = 4.dp),
-            animate = true,
-            color = MaterialTheme.colorScheme.primary, //Container.copy(alpha = 0.9f),
-            alpha = 0.95f,
-            strokeWidth = 4.dp,
-            amplitude = 4.dp,
-            waves = 7.6f,
-            phase = 0f
+            phase = 0f,
         )
     }
 }
@@ -986,8 +967,7 @@ fun ThemeSelectionPage(uiState: SetupUiState, onModeSelected: (String) -> Unit) 
             mode = AppThemeMode.DARK,
             title = stringResource(R.string.setup_theme_dark_title),
             description = stringResource(R.string.setup_theme_dark_description),
-            icon = Icons.Rounded.DarkMode,
-            recommended = true
+            icon = Icons.Rounded.DarkMode
         ),
         ThemeOptionItem(
             mode = AppThemeMode.LIGHT,
@@ -999,7 +979,8 @@ fun ThemeSelectionPage(uiState: SetupUiState, onModeSelected: (String) -> Unit) 
             mode = AppThemeMode.FOLLOW_SYSTEM,
             title = stringResource(R.string.setup_theme_follow_title),
             description = stringResource(R.string.setup_theme_follow_description),
-            icon = Icons.Rounded.PhoneAndroid
+            icon = Icons.Rounded.PhoneAndroid,
+            recommended = true
         )
     )
 

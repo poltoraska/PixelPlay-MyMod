@@ -5,6 +5,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -230,21 +232,21 @@ private fun DailyMixCard(
 fun DailyMixHeader(thumbnails: ImmutableList<Song>) {
     val titleStyle = rememberDailyMixTitleStyle()
 
-    fun shapeConditionalModifier(index: Int): Modifier {
+    fun shapeConditionalModifier(index: Int, scale: Float): Modifier {
         if (index == 0){
-            return Modifier.size(50.dp).padding(top = 4.dp)
+            return Modifier.size(50.dp * scale).padding(top = 4.dp)
         } else {
             if (index == 1) {
-                return Modifier.size(44.dp).aspectRatio(1f).padding(bottom = 4.dp)
+                return Modifier.size(44.dp * scale).aspectRatio(1f).padding(bottom = 4.dp)
             }
-            return Modifier.size(48.dp) //.padding( = 4.dp)
+            return Modifier.size(48.dp * scale)
         }
     }
 
-    Box(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxWidth()
-            .height(80.dp)
+            .heightIn(min = 80.dp)
             .background(
                 brush = Brush.horizontalGradient(
                     colors = listOf(
@@ -255,17 +257,22 @@ fun DailyMixHeader(thumbnails: ImmutableList<Song>) {
             ),
         contentAlignment = Alignment.CenterStart
     ) {
+        val headerWidth = maxWidth
+        val headerScale = ((headerWidth.value - 180f) / 120f).coerceIn(0f, 1f)
+        val artScale = 0.55f + 0.45f * headerScale
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 22.dp, end = 16.dp),
+                .padding(start = 22.dp, end = 16.dp, top = 12.dp, bottom = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Absolute.SpaceBetween
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = stringResource(R.string.home_daily_mix_title),
-                    style = titleStyle,
+                    style = titleStyle.copy(fontSize = (16f + 4f * headerScale).sp),
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                     color = MaterialTheme.colorScheme.onPrimary
                 )
                 Text(
@@ -277,11 +284,11 @@ fun DailyMixHeader(thumbnails: ImmutableList<Song>) {
                 )
             }
             Row(
-                modifier = Modifier,
-                horizontalArrangement = Arrangement.spacedBy((-16).dp)
+                modifier = Modifier.padding(start = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy((-16).dp * artScale)
             ) {
                 thumbnails.forEachIndexed { index, song ->
-                    val modifier = shapeConditionalModifier(index)
+                    val modifier = shapeConditionalModifier(index, artScale)
                     Box(
                         modifier = modifier
                             //.size(48.dp)
@@ -398,6 +405,7 @@ private fun ViewAllDailyMixButton(
         ) {
             Text(
                 text = stringResource(R.string.home_daily_mix_action_see_all),
+                modifier = Modifier.weight(1f).padding(end = 8.dp),
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Medium
             )

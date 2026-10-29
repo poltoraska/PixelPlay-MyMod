@@ -776,7 +776,16 @@ fun LibraryScreen(
             playerViewModel.clearAiPlaylistError()
         }
     }
-    LaunchedEffect(currentTabIndex) {
+    var pagerRestored by remember(pagerState) { mutableStateOf(false) }
+    LaunchedEffect(pagerState) {
+        val selectedIndex = tabTitles.indexOfFirst { it.toLibraryTabIdOrNull() == playerViewModel.currentLibraryTabId.value }
+            .takeIf { it >= 0 } ?: normalizedLastTabIndex
+        val page = if (isCompactNavigation) infinitePagerInitialPage(tabCount, selectedIndex) else selectedIndex
+        pagerState.scrollToPage(page)
+        pagerRestored = true
+    }
+    LaunchedEffect(currentTabIndex, pagerRestored) {
+        if (!pagerRestored) return@LaunchedEffect
         Trace.beginSection("LibraryScreen.PageChangeTabLoad")
         playerViewModel.onLibraryTabSelected(currentTabIndex)
         Trace.endSection()

@@ -43,7 +43,7 @@ data class SetupUiState(
     val navBarStyle: String = "default",
     val navBarCornerRadius: Int = 28,
     val alarmsPermissionGranted: Boolean = false,
-    val appThemeMode: String = AppThemeMode.DARK,
+    val appThemeMode: String = AppThemeMode.FOLLOW_SYSTEM,
     val isInspectingBackup: Boolean = false,
     val isRestoringBackup: Boolean = false,
     val restorePlan: RestorePlan? = null,
@@ -97,12 +97,6 @@ class SetupViewModel @Inject constructor(
     private var latestDirectoryRuleUpdateJob: Job? = null
 
     init {
-        viewModelScope.launch {
-            if (!userPreferencesRepository.initialSetupDoneFlow.first()) {
-                themePreferencesRepository.initializeAppThemeMode(AppThemeMode.DARK)
-            }
-        }
-
         // Consolidated collectors using combine() to reduce coroutine overhead
         viewModelScope.launch {
             combine(

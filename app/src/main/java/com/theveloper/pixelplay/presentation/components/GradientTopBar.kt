@@ -95,7 +95,7 @@ fun HomeGradientTopBar(
 ) {
     val surfaceContainerHigh = MaterialTheme.colorScheme.surfaceContainerHighest
 
-    PixelPlayStatusBarStyle(color = surfaceContainerHigh)
+    PixelPlayStatusBarStyle(color = MaterialTheme.colorScheme.background)
 
     val animatedAlpha by animateFloatAsState(
         targetValue = if (isScrolled) 1f else 0f,
@@ -104,6 +104,7 @@ fun HomeGradientTopBar(
     )
 
     TopAppBar(
+        windowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
         modifier = Modifier.background(surfaceContainerHigh.copy(alpha = animatedAlpha)),
         title = { /* nada, usamos solo acciones */ },
         actions = {

@@ -6,6 +6,7 @@ import com.theveloper.pixelplay.presentation.navigation.navigateSafely
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -75,6 +76,8 @@ import androidx.navigation.NavController
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.presentation.components.AiPlaylistSheet
+import com.theveloper.pixelplay.presentation.adaptive.LocalLibraryDetailPane
+import com.theveloper.pixelplay.presentation.components.AlbumPlaybackActions
 import com.theveloper.pixelplay.presentation.components.DailyMixMenu
 import com.theveloper.pixelplay.presentation.components.MiniPlayerHeight
 import com.theveloper.pixelplay.presentation.components.PlaylistBottomSheet
@@ -277,77 +280,24 @@ fun DailyMixScreen(
                 }
 
                 item(key = "play_shuffle_buttons") {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(76.dp)
-                            .padding(horizontal = 20.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Button(
-                            onClick = {
-                                if (dailyMixSongs.isNotEmpty()) {
-                                    playerViewModel.playSongs(dailyMixSongs, dailyMixSongs.first(), dailyMixTitle)
-                                    if (isShuffleEnabled) playerViewModel.toggleShuffle() // Desactivar shuffle si estaba activo
+                    AlbumPlaybackActions(
+                        isPlaying = isPlaying && dailyMixSongs.any { it.id == currentSongId },
+                        enabled = dailyMixSongs.isNotEmpty(),
+                        onPlayPause = {
+                            if (dailyMixSongs.any { it.id == currentSongId }) {
+                                playerViewModel.playPause()
+                            } else {
+                                dailyMixSongs.firstOrNull()?.let { song ->
+                                    playerViewModel.playSongs(dailyMixSongs, song, dailyMixTitle)
+                                    if (isShuffleEnabled) playerViewModel.toggleShuffle()
                                 }
-                            },
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(76.dp),
-                            enabled = dailyMixSongs.isNotEmpty(),
-                            shape = RoundedCornerShape(
-                                topStart = 60.dp,
-                                topEnd = 14.dp,
-                                bottomStart = 60.dp,
-                                bottomEnd = 14.dp
-                            ),
-                            contentPadding = PaddingValues(horizontal = 10.dp),
-                        ) {
-                            Icon(Icons.Rounded.PlayArrow, contentDescription = stringResource(R.string.common_play), modifier = Modifier.size(
-                                ButtonDefaults.IconSize))
-                            Spacer(Modifier.size(ButtonDefaults.IconSpacing))
-                            TightWrapText(
-                                text = playItLabel,
-                                modifier = Modifier.padding(end = 4.dp),
-                                overflow = TextOverflow.Ellipsis,
-                                maxLines = 2,
-                                lineHeight = 20.sp
-                            )
-                        }
-                        FilledTonalButton(
-                            onClick = {
-                                if (dailyMixSongs.isNotEmpty()) {
-                                    playerViewModel.playSongsShuffled(
-                                        songsToPlay = dailyMixSongs,
-                                        queueName = dailyMixTitle,
-                                        startAtZero = true,
-                                    )
-                                }
-                            },
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(76.dp),
-                            enabled = dailyMixSongs.isNotEmpty(),
-                            shape = RoundedCornerShape(
-                                topStart = 14.dp,
-                                topEnd = 60.dp,
-                                bottomStart = 14.dp,
-                                bottomEnd = 60.dp
-                            ),
-                            contentPadding = PaddingValues(horizontal = 10.dp),
-                        ) {
-                            Icon(Icons.Rounded.Shuffle, contentDescription = shuffleLabel, modifier = Modifier.size(
-                                ButtonDefaults.IconSize))
-                            Spacer(Modifier.size(ButtonDefaults.IconSpacing))
-                            TightWrapText(
-                                text = shuffleLabel,
-                                modifier = Modifier.padding(end = 4.dp),
-                                overflow = TextOverflow.Ellipsis,
-                                maxLines = 2,
-                                lineHeight = 20.sp
-                            )
-                        }
-                    }
+                            }
+                        },
+                        onShuffle = {
+                            playerViewModel.playSongsShuffled(dailyMixSongs, dailyMixTitle, startAtZero = true)
+                        },
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                    )
                 }
 
                 items(dailyMixSongs, key = { it.id }) { song ->
@@ -367,7 +317,7 @@ fun DailyMixScreen(
             }
         }
 
-        FilledIconButton(
+        if (!LocalLibraryDetailPane.current) FilledIconButton(
             onClick = { navController.popBackStack() },
             colors = IconButtonDefaults.filledIconButtonColors(
                 containerColor = MaterialTheme.colorScheme.surface,
@@ -447,7 +397,7 @@ private fun ExpressiveDailyMixHeader(
 
     val titleStyle = rememberDailyMixTitleStyle()
 
-    Box(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxWidth()
             .height(340.dp)
@@ -456,17 +406,18 @@ private fun ExpressiveDailyMixHeader(
                 alpha = headerAlpha
             }
     ) {
+        val artworkScale = (maxWidth.value / 440f).coerceIn(0.55f, 1f)
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Row(
-                horizontalArrangement = Arrangement.spacedBy((-80).dp),
+                horizontalArrangement = Arrangement.spacedBy((-80 * artworkScale).dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 albumArts.forEachIndexed { index, artUrl ->
                     val size = when (index) {
-                        0 -> 180.dp
-                        1 -> 220.dp
-                        2 -> 180.dp
-                        else -> 150.dp
+                        0 -> (180 * artworkScale).dp
+                        1 -> (220 * artworkScale).dp
+                        2 -> (180 * artworkScale).dp
+                        else -> (150 * artworkScale).dp
                     }
                     val rotation = when (index) {
                         0 -> -15f
@@ -547,7 +498,8 @@ private fun ExpressiveDailyMixHeader(
         ) {
             Column(
                 modifier = Modifier
-                    .padding(start = 6.dp),
+                    .weight(1f)
+                    .padding(start = 6.dp, end = 8.dp),
                 verticalArrangement = Arrangement.Bottom,
                 horizontalAlignment = Alignment.Start
             ) {

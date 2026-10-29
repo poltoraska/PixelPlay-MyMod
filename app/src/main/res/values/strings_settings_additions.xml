@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_ai_custom_provider">Custom provider</string>
+    <string name="settings_ai_source_openrouter">OpenRouter (openrouter.ai)</string>
+    <string name="settings_ai_source_ollama">Ollama (cloud)</string>
+    <string name="settings_ai_base_url_section">API base URL</string>
+    <string name="settings_ai_base_url_title">Base URL</string>
+    <string name="settings_ai_base_url_hint">e.g. https://api.example.com/v1</string>
+    <string name="settings_ai_generation_parameters">Generation parameters</string>
+    <string name="settings_ai_temperature">Temperature</string>
+    <string name="settings_ai_temperature_description">Controls randomness. Lower = more deterministic, higher = more creative.</string>
+    <string name="settings_ai_top_p">Top P</string>
+    <string name="settings_ai_top_p_description">Nucleus sampling. Higher = more diverse tokens considered.</string>
+    <string name="settings_ai_top_k">Top K</string>
+    <string name="settings_ai_top_k_description">Limits token selection to the K most likely candidates.</string>
+    <string name="settings_ai_max_output_tokens">Max output tokens</string>
+    <string name="settings_ai_max_output_tokens_description">Maximum length of the AI response. Higher = longer but more expensive.</string>
+    <string name="settings_ai_presence_penalty">Presence penalty</string>
+    <string name="settings_ai_presence_penalty_description">Penalizes repeated topics. Positive = more diverse topics.</string>
+    <string name="settings_ai_frequency_penalty">Frequency penalty</string>
+    <string name="settings_ai_frequency_penalty_description">Penalizes repeated phrases. Positive = more natural language.</string>
+    <string name="settings_ai_song_data_configuration">Song data configuration</string>
+    <string name="settings_ai_sample_size">Sample size</string>
+    <string name="settings_ai_sample_size_description">Number of songs sent to the AI for playlist generation. More = better context but higher cost.</string>
+    <string name="settings_ai_digest_detail">Digest detail</string>
+    <string name="settings_ai_digest_detail_description">Controls how much listening history data is included</string>
+    <string name="settings_ai_digest_concise">Concise (faster)</string>
+    <string name="settings_ai_digest_full">Full (better quality)</string>
+    <string name="settings_ai_extended_song_fields">Extended song fields</string>
+    <string name="settings_ai_extended_song_fields_description">Include album, year, and genre info in song data sent to AI</string>
+    <string name="settings_ai_search_models">Search models…</string>
+    <string name="settings_duration_seconds">%1$d s</string>
+    <string name="settings_size_megabytes">%1$d MB</string>
+    <string name="settings_equalizer_decibels">%1$sdB</string>
+    <string name="settings_devcaps_report_error">Failed to generate performance report: %1$s</string>
+    <string name="settings_cloud_last_synced">Last synced: %1$s</string>
+    <string name="about_maintainer_role">Creator and maintainer</string>
+    <string name="about_maintainer_detail">Building PixelPlayer with direct community feedback.</string>
+    <string name="about_active_contributor_role">Most active contributor</string>
+    <string name="about_active_contributor_detail">Has contributed enormously across core features, architecture and reliability.</string>
+    <string name="about_active_contributor_badge">Top impact</string>
+    <string name="about_rhythm_developer_role">Rhythm developer</string>
+    <string name="about_rhythm_developer_detail">Developer of Rhythm (another music app) and key community supporter.</string>
+    <string name="about_rhythm_developer_badge">Community ally</string>
+    <string name="about_early_contributor_role">Early contributor</string>
+    <string name="about_early_contributor_detail">Helped shape PixelPlayer in the first stages of the app.</string>
+    <string name="about_early_contributor_badge">Early support</string>
+    <plurals name="settings_ai_models_available">
+        <item quantity="one">%1$d model available</item>
+        <item quantity="other">%1$d models available</item>
+    </plurals>
+    <string name="settings_backup_module_playlists_title">Playlists</string>
+    <string name="settings_backup_module_global_settings_title">Global settings</string>
+    <string name="settings_backup_module_favorites_title">Favorites</string>
+    <string name="settings_backup_module_lyrics_title">Saved lyrics</string>
+    <string name="settings_backup_module_search_history_title">Search history</string>
+    <string name="settings_backup_module_transitions_title">Transition rules</string>
+    <string name="settings_backup_module_engagement_stats_title">Listening statistics</string>
+    <string name="settings_backup_module_playback_history_title">Playback history</string>
+    <string name="settings_backup_module_quick_fill_title">QuickFill genres</string>
+    <string name="settings_backup_module_artist_images_title">Artist images</string>
+    <string name="settings_backup_module_equalizer_title">Equalizer</string>
+    <string name="settings_backup_module_ai_usage_logs_title">AI activity logs</string>
+    <string name="settings_backup_module_playlists_description">Your custom playlists and ordering preferences.</string>
+    <string name="settings_backup_module_global_settings_description">Themes, behavior, playback, and app preferences.</string>
+    <string name="settings_backup_module_favorites_description">Songs marked as favorite.</string>
+    <string name="settings_backup_module_lyrics_description">Lyrics you have saved or imported.</string>
+    <string name="settings_backup_module_search_history_description">Recent search terms in the app.</string>
+    <string name="settings_backup_module_transitions_description">Custom transition settings between songs.</string>
+    <string name="settings_backup_module_engagement_stats_description">Play count and listening duration per song.</string>
+    <string name="settings_backup_module_playback_history_description">Timeline-based listening history for stats.</string>
+    <string name="settings_backup_module_quick_fill_description">Custom genres and their icons.</string>
+    <string name="settings_backup_module_artist_images_description">Cached artist image URLs from Deezer.</string>
+    <string name="settings_backup_module_equalizer_description">Your custom equalizer presets and audio profiles.</string>
+    <string name="settings_backup_module_ai_usage_logs_description">History of AI requests and token consumption.</string>
+    <string name="settings_collage_cosmic_swirl">Cosmic swirl</string>
+    <string name="settings_collage_honeycomb_groove">Honeycomb groove</string>
+    <string name="settings_collage_vinyl_stack">Vinyl stack</string>
+    <string name="settings_collage_pixel_mosaic">Pixel mosaic</string>
+    <string name="settings_collage_stardust_scatter">Stardust scatter</string>
+    <string name="settings_eq_preset_flat">Flat</string>
+    <string name="settings_eq_preset_rock">Rock</string>
+    <string name="settings_eq_preset_pop">Pop</string>
+    <string name="settings_eq_preset_hip_hop">Hip hop</string>
+    <string name="settings_eq_preset_jazz">Jazz</string>
+    <string name="settings_eq_preset_classical">Classical</string>
+    <string name="settings_eq_preset_electronic">Electronic</string>
+    <string name="settings_eq_preset_bass_boost">Bass boost</string>
+    <string name="settings_eq_preset_treble_boost">Treble boost</string>
+    <string name="settings_eq_preset_vocal">Vocal</string>
+    <string name="settings_eq_preset_custom">Custom</string>
+    <string name="settings_backup_stage_preparing">Preparing backup</string>
+    <string name="settings_backup_stage_preparing_detail">Building your selected backup sections.</string>
+    <string name="settings_backup_stage_packaging">Packaging backup</string>
+    <string name="settings_backup_stage_packaging_detail">Creating .pxpl archive.</string>
+    <string name="settings_backup_stage_complete">Backup complete</string>
+    <string name="settings_backup_stage_complete_detail">Your PixelPlay backup was created successfully.</string>
+    <string name="settings_backup_stage_collecting">Collecting: %1$s</string>
+    <string name="settings_restore_stage_snapshots">Creating safety snapshots</string>
+    <string name="settings_restore_stage_snapshots_detail">Capturing current state for rollback.</string>
+    <string name="settings_restore_stage_preparing">Preparing restore</string>
+    <string name="settings_restore_stage_preparing_detail">Selected modules will be processed one at a time.</string>
+    <string name="settings_restore_stage_complete">Restore complete</string>
+    <string name="settings_restore_stage_complete_detail">All selected modules were restored successfully.</string>
+    <string name="settings_restore_stage_validated">Validated: %1$s</string>
+    <string name="settings_restore_stage_restoring">Restoring: %1$s</string>
+</resources>

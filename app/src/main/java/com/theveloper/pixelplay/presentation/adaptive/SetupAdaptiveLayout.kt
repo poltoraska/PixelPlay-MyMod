@@ -71,6 +71,7 @@ internal fun SetupPageFrame(
     header: @Composable () -> Unit,
     visual: @Composable () -> Unit,
     actions: @Composable () -> Unit = {},
+    largeVisual: Boolean = false,
 ) {
     BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         val info = calculateSetupPageLayout(maxWidth.value, maxHeight.value, LocalDensity.current.fontScale)
@@ -89,7 +90,10 @@ internal fun SetupPageFrame(
                                 shape = RoundedCornerShape(36.dp),
                             ) {
                                 Box(Modifier.padding(20.dp), contentAlignment = Alignment.Center) {
-                                    Box(Modifier.widthIn(max = 420.dp).fillMaxWidth().height(info.visualHeight.dp),
+                                    val visualHeight = if (largeVisual) {
+                                        (viewportHeight.coerceAtMost(420.dp) - 40.dp).coerceAtLeast(0.dp)
+                                    } else info.visualHeight.dp
+                                    Box(Modifier.widthIn(max = 420.dp).fillMaxWidth().height(visualHeight),
                                         contentAlignment = Alignment.Center) { visual() }
                                 }
                             }
@@ -112,7 +116,10 @@ internal fun SetupPageFrame(
                         verticalArrangement = Arrangement.spacedBy(24.dp, Alignment.CenterVertically),
                     ) {
                         header()
-                        Box(Modifier.widthIn(max = 400.dp).fillMaxWidth().height(info.visualHeight.dp),
+                        val visualHeight = if (largeVisual) {
+                            (viewportHeight * 0.48f).coerceIn(230.dp, 340.dp).coerceAtMost(viewportHeight)
+                        } else info.visualHeight.dp
+                        Box(Modifier.widthIn(max = 400.dp).fillMaxWidth().height(visualHeight),
                             contentAlignment = Alignment.Center) { visual() }
                         actions()
                     }
