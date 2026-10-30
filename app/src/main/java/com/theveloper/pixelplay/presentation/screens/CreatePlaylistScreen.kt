@@ -31,6 +31,10 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -119,7 +123,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import coil.ImageLoader
+import coil.imageLoader
+import coil.size.Scale
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.theveloper.pixelplay.data.model.Song
@@ -341,9 +346,11 @@ private fun CreatePlaylistContent(
 
     LaunchedEffect(selectedImageUri) {
          if (selectedImageUri != null) {
-             val loader = ImageLoader(context)
+             val loader = context.imageLoader
              val request = ImageRequest.Builder(context)
                  .data(selectedImageUri)
+                 .size(1536, 1536)
+                 .scale(Scale.FIT)
                  .allowHardware(false)
                  .build()
              
@@ -787,9 +794,11 @@ fun EditPlaylistContent(
     // Image Loader
     LaunchedEffect(selectedImageUri) {
          if (selectedImageUri != null) {
-             val loader = ImageLoader(context)
+             val loader = context.imageLoader
              val request = ImageRequest.Builder(context)
                  .data(selectedImageUri)
+                 .size(1536, 1536)
+                 .scale(Scale.FIT)
                  .allowHardware(false)
                  .build()
              val result = loader.execute(request)
@@ -991,13 +1000,14 @@ private fun PlaylistFormContent(
 ) {
     if (showCropUi) {
          // Fullscreen Crop UI overrides normal content
-         Box(
+         BoxWithConstraints(
              modifier = modifier
                  .fillMaxSize()
                  .padding(16.dp)
                  .clip(RoundedCornerShape(24.dp))
                  .background(MaterialTheme.colorScheme.surface)
          ) {
+             val cropSize = minOf(maxWidth, (maxHeight - 210.dp).coerceAtLeast(64.dp), 480.dp)
              if (imageBitmap != null) {
                  Column(
                      modifier = Modifier.fillMaxSize(),
@@ -1021,9 +1031,8 @@ private fun PlaylistFormContent(
                      Spacer(Modifier.weight(1f))
                      Box(
                          modifier = Modifier
-                             .fillMaxWidth()
-                             .aspectRatio(1f)
-                             .padding(16.dp)
+                             .size(cropSize)
+                             .padding(8.dp)
                              .clip(RoundedCornerShape(32.dp))
                      ) {
                          ImageCropView(
@@ -1059,10 +1068,9 @@ private fun PlaylistFormContent(
          return
     }
 
-    Column(modifier = modifier
-        .fillMaxSize()
-        .imePadding()) {
-        
+    Box(modifier = modifier.fillMaxSize().imePadding(), contentAlignment = Alignment.TopCenter) {
+    Column(modifier = Modifier.fillMaxHeight().widthIn(max = 640.dp).fillMaxWidth()) {
+
          // PREVIEW SECTION
         AnimatedContent(
              targetState = selectedTab,
@@ -1538,6 +1546,7 @@ private fun PlaylistFormContent(
             Spacer(Modifier.height(100.dp))
         }
     }
+    }
 }
 
 
@@ -1592,18 +1601,27 @@ fun ExpressiveButtonGroup(
                     .clickable { onItemClick(index) },
                 contentAlignment = Alignment.Center
             ) {
-                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+                 Row(
+                     modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+                     verticalAlignment = Alignment.CenterVertically,
+                     horizontalArrangement = Arrangement.Center,
+                 ) {
                      AnimatedVisibility(visible = isSelected) {
                          Icon(
                              Icons.Rounded.Check, 
                              contentDescription = null, 
-                             modifier = Modifier.padding(end = 8.dp).size(18.dp),
+                             modifier = Modifier.padding(end = 4.dp).size(16.dp),
                              tint = contentColor
                          )
                      }
                      Text(
                          text = title,
-                         style = MaterialTheme.typography.labelLarge,
+                         modifier = Modifier.weight(1f, fill = false),
+                         style = MaterialTheme.typography.labelLarge.copy(fontSize = 14.sp),
+                         autoSize = TextAutoSize.StepBased(minFontSize = 10.sp, maxFontSize = 14.sp, stepSize = 0.5.sp),
+                         maxLines = 1,
+                         softWrap = false,
+                         overflow = TextOverflow.Ellipsis,
                          color = contentColor,
                          fontWeight = if(isSelected) FontWeight.Bold else FontWeight.Medium
                      )

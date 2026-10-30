@@ -1,6 +1,7 @@
 package com.theveloper.pixelplay.presentation.screens.search.components
 
-import com.theveloper.pixelplay.ui.theme.GoogleSansNunitoFont
+import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
+import androidx.compose.ui.text.style.TextGeometricTransform
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextLayoutResult
@@ -351,22 +352,14 @@ object GenreTypography {
         ytlc: Float
     ): TextStyle {
         return TextStyle(
-            fontFamily = FontFamily(
-                GoogleSansNunitoFont(
-                    resId = R.font.gflex_variable,
-                    variationSettings = FontVariation.Settings(
-                        FontVariation.weight(weight),
-                        FontVariation.width(width),
-                        FontVariation.slant(slant),
-                        FontVariation.grade(grade),
-                        FontVariation.Setting("ROND", rond),
-                        FontVariation.Setting("XTRA", xtra),
-                        FontVariation.Setting("YOPQ", yopq),
-                        FontVariation.Setting("YTLC", ytlc)
-                    )
-                )
+            // Reuse one variable-font instance for all genre cards. Width and slant
+            // are layout transforms, so scrolling cannot allocate new font files.
+            fontFamily = GoogleSansRounded,
+            fontWeight = FontWeight.Bold,
+            textGeometricTransform = TextGeometricTransform(
+                scaleX = (width / 120f).coerceIn(0.72f, 1.3f),
+                skewX = (-slant / 60f).coerceIn(0f, 0.2f),
             ),
-            fontWeight = FontWeight(weight),
             fontSize = fontSize.sp,
             lineHeight = (fontSize * 0.92f).sp,
             letterSpacing = when {

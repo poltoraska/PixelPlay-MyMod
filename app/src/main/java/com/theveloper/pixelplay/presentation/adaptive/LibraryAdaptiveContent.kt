@@ -160,7 +160,7 @@ internal fun LibraryAdaptiveContent(
         AnimatedVisibility(
             visible = showHome,
             enter = tabletTabEnterTransition(tabDirection, tabTravelPx),
-            exit = if (!homeDetailVisible) tabletTabExitTransition(tabDirection, tabTravelPx) else ExitTransition.None,
+            exit = if (layout.usesSideNavigation && !homeDetailVisible) tabletTabExitTransition(tabDirection, tabTravelPx) else ExitTransition.None,
         ) {
             if (homeEntry != null) {
                 val animatedWidth by animateDpAsState(

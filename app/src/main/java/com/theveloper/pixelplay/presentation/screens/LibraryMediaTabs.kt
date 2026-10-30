@@ -184,68 +184,43 @@ fun LibraryAlbumsTab(
         pendingAlbumSortScrollReset = false
     }
 
-    // P2-3: Debounce 150ms to avoid firing on every scroll frame.
-    // Reduced prefetchCount from 10 to 4 to lower memory/IO pressure.
+    // Track only visible indices, rather than emitting on every pixel of scroll.
     LaunchedEffect(albums, gridState, listState, isListView) {
-        if (isListView) {
-            snapshotFlow { listState.layoutInfo }
-                .debounce(150)
-                .distinctUntilChanged()
-                .collect { layoutInfo ->
-                    val visibleItemsInfo = layoutInfo.visibleItemsInfo
-                    if (visibleItemsInfo.isNotEmpty() && albums.itemCount > 0) {
-                        val lastVisibleItemIndex = visibleItemsInfo.last().index
-                        val totalItemsCount = albums.itemCount
-                        val prefetchThreshold = 5
-                        val prefetchCount = 4
-
-                        if (totalItemsCount > lastVisibleItemIndex + 1 && lastVisibleItemIndex + prefetchThreshold >= totalItemsCount - prefetchCount) {
-                            val startIndexToPrefetch = lastVisibleItemIndex + 1
-                            val endIndexToPrefetch = (startIndexToPrefetch + prefetchCount).coerceAtMost(totalItemsCount)
-
-                            (startIndexToPrefetch until endIndexToPrefetch).forEach { indexToPrefetch ->
-                                val album = albums.peek(indexToPrefetch)
-                                album?.albumArtUriString?.let { uri ->
-                                    val request = ImageRequest.Builder(context)
-                                        .data(uri)
-                                        .size(Size(256, 256))
-                                        .build()
-                                    imageLoader.enqueue(request)
-                                }
-                            }
-                        }
+        val activeState = if (isListView) listState else gridState
+        var previousFirst = -1
+        var previousLast = -1
+        var scrollingForward = true
+        snapshotFlow {
+            val visible = activeState.layoutInfo.visibleItemsInfo
+            if (visible.isEmpty()) null else Triple(visible.first().index, visible.last().index, albums.itemCount)
+        }
+            .debounce(120)
+            .distinctUntilChanged()
+            .collect { window ->
+                if (window == null) return@collect
+                val (first, last, count) = window
+                if (previousFirst >= 0) {
+                    if (first != previousFirst) scrollingForward = first > previousFirst
+                    else if (last != previousLast) scrollingForward = last > previousLast
+                }
+                previousFirst = first
+                previousLast = last
+                val indices = if (scrollingForward) {
+                    (last + 1)..minOf(last + 4, count - 1)
+                } else {
+                    maxOf(0, first - 4) until first
+                }
+                indices.forEach { index ->
+                    albums.peek(index)?.albumArtUriString?.let { uri ->
+                        val request = ImageRequest.Builder(context)
+                            .data(uri)
+                            .size(Size(256, 256))
+                            .allowHardware(false)
+                            .build()
+                        imageLoader.enqueue(request)
                     }
                 }
-        } else {
-            snapshotFlow { gridState.layoutInfo }
-                .debounce(150)
-                .distinctUntilChanged()
-                .collect { layoutInfo ->
-                    val visibleItemsInfo = layoutInfo.visibleItemsInfo
-                    if (visibleItemsInfo.isNotEmpty() && albums.itemCount > 0) {
-                        val lastVisibleItemIndex = visibleItemsInfo.last().index
-                        val totalItemsCount = albums.itemCount
-                        val prefetchThreshold = 5
-                        val prefetchCount = 4
-
-                        if (totalItemsCount > lastVisibleItemIndex + 1 && lastVisibleItemIndex + prefetchThreshold >= totalItemsCount - prefetchCount) {
-                            val startIndexToPrefetch = lastVisibleItemIndex + 1
-                            val endIndexToPrefetch = (startIndexToPrefetch + prefetchCount).coerceAtMost(totalItemsCount)
-
-                            (startIndexToPrefetch until endIndexToPrefetch).forEach { indexToPrefetch ->
-                                val album = albums.peek(indexToPrefetch)
-                                album?.albumArtUriString?.let { uri ->
-                                    val request = ImageRequest.Builder(context)
-                                        .data(uri)
-                                        .size(Size(256, 256))
-                                        .build()
-                                    imageLoader.enqueue(request)
-                                }
-                            }
-                        }
-                    }
             }
-        }
     }
 
     val refreshState = albums.loadState.refresh

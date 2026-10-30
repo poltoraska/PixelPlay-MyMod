@@ -627,22 +627,16 @@ private fun SharedAlbumTopBarProbe(
                     .padding(top = 16.dp, bottom = 112.dp),
                 contentAlignment = Alignment.Center
             ) {
-                SmartImage(
-                    model = album.albumArtUriString,
+                AlbumCoverWithCassette(
+                    album = album,
                     contentDescription = stringResource(R.string.album_cover_for, album.title),
-                    contentScale = ContentScale.Crop,
-                    targetSize = headerImageRequestSize,
-                    allowHardware = true,
-                    crossfadeDurationMillis = 0,
+                    imageRequestSize = headerImageRequestSize,
                     alpha = expandedContentAlpha,
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .aspectRatio(1f)
-                        .clip(RoundedCornerShape(24.dp))
-                        .graphicsLayer {
-                            scaleX = 0.9f + (0.1f * expandedContentAlpha)
-                            scaleY = 0.9f + (0.1f * expandedContentAlpha)
-                        }
+                    onArtworkState = onHeaderArtworkState,
+                    modifier = Modifier.fillMaxHeight().graphicsLayer {
+                        scaleX = 0.9f + (0.1f * expandedContentAlpha)
+                        scaleY = 0.9f + (0.1f * expandedContentAlpha)
+                    },
                 )
             }
         }

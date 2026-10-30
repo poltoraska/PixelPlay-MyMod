@@ -59,6 +59,8 @@ import com.theveloper.pixelplay.presentation.adaptive.LocalAdaptiveLayout
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -437,8 +439,27 @@ fun UnifiedPlayerSheetV2(
         { if (isTabletPlayer) maxOf(32.dp, baseTopCornerRadiusProvider()) else baseTopCornerRadiusProvider() }
     }
     val playerContentActualBottomRadiusProvider = sheetVisualState.playerContentActualBottomRadiusProvider
-    val currentHorizontalPaddingStartPxProvider = sheetVisualState.currentHorizontalPaddingStartPxProvider
-    val currentHorizontalPaddingEndPxProvider = sheetVisualState.currentHorizontalPaddingEndPxProvider
+    val baseStartPadding = sheetVisualState.currentHorizontalPaddingStartPxProvider
+    val baseEndPadding = sheetVisualState.currentHorizontalPaddingEndPxProvider
+    val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
+    val tabletMiniMaxWidthPx = with(density) { 400.dp.toPx() }
+    val extraMiniPadding = remember(isTabletPlayer, screenWidthPx, tabletMiniMaxWidthPx,
+        baseStartPadding, baseEndPadding, playerContentExpansionFraction, predictiveBackCollapseProgress) {
+        {
+            val expansion = (playerContentExpansionFraction.value * (1f - predictiveBackCollapseProgress)).coerceIn(0f, 1f)
+            if (isTabletPlayer) {
+                (screenWidthPx - tabletMiniMaxWidthPx - baseStartPadding() - baseEndPadding())
+                    .coerceAtLeast(0f) * (1f - expansion)
+            } else 0f
+        }
+    }
+    // The extra inset is on the physical left: the compact player stays at the right edge.
+    val currentHorizontalPaddingStartPxProvider = remember(baseStartPadding, extraMiniPadding, isRtl) {
+        { baseStartPadding() + if (isRtl) 0f else extraMiniPadding() }
+    }
+    val currentHorizontalPaddingEndPxProvider = remember(baseEndPadding, extraMiniPadding, isRtl) {
+        { baseEndPadding() + if (isRtl) extraMiniPadding() else 0f }
+    }
 
     val queueSheetState = rememberQueueSheetState(
         scope = scope,

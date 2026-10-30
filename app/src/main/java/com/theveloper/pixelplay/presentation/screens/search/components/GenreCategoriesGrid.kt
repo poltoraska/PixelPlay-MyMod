@@ -92,6 +92,9 @@ fun GenreCategoriesGrid(
         context = kotlin.coroutines.EmptyCoroutineContext
     ).value
 
+    // Share the text-layout cache across cards instead of allocating one per item.
+    val genreTextMeasurer = rememberTextMeasurer(cacheSize = 128)
+
     // Persistence: Collect from ViewModel
     val isGridView by playerViewModel.isGenreGridView.collectAsStateWithLifecycle()
     val navBarCompactMode by playerViewModel.navBarCompactMode.collectAsStateWithLifecycle()
@@ -158,6 +161,7 @@ fun GenreCategoriesGrid(
         items(genres, key = { it.id }) { genre ->
             GenreCard(
                 genre = genre,
+                textMeasurer = genreTextMeasurer,
                 customIcons = customGenreIcons,
                 onClick = { onGenreClick(genre) },
                 isGridView = isGridView,
@@ -174,6 +178,7 @@ fun GenreCategoriesGrid(
 @Composable
 private fun GenreCard(
     genre: Genre,
+    textMeasurer: androidx.compose.ui.text.TextMeasurer,
     customIcons: Map<String, Int>,
     onClick: () -> Unit,
     isGridView: Boolean,
@@ -253,7 +258,6 @@ private fun GenreCard(
                 .clip(RoundedCornerShape(20.dp))
                 .background(backgroundColor)
         ) {
-            val textMeasurer = rememberTextMeasurer()
             val density = LocalDensity.current
             val titleStartPadding = 14.dp
             val titleEndPadding = if (isGridView) 14.dp else 96.dp

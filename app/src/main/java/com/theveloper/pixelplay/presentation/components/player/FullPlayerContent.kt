@@ -8,6 +8,7 @@ import com.theveloper.pixelplay.data.model.Lyrics
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -498,10 +499,18 @@ fun FullPlayerContent(
         }
     }
 
+    var pawSwipeId by remember { mutableLongStateOf(0L) }
+    var pawSwipeDirection by remember { mutableStateOf(1) }
     fun requestSkip(direction: SkipDirection) {
         val predictedTargetIndex = predictSkipCarouselIndex(direction)
-        if (skipRequests.tryEmit(direction) && predictedTargetIndex != null) {
-            pendingCarouselIndex = predictedTargetIndex
+        if (skipRequests.tryEmit(direction)) {
+            if (predictedTargetIndex != null) pendingCarouselIndex = predictedTargetIndex
+            // Previous can restart the current song; avoid a swipe when no track changes.
+            if (!landscapeCassette && currentSheetState == PlayerSheetState.EXPANDED &&
+                (predictedTargetIndex != null || latestIsRemotePlaybackActive)) {
+                pawSwipeDirection = if (direction == SkipDirection.NEXT) -1 else 1
+                pawSwipeId++
+            }
         }
     }
 
@@ -516,6 +525,7 @@ fun FullPlayerContent(
     }
 
     val albumCoverSection: @Composable (Modifier) -> Unit = { modifier ->
+        Box(modifier = modifier) {
         FullPlayerAlbumCoverSection(
             song = song,
             currentPlaybackQueue = currentPlaybackQueue,
@@ -535,8 +545,15 @@ fun FullPlayerContent(
             onAlbumClick = { albumSong ->
                 playerViewModel.triggerAlbumNavigationFromPlayer(albumSong.albumId)
             },
-            modifier = modifier
+            modifier = Modifier.fillMaxWidth()
         )
+        MascotPawSwipe(
+            requestId = pawSwipeId,
+            direction = pawSwipeDirection,
+            active = !landscapeCassette && currentSheetState == PlayerSheetState.EXPANDED,
+            modifier = Modifier.matchParentSize(),
+        )
+        }
     }
 
     val cassetteSeekState = remember(song.id) { CassetteSeekState() }
@@ -1839,14 +1856,15 @@ private fun PlayerProgressBarSection(
             null
         }
     }
-    var displayAudioMetaLabel by remember(songId) { mutableStateOf<String?>(null) }
+    // Keep the previous label through track changes until the next label is ready.
+    var displayAudioMetaLabel by remember { mutableStateOf(audioMetaLabel) }
     LaunchedEffect(songId, audioMetaLabel, showAudioFileInfo) {
         if (!showAudioFileInfo) {
             displayAudioMetaLabel = null
         } else if (!audioMetaLabel.isNullOrBlank()) {
             displayAudioMetaLabel = audioMetaLabel
         } else {
-            kotlinx.coroutines.delay(500)
+            kotlinx.coroutines.delay(250)
             displayAudioMetaLabel = null
         }
     }
@@ -2111,25 +2129,29 @@ private fun EfficientTimeLabels(
             )
         }
 
-        if (!audioMetaLabel.isNullOrBlank()) {
-            Surface(
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .padding(horizontal = 58.dp),
-                shape = RoundedCornerShape(999.dp),
-                color = textColor.copy(alpha = 0.14f),
-                contentColor = textColor.copy(alpha = 0.96f)
-            ) {
-                Text(
-                    text = audioMetaLabel,
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 11.sp
-                    ),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp)
-                )
+        Crossfade(
+            targetState = audioMetaLabel?.takeIf { it.isNotBlank() },
+            animationSpec = tween(220),
+            modifier = Modifier.align(Alignment.Center).padding(horizontal = 58.dp),
+            label = "audioMetadataCrossfade",
+        ) { label ->
+            if (label != null) {
+                Surface(
+                    shape = RoundedCornerShape(999.dp),
+                    color = textColor.copy(alpha = 0.14f),
+                    contentColor = textColor.copy(alpha = 0.96f),
+                ) {
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 11.sp,
+                        ),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp),
+                    )
+                }
             }
         }
     }

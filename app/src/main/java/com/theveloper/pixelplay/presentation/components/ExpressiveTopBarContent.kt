@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.util.lerp
 import androidx.compose.ui.text.ExperimentalTextApi
+import androidx.compose.ui.text.style.TextGeometricTransform
 import androidx.compose.ui.text.style.TextOverflow
 import com.theveloper.pixelplay.R
 import kotlin.math.roundToInt
@@ -127,9 +128,8 @@ fun ExpressiveTopBarContent(
             DefaultTopBarTitleWidthAxis
         }
         val resolvedTitleStyle = baseTitleStyle.copy(
-            fontFamily = rememberGoogleSansFlexFontFamily(
-                fontWeight = titleFontWeight,
-                widthAxis = resolvedWidthAxis
+            textGeometricTransform = TextGeometricTransform(
+                scaleX = resolvedWidthAxis / DefaultTopBarTitleWidthAxis
             )
         )
 

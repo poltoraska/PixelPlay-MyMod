@@ -24,7 +24,7 @@ fun PrefetchAlbumNeighborsImg(
 ) {
     if (current == null) return
     val context = LocalContext.current
-    val loader = remember { coil.ImageLoader(context) }
+    val loader = coil.Coil.imageLoader(context)
     val index = remember(current, queue) { queue.indexOfFirst { it.id == current.id } }
     LaunchedEffect(index, queue) {
         if (index == -1) return@LaunchedEffect

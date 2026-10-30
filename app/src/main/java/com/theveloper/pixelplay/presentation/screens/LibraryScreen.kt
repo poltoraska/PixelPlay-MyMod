@@ -119,6 +119,7 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextGeometricTransform
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -2454,27 +2455,17 @@ fun LibraryNavigationPill(
         val targetTitleWidth = (
                 naturalTitleWidth - (forcedCompressionWidth * compressionProgress)
                 ).coerceAtLeast(minCompressedTitleWidth)
-        val widthCompressionRatio = if (idealTitleWidth.value > 0f) {
-            (targetTitleWidth.value / idealTitleWidth.value).coerceIn(0f, 1f)
-        } else {
-            1f
-        }
-        val widthAxisBySpace = LibraryNavigationPillTitleWidthMin +
-                (LibraryNavigationPillTitleWidthMax - LibraryNavigationPillTitleWidthMin) *
-                widthCompressionRatio.coerceIn(0f, 1f)
-        val forcedWidthAxis = LibraryNavigationPillTitleWidthMax -
-                (LibraryNavigationPillTitleWidthMax - LibraryNavigationPillCompressedWidthAxis) *
-                compressionProgress
-        val targetWidthAxis = minOf(widthAxisBySpace, forcedWidthAxis)
         val animatedTitleWidth by animateDpAsState(
             targetValue = targetTitleWidth,
             label = "LibraryPillTitleWidth"
         )
-        val animatedWidthAxis by animateFloatAsState(
-            targetValue = targetWidthAxis,
-            label = "LibraryPillTitleAxis"
-        )
-        val titleStyle = rememberLibraryNavigationPillTitleStyle(widthAxis = animatedWidthAxis)
+        val availableTextWidth = (animatedTitleWidth - titleHorizontalPadding * 2 -
+            (if (showIcon) titleIconSize + titleIconSpacing else 0.dp) - 8.dp).coerceAtLeast(0.dp)
+        val textScale = if (idealTextWidth.value > 0f) {
+            (availableTextWidth.value / idealTextWidth.value).coerceIn(0.55f, 1f)
+        } else 1f
+        // Scale glyph geometry rather than creating a new variable font every frame.
+        val titleStyle = baseTitleStyle.copy(textGeometricTransform = TextGeometricTransform(scaleX = textScale))
 
         Row(
             modifier = Modifier.height(pillHeight),

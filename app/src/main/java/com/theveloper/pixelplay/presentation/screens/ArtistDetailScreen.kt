@@ -43,6 +43,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -793,7 +794,7 @@ private fun SharedArtistTopBarProbe(
                     allowHardware = true,
                     crossfadeDurationMillis = 0,
                     alpha = expandedContentAlpha,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize().blur(25.dp)
                 )
             } else {
                 MusicIconPattern(
@@ -808,6 +809,20 @@ private fun SharedArtistTopBarProbe(
                     .fillMaxSize()
                     .background(headerOverlayBrush)
             )
+        }
+
+        if (!displayUrl.isNullOrEmpty() && expandedContentAlpha > 0.01f) {
+            Box(
+                modifier = Modifier.fillMaxSize().statusBarsPadding().padding(top = 16.dp, bottom = 112.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                SmartImage(
+                    model = displayUrl, contentDescription = artist.name,
+                    contentScale = ContentScale.Fit, targetSize = headerImageRequestSize,
+                    allowHardware = true, crossfadeDurationMillis = 0, alpha = expandedContentAlpha,
+                    modifier = Modifier.fillMaxHeight().aspectRatio(1f).clip(RoundedCornerShape(24.dp)),
+                )
+            }
         }
 
         Box(

@@ -10,6 +10,8 @@ import com.theveloper.pixelplay.utils.AlbumArtUtils
 import com.theveloper.pixelplay.utils.LocalArtworkUri
 import okio.Path.Companion.toPath
 import javax.inject.Inject
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class LocalArtworkCoilFetcher(
     private val uri: Uri,
@@ -18,10 +20,9 @@ class LocalArtworkCoilFetcher(
 
     override suspend fun fetch(): FetchResult? {
         val songId = LocalArtworkUri.parseSongId(uri.toString()) ?: return null
-        val cachedFile = AlbumArtUtils.ensureAlbumArtCachedFile(
-            appContext = options.context,
-            songId = songId
-        ) ?: return null
+        val cachedFile = withContext(Dispatchers.IO) {
+            AlbumArtUtils.ensureAlbumArtCachedFile(appContext = options.context, songId = songId)
+        } ?: return null
 
         return SourceResult(
             source = coil.decode.ImageSource(

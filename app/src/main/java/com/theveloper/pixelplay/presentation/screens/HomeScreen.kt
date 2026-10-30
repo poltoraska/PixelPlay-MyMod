@@ -1,5 +1,8 @@
 package com.theveloper.pixelplay.presentation.screens
 
+import coil.compose.AsyncImage
+import coil.decode.SvgDecoder
+import coil.request.ImageRequest
 import com.theveloper.pixelplay.ui.theme.GoogleSansNunitoFont
 import com.theveloper.pixelplay.presentation.adaptive.homeGridColumnCount
 import com.theveloper.pixelplay.presentation.adaptive.LocalAdaptiveLayout
@@ -9,7 +12,6 @@ import com.theveloper.pixelplay.presentation.navigation.navigateSafelyReplacing
 
 import android.content.Intent
 import androidx.activity.compose.ReportDrawnWhen
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.asPaddingValues
@@ -404,14 +406,10 @@ fun HomeScreen(
                         }
 
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Image(
-                                painter = painterResource(R.drawable.mascot_home),
-                                contentDescription = null,
-                                contentScale = ContentScale.Fit,
-                                modifier = Modifier.padding(horizontal = 16.dp)
-                                    .widthIn(max = 480.dp).fillMaxWidth()
-                                    .aspectRatio(672f / 424f),
-                            )
+                            val mascotPlaying by remember(playerViewModel) {
+                                playerViewModel.stablePlayerState.map { it.isPlaying }.distinctUntilChanged()
+                            }.collectAsStateWithLifecycle(initialValue = false)
+                            HomeMusicMascot(isPlaying = mascotPlaying)
                         AlbumArtCollage(
                             modifier = Modifier.fillMaxWidth(),
                             songs = yourMixSongs,

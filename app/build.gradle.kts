@@ -297,6 +297,7 @@ dependencies {
     implementation(libs.androidx.mediarouter)
     implementation(libs.androidx.media)
     implementation(libs.coil.compose)
+    implementation("io.coil-kt:coil-svg:2.7.0")
     implementation(libs.taglib)
     implementation(libs.jaudiotagger)
     implementation(libs.vorbisjava.core)

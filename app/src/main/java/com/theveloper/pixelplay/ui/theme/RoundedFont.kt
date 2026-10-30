@@ -3,6 +3,7 @@
 package com.theveloper.pixelplay.ui.theme
 
 import android.content.Context
+import android.content.res.Resources
 import android.graphics.Typeface
 import android.graphics.fonts.Font as NativeFont
 import android.graphics.fonts.FontFamily as NativeFontFamily
@@ -17,6 +18,10 @@ import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Density
 import com.theveloper.pixelplay.R
+import java.io.FileInputStream
+import java.io.IOException
+import java.nio.ByteBuffer
+import java.nio.channels.FileChannel
 
 /** Keep Flex's Latin variations, using Nunito for glyphs absent from Flex (including Cyrillic). */
 internal fun GoogleSansNunitoFont(
@@ -35,6 +40,29 @@ private data class RoundedResourceFont(
 
 private object RoundedTypefaceLoader : AndroidFont.TypefaceLoader {
     private val nunitoFamilies = LruCache<Int, NativeFontFamily>(32)
+    // Different variable-font axes share the same bytes. Memory-map uncompressed
+    // resources where possible; use one direct buffer per resource as a fallback.
+    private val fontData = LruCache<Int, ByteBuffer>(2)
+
+    private fun fontBuffer(context: Context, @FontRes resId: Int): ByteBuffer = synchronized(fontData) {
+        fontData[resId] ?: run {
+            val buffer = try {
+                context.resources.openRawResourceFd(resId)?.use { descriptor ->
+                    FileInputStream(descriptor.fileDescriptor).channel.use { channel ->
+                        channel.map(FileChannel.MapMode.READ_ONLY, descriptor.startOffset, descriptor.length)
+                    }
+                }
+            } catch (_: Resources.NotFoundException) {
+                null
+            } catch (_: IOException) {
+                null
+            } ?: context.resources.openRawResource(resId).use { stream ->
+                val bytes = stream.readBytes()
+                ByteBuffer.allocateDirect(bytes.size).apply { put(bytes); flip() }.asReadOnlyBuffer()
+            }
+            buffer.asReadOnlyBuffer().also { fontData.put(resId, it) }
+        }
+    }.asReadOnlyBuffer()
 
     override fun loadBlocking(context: Context, font: AndroidFont): Typeface {
         val resourceFont = font as RoundedResourceFont
@@ -66,7 +94,7 @@ private object RoundedTypefaceLoader : AndroidFont.TypefaceLoader {
         }
         val slant = if (font.style == FontStyle.Italic) NativeFontStyle.FONT_SLANT_ITALIC
             else NativeFontStyle.FONT_SLANT_UPRIGHT
-        val primaryFont = NativeFont.Builder(context.resources, resourceFont.resId)
+        val primaryFont = NativeFont.Builder(fontBuffer(context, resourceFont.resId))
             .setWeight(font.weight.weight)
             .setSlant(slant)
             .setFontVariationSettings(variationString)

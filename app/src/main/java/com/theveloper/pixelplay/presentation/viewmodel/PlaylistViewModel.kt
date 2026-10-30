@@ -444,8 +444,20 @@ class PlaylistViewModel @Inject constructor(
                         }
                         else -> ImageDecoder.createSource(context.contentResolver, uri)
                     }
-                    ImageDecoder.decodeBitmap(source) { decoder, _, _ ->
+                    ImageDecoder.decodeBitmap(source) { decoder, info, _ ->
                         decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
+                        // Bound the longest edge before decoding; preserve aspect ratio for crop math.
+                        val sourceWidth = info.size.width
+                        val sourceHeight = info.size.height
+                        val longestEdge = maxOf(sourceWidth, sourceHeight)
+                        val maximumEdge = 3072
+                        if (longestEdge > maximumEdge) {
+                            val ratio = maximumEdge.toDouble() / longestEdge
+                            decoder.setTargetSize(
+                                (sourceWidth * ratio).toInt().coerceAtLeast(1),
+                                (sourceHeight * ratio).toInt().coerceAtLeast(1),
+                            )
+                        }
                     }
                 } else {
                     @Suppress("DEPRECATION")
@@ -504,19 +516,18 @@ class PlaylistViewModel @Inject constructor(
 
                 canvas.drawBitmap(originalBitmap, matrix, null)
 
-                // Save
-                val fileName = "playlist_cover_$uniqueId.jpg"
-                val file = File(context.filesDir, fileName)
-                FileOutputStream(file).use { out ->
-                    targetBitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
+                // Release both large software bitmaps even if writing fails.
+                try {
+                    val fileName = "playlist_cover_$uniqueId.jpg"
+                    val file = File(context.filesDir, fileName)
+                    FileOutputStream(file).use { out ->
+                        check(targetBitmap.compress(Bitmap.CompressFormat.JPEG, 90, out))
+                    }
+                    file.absolutePath
+                } finally {
+                    if (originalBitmap != targetBitmap) originalBitmap.recycle()
+                    targetBitmap.recycle()
                 }
-
-                // Recycle
-                if (originalBitmap != targetBitmap) originalBitmap.recycle()
-                // Target bitmap is not recycled here, let GC handle?
-                // Or recycle explicitly if immediate memory pressure concern.
-
-                file.absolutePath
             } catch (e: Exception) {
                 e.printStackTrace()
                 null

@@ -65,15 +65,13 @@ internal fun TabletAlbumHeader(
             Modifier.fillMaxWidth().padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            SmartImage(
-                model = album.albumArtUriString,
+            AlbumCoverWithCassette(
+                album = album,
                 contentDescription = stringResource(R.string.album_cover_for, album.title),
-                contentScale = ContentScale.Crop,
-                targetSize = imageRequestSize,
-                onState = onArtworkState,
+                imageRequestSize = imageRequestSize,
+                onArtworkState = onArtworkState,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
-                    .widthIn(max = 232.dp).fillMaxWidth().aspectRatio(1f)
-                    .clip(RoundedCornerShape(24.dp)),
+                    .widthIn(max = 250.dp).fillMaxWidth(),
             )
             Spacer(Modifier.height(4.dp))
             Text(

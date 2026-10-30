@@ -142,6 +142,7 @@ fun AlbumListItem(
                         contentDescription = stringResource(R.string.common_album_art_for_title, album.title),
                         contentScale = ContentScale.Crop,
                         targetSize = Size(256, 256),
+                        crossfadeDurationMillis = 120,
                         modifier = Modifier.size(artworkSize).clip(RoundedCornerShape(16.dp)),
                     )
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {

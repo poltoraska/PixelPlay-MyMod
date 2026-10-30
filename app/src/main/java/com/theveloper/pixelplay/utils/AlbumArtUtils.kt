@@ -23,7 +23,7 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.roundToInt
 
 object AlbumArtUtils {
-    private const val CACHE_VERSION_SUFFIX = "_v4"
+    private const val CACHE_VERSION_SUFFIX = "_v5"
 
     // Cached covers are display-only; the source audio file keeps its original art untouched.
     // Embedded covers can be multi-megabyte full-resolution scans, and re-decoding such a blob
@@ -44,6 +44,9 @@ object AlbumArtUtils {
     // Tracks cache files currently being shrunk so rapid repeated loads of the same oversized
     // cover don't read the large blob into memory more than once concurrently.
     private val artworkShrinkInFlight = ConcurrentHashMap.newKeySet<String>()
+    // Limit duplicate extraction without retaining one lock per song indefinitely.
+    private val artworkLocks = Array(64) { Any() }
+    private fun artworkLock(songId: Long): Any = artworkLocks[(songId.hashCode() and Int.MAX_VALUE) % artworkLocks.size]
     private val commonArtworkFileNames = listOf(
         "cover.jpg", "cover.png", "cover.jpeg",
         "folder.jpg", "folder.png", "folder.jpeg",
@@ -163,7 +166,7 @@ object AlbumArtUtils {
         songId: Long,
         filePath: String? = null,
         forceRefresh: Boolean = false
-    ): File? {
+    ): File? = synchronized(artworkLock(songId)) {
         val cachedFile = getCachedAlbumArtFile(appContext, songId)
         val noArtFile = noArtMarkerFile(appContext, songId)
 
@@ -384,8 +387,12 @@ object AlbumArtUtils {
         val file = getCachedAlbumArtFile(appContext, songId)
 
         val boundedBytes = boundArtworkForCache(bytes)
-        file.outputStream().use { outputStream ->
-            outputStream.write(boundedBytes)
+        val temporary = File.createTempFile("art_", ".tmp", file.parentFile)
+        try {
+            temporary.outputStream().use { it.write(boundedBytes) }
+            check(temporary.renameTo(file)) { "Unable to atomically replace artwork cache" }
+        } finally {
+            temporary.delete()
         }
         noArtMarkerFile(appContext, songId).delete()
 
@@ -415,10 +422,8 @@ object AlbumArtUtils {
                 val tmp = File(file.parentFile, "${file.name}.shrink.tmp")
                 runCatching {
                     tmp.outputStream().use { it.write(bounded) }
-                    if (!tmp.renameTo(file)) {
-                        file.outputStream().use { it.write(bounded) }
-                        tmp.delete()
-                    }
+                    // Never expose a partially rewritten image to a concurrent reader.
+                    if (!tmp.renameTo(file)) tmp.delete()
                 }
             } finally {
                 artworkShrinkInFlight.remove(key)
