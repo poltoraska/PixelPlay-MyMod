@@ -1,0 +1,7 @@
+<resources>
+    <string name="recent_range_day">Today</string>
+    <string name="recent_range_week">This week</string>
+    <string name="recent_range_month">This month</string>
+    <string name="recent_range_year">This year</string>
+    <string name="recent_range_all">All time</string>
+</resources>

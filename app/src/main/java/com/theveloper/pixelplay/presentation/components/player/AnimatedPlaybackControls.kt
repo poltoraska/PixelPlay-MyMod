@@ -154,6 +154,7 @@ fun AnimatedPlaybackControls(
                     .clip(CircleShape)
                     .background(colorPreviousButton)
                     .clickable {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         lastClicked = PlaybackButtonType.PREVIOUS
                         clickTrigger++
                         coroutineScope.launch {
@@ -227,6 +228,7 @@ fun AnimatedPlaybackControls(
                     .clip(CircleShape)
                     .background(colorNextButton)
                     .clickable {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         lastClicked = PlaybackButtonType.NEXT
                         clickTrigger++
                         coroutineScope.launch {

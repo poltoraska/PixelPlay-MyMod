@@ -6,6 +6,9 @@
 
 package com.theveloper.pixelplay.presentation.screens
 
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+
 import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -303,6 +306,7 @@ private fun CreatePlaylistContent(
     onCreate: (String, String?, Int?, String?, List<String>, Float, Float, Float, String?, Float?, Float?, Float?, Float?, String?) -> Unit,
     playerViewModel: PlayerViewModel = hiltViewModel()
 ) {
+    val playlistHaptics = LocalHapticFeedback.current
     val context = LocalContext.current
 
     // Shared State
@@ -419,6 +423,7 @@ private fun CreatePlaylistContent(
                             contentColor = MaterialTheme.colorScheme.onSurface
                         ),
                         onClick = {
+                            playlistHaptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             when {
                                 showCropUi -> showCropUi = false
                                 currentStep == 1 && creationMode == PlaylistCreationMode.MANUAL -> currentStep = 0
@@ -464,6 +469,7 @@ private fun CreatePlaylistContent(
                         ) 
                     },
                     onClick = {
+                            playlistHaptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         if (currentStep == 0) {
                             if (playlistName.isNotBlank()) {
                                 if (creationMode == PlaylistCreationMode.MANUAL) {
@@ -611,6 +617,7 @@ private fun CreatePlaylistContent(
 
                     FilledIconButton(
                         onClick = {
+                            playlistHaptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             val imageUriString = if(selectedTab == 1) selectedImageUri?.toString() else null
                             val color = if(selectedTab == 2) selectedColor else null
                             val icon = if(selectedTab == 2) selectedIconName else null
@@ -742,6 +749,7 @@ fun EditPlaylistContent(
     onDismiss: () -> Unit,
     onSave: (String, String?, Int?, String?, Float, Float, Float, String?, Float?, Float?, Float?, Float?) -> Unit
 ) {
+    val playlistHaptics = LocalHapticFeedback.current
     val context = LocalContext.current
     
     // Initial State Setup
@@ -851,6 +859,7 @@ fun EditPlaylistContent(
                             contentColor = MaterialTheme.colorScheme.onSurface
                         ),
                         onClick = {
+                            playlistHaptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             if (showCropUi) showCropUi = false else onDismiss()
                         }
                     ) {
@@ -871,6 +880,7 @@ fun EditPlaylistContent(
                     text = { Text(stringResource(R.string.common_save)) },
                     icon = { Icon(Icons.Rounded.Check, contentDescription = null) },
                     onClick = {
+                            playlistHaptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         val imageUriString = if(selectedTab == 1) selectedImageUri?.toString() else null
                         val color = if(selectedTab == 2) selectedColor else null
                         val icon = if(selectedTab == 2) selectedIconName else null
@@ -998,6 +1008,7 @@ private fun PlaylistFormContent(
     onGenerateClick: (() -> Unit)? = null,
     onImageUriChange: (Uri?) -> Unit
 ) {
+    val playlistHaptics = LocalHapticFeedback.current
     if (showCropUi) {
          // Fullscreen Crop UI overrides normal content
          BoxWithConstraints(
@@ -1049,7 +1060,7 @@ private fun PlaylistFormContent(
                      }
                      Spacer(Modifier.weight(1f))
                      Button(
-                        onClick = { onShowCropUiChange(false) },
+                        onClick = { playlistHaptics.performHapticFeedback(HapticFeedbackType.TextHandleMove); onShowCropUiChange(false) },
                         modifier = Modifier
                             .align(Alignment.End)
                             .padding(24.dp)
@@ -1138,7 +1149,7 @@ private fun PlaylistFormContent(
                                      modifier = Modifier.padding(horizontal = 16.dp)
                                  ) {
                                      FilledTonalButton(
-                                         onClick = { imagePickerLauncher.launch("image/*") },
+                                         onClick = { playlistHaptics.performHapticFeedback(HapticFeedbackType.TextHandleMove); imagePickerLauncher.launch("image/*") },
                                          contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                                          modifier = Modifier.height(40.dp).weight(1f)
                                      ) {
@@ -1147,7 +1158,7 @@ private fun PlaylistFormContent(
                                          Text(stringResource(R.string.playlist_creation_change), style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                      }
                                      Button(
-                                         onClick = { onImageUriChange(null) },
+                                         onClick = { playlistHaptics.performHapticFeedback(HapticFeedbackType.TextHandleMove); onImageUriChange(null) },
                                          contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                                          modifier = Modifier.height(40.dp).weight(1f),
                                          colors = ButtonDefaults.buttonColors(
@@ -1292,14 +1303,14 @@ private fun PlaylistFormContent(
                 ) {
                     SegmentedButton(
                         selected = creationMode == PlaylistCreationMode.MANUAL,
-                        onClick = { onCreationModeChange(PlaylistCreationMode.MANUAL) },
+                        onClick = { playlistHaptics.performHapticFeedback(HapticFeedbackType.TextHandleMove); onCreationModeChange(PlaylistCreationMode.MANUAL) },
                         shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
                     ) {
                         Text(stringResource(R.string.playlist_creation_mode_manual))
                     }
                     SegmentedButton(
                         selected = creationMode == PlaylistCreationMode.SMART,
-                        onClick = { onCreationModeChange(PlaylistCreationMode.SMART) },
+                        onClick = { playlistHaptics.performHapticFeedback(HapticFeedbackType.TextHandleMove); onCreationModeChange(PlaylistCreationMode.SMART) },
                         shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
                     ) {
                         Text(stringResource(R.string.playlist_creation_mode_smart))
@@ -1327,7 +1338,7 @@ private fun PlaylistFormContent(
                         SmartPlaylistRule.entries.forEach { rule ->
                             FilterChip(
                                 selected = selectedSmartRule == rule,
-                                onClick = { onSmartRuleChange(rule) },
+                                onClick = { playlistHaptics.performHapticFeedback(HapticFeedbackType.TextHandleMove); onSmartRuleChange(rule) },
                                 label = { Text(smartPlaylistRuleTitle(rule)) },
                                 shape = CircleShape
                             )
@@ -1573,6 +1584,7 @@ fun ExpressiveButtonGroup(
     onItemClick: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val playlistHaptics = LocalHapticFeedback.current
     Row(
         modifier = modifier
             .clip(CircleShape)
@@ -1598,7 +1610,7 @@ fun ExpressiveButtonGroup(
                     .height(48.dp) // Taller button
                     .clip(shape)
                     .background(containerColor)
-                    .clickable { onItemClick(index) },
+                    .clickable { playlistHaptics.performHapticFeedback(HapticFeedbackType.TextHandleMove); onItemClick(index) },
                 contentAlignment = Alignment.Center
             ) {
                  Row(

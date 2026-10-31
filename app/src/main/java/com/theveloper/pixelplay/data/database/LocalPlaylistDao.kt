@@ -25,6 +25,9 @@ interface LocalPlaylistDao {
     suspend fun getPlaylistById(playlistId: String): PlaylistEntity?
 
     @Query("SELECT COUNT(*) FROM playlists")
+    fun observePlaylistCount(): Flow<Int>
+
+    @Query("SELECT COUNT(*) FROM playlists")
     suspend fun getPlaylistCount(): Int
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

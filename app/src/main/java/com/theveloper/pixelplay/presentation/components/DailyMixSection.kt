@@ -73,6 +73,7 @@ fun DailyMixSection(
     songs: ImmutableList<Song>,
     playerViewModel: PlayerViewModel,
     onClickOpen: () -> Unit = {},
+    previewSongCount: Int = 4,
     onNavigateToAlbum: (Song) -> Unit = {},
     onNavigateToArtist: (Song) -> Unit = {},
     onNavigateToGenre: (Song) -> Unit = {},
@@ -96,6 +97,7 @@ fun DailyMixSection(
         Spacer(Modifier.height(16.dp))
         DailyMixCard(
             songs = songs,
+            previewSongCount = previewSongCount,
             playerViewModel = playerViewModel,
             onClickOpen = onClickOpen,
             onMoreOptionsClick = { song ->
@@ -181,12 +183,13 @@ fun DailyMixSection(
 @Composable
 private fun DailyMixCard(
     songs: ImmutableList<Song>,
+    previewSongCount: Int,
     onClickOpen: () -> Unit,
     playerViewModel: PlayerViewModel,
     onMoreOptionsClick: (Song) -> Unit
 ) {
     val headerSongs = songs.take(3).toImmutableList()
-    val visibleSongs = songs.take(4).toImmutableList()
+    val visibleSongs = songs.take(previewSongCount.coerceAtLeast(0)).toImmutableList()
     val cornerRadius = 30.dp
     Card(
         shape = AbsoluteSmoothCornerShape(

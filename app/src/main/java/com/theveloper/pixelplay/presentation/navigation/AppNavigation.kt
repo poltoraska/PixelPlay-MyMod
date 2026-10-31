@@ -153,7 +153,7 @@ fun AppNavigation(
                         )
                     },
                     popEnterTransition = {
-                        if (libraryDetailPane && initialState.destination.route == Screen.DailyMixScreen.route) EnterTransition.None
+                        if (libraryDetailPane && initialState.destination.route in setOf(Screen.DailyMixScreen.route, Screen.RecentlyPlayed.route)) EnterTransition.None
                         else mainRootEnterTransition(
                             fromRoute = initialState.destination.route,
                             toRoute = targetState.destination.route,

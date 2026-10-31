@@ -1,5 +1,8 @@
 package com.theveloper.pixelplay.presentation.screens
 
+import com.theveloper.pixelplay.presentation.adaptive.LocalLibraryDetailPane
+import com.theveloper.pixelplay.presentation.components.AlbumPlaybackActions
+
 import com.theveloper.pixelplay.ui.theme.GoogleSansNunitoFont
 import com.theveloper.pixelplay.presentation.navigation.navigateSafely
 
@@ -350,7 +353,7 @@ fun RecentlyPlayedScreen(
             }
         }
 
-        FilledIconButton(
+        if (!LocalLibraryDetailPane.current) FilledIconButton(
             onClick = { navController.popBackStack() },
             colors = IconButtonDefaults.filledIconButtonColors(
                 containerColor = MaterialTheme.colorScheme.surface,
@@ -398,7 +401,7 @@ private fun ExpressiveRecentlyPlayedHeader(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(190.dp)
+            .height(if (LocalLibraryDetailPane.current) 190.dp else 220.dp)
             .graphicsLayer {
                 translationY = parallaxOffset
                 alpha = headerAlpha
@@ -486,68 +489,14 @@ private fun RecentlyPlayedActions(
     shuffleLabel: String,
     modifier: Modifier = Modifier
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(52.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Button(
-            onClick = onPlay,
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxSize(),
-            shape = RoundedCornerShape(
-                topStart = 52.dp,
-                topEnd = 14.dp,
-                bottomStart = 52.dp,
-                bottomEnd = 14.dp
-            ),
-            contentPadding = PaddingValues(horizontal = 10.dp),
-        ) {
-            Icon(
-                imageVector = Icons.Rounded.PlayArrow,
-                contentDescription = null,
-                modifier = Modifier.size(ButtonDefaults.IconSize)
-            )
-            Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-            TightWrapText(
-                text = stringResource(R.string.recently_played_action_play_latest),
-                modifier = Modifier.padding(end = 4.dp),
-                overflow = TextOverflow.Ellipsis,
-                maxLines = 2,
-                lineHeight = 20.sp
-            )
-        }
-
-        FilledTonalButton(
-            onClick = onShuffle,
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxSize(),
-            shape = RoundedCornerShape(
-                topStart = 14.dp,
-                topEnd = 52.dp,
-                bottomStart = 14.dp,
-                bottomEnd = 52.dp
-            ),
-            contentPadding = PaddingValues(horizontal = 10.dp),
-        ) {
-            Icon(
-                imageVector = Icons.Rounded.Shuffle,
-                contentDescription = null,
-                modifier = Modifier.size(ButtonDefaults.IconSize)
-            )
-            Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-            TightWrapText(
-                text = shuffleLabel,
-                modifier = Modifier.padding(end = 4.dp),
-                overflow = TextOverflow.Ellipsis,
-                maxLines = 2,
-                lineHeight = 20.sp
-            )
-        }
-    }
+    AlbumPlaybackActions(
+        isPlaying = false,
+        enabled = true,
+        onPlayPause = onPlay,
+        onShuffle = onShuffle,
+        playLabel = stringResource(R.string.recently_played_action_play_latest),
+        modifier = modifier,
+    )
 }
 
 @Composable

@@ -1,5 +1,15 @@
 package com.theveloper.pixelplay.presentation.screens
 
+import com.theveloper.pixelplay.presentation.components.rememberExpressivePressScale
+
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+
 import coil.compose.AsyncImage
 import coil.decode.SvgDecoder
 import coil.request.ImageRequest
@@ -424,6 +434,7 @@ fun HomeScreen(
                                 }
                             }
                         )
+                        if (homeColumns == 2) Spacer(Modifier.height(32.dp))
                         }
                     }
                 }
@@ -436,6 +447,7 @@ fun HomeScreen(
                     ) {
                         DailyMixSection(
                             songs = dailyMixSongs,
+                            previewSongCount = if (homeColumns == 2) 6 else 4,
                             onClickOpen = {
                                 navController.navigateSafely(Screen.DailyMixScreen.route)
                             },
@@ -464,7 +476,8 @@ fun HomeScreen(
                 if (recentlyPlayedSongs.size >= RecentlyPlayedSectionMinSongsToShow) {
                     item(
                         key = "recently_played_section",
-                        contentType = "recently_played_section"
+                        contentType = "recently_played_section",
+                        span = { GridItemSpan(maxLineSpan) }
                     ) {
                         RecentlyPlayedSection(
                             songs = recentlyPlayedSongs,
@@ -499,6 +512,17 @@ fun HomeScreen(
                         )
                     }
                 }
+                item(key = "library_summary", span = { GridItemSpan(maxLineSpan) }) {
+                    HomeLibrarySummaryCard(
+                        onDetails = { navController.navigateSafely(Screen.DeviceCapabilities.route) },
+                        onOpenTab = { tab ->
+                            val index = playerViewModel.libraryTabsFlow.value.indexOf(tab.storageKey)
+                            if (index >= 0) playerViewModel.onLibraryTabSelected(index)
+                            navController.navigateSafely(Screen.Library.route)
+                        },
+                    )
+                }
+
             }
         }
         Box(
@@ -661,6 +685,10 @@ fun YourMixHeader(
     isShuffleEnabled: Boolean = false,
     onPlayShuffled: () -> Unit
 ) {
+    val haptics = LocalHapticFeedback.current
+    val shuffleInteraction = remember { MutableInteractionSource() }
+    val shufflePressed by shuffleInteraction.collectIsPressedAsState()
+    val shuffleScale by rememberExpressivePressScale(shuffleInteraction)
     val buttonCorners = 68.dp
     val colors = MaterialTheme.colorScheme
 
@@ -705,8 +733,10 @@ fun YourMixHeader(
         LargeExtendedFloatingActionButton(
             modifier = Modifier
                 .align(Alignment.CenterVertically)
-                .padding(end = 12.dp),
-            onClick = onPlayShuffled,
+                .padding(end = 12.dp)
+                .graphicsLayer { scaleX = shuffleScale; scaleY = shuffleScale },
+            interactionSource = shuffleInteraction,
+            onClick = { haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove); onPlayShuffled() },
             containerColor = if (isShuffleEnabled) colors.primary else colors.tertiaryContainer,
             contentColor = if (isShuffleEnabled) colors.onPrimary else colors.onTertiaryContainer,
             shape = AbsoluteSmoothCornerShape(

@@ -2,6 +2,11 @@
 
 package com.theveloper.pixelplay.presentation.components
 
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.res.stringResource
+import com.theveloper.pixelplay.R
+
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -54,6 +59,7 @@ fun RecentlyPlayedRangeSelector(
     modifier: Modifier = Modifier
 ) {
     val motionScheme = MotionScheme.expressive()
+    val haptics = LocalHapticFeedback.current
 
     LazyRow(
         modifier = modifier.fillMaxWidth(),
@@ -62,9 +68,15 @@ fun RecentlyPlayedRangeSelector(
     ) {
         items(StatsTimeRange.entries, key = { it.name }) { range ->
             RecentlyPlayedRangeChip(
-                label = range.displayName,
+                label = stringResource(when (range) {
+                    StatsTimeRange.DAY -> R.string.recent_range_day
+                    StatsTimeRange.WEEK -> R.string.recent_range_week
+                    StatsTimeRange.MONTH -> R.string.recent_range_month
+                    StatsTimeRange.YEAR -> R.string.recent_range_year
+                    StatsTimeRange.ALL -> R.string.recent_range_all
+                }),
                 selected = selected == range,
-                onClick = { onRangeSelected(range) },
+                onClick = { haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove); onRangeSelected(range) },
                 modifier = Modifier.animateItem(
                     fadeInSpec = null,
                     fadeOutSpec = null,

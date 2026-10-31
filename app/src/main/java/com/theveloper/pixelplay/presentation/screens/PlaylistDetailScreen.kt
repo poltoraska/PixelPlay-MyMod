@@ -1,5 +1,11 @@
 package com.theveloper.pixelplay.presentation.screens
 
+import com.theveloper.pixelplay.presentation.components.rememberExpressivePressScale
+
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+
 import com.theveloper.pixelplay.presentation.components.AlbumPlaybackActions
 import com.theveloper.pixelplay.presentation.adaptive.LocalLibraryDetailPane
 
@@ -238,6 +244,7 @@ fun PlaylistDetailScreen(
     val reorderableState = rememberReorderableLazyListState(
         lazyListState = listState,
         onMove = { from, to ->
+            performAppCompatHapticFeedback(view, appHapticsConfig, HapticFeedbackConstantsCompat.CLOCK_TICK)
             localReorderableSongs = localReorderableSongs.toMutableList().apply {
                 add(to.index, removeAt(from.index))
             }
@@ -412,8 +419,18 @@ fun PlaylistDetailScreen(
                             label = "removeIconColor"
                         )
 
+                        val addInteraction = remember { MutableInteractionSource() }
+                        val removeInteraction = remember { MutableInteractionSource() }
+                        val reorderInteraction = remember { MutableInteractionSource() }
+                        val addPressed by addInteraction.collectIsPressedAsState()
+                        val removePressed by removeInteraction.collectIsPressedAsState()
+                        val reorderPressed by reorderInteraction.collectIsPressedAsState()
+                        val addScale by rememberExpressivePressScale(addInteraction)
+                        val removeScale by rememberExpressivePressScale(removeInteraction)
+                        val reorderScale by rememberExpressivePressScale(reorderInteraction)
                         Button(
-                            onClick = { showAddSongsSheet = true },
+                            interactionSource = addInteraction,
+                            onClick = { performAppCompatHapticFeedback(view, appHapticsConfig, HapticFeedbackConstantsCompat.CLOCK_TICK); showAddSongsSheet = true },
                             shape = CircleShape,
                             contentPadding = PaddingValues(horizontal = 12.dp),
                             colors = ButtonDefaults.buttonColors(
@@ -423,6 +440,7 @@ fun PlaylistDetailScreen(
                             modifier = Modifier
                                 .weight(1f)
                                 .height(actionButtonsHeight)
+                                .graphicsLayer { scaleX = addScale; scaleY = addScale }
                         ) {
                             Icon(
                                 imageVector = Icons.Rounded.Add,
@@ -440,20 +458,22 @@ fun PlaylistDetailScreen(
                         }
 
                         Button(
-                            onClick = { isRemoveModeEnabled = !isRemoveModeEnabled },
+                            interactionSource = removeInteraction,
+                            onClick = { performAppCompatHapticFeedback(view, appHapticsConfig, HapticFeedbackConstantsCompat.CLOCK_TICK); isRemoveModeEnabled = !isRemoveModeEnabled },
                             shape = RoundedCornerShape(removeCornerRadius),
                             contentPadding = PaddingValues(0.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = removeButtonColor, contentColor = removeIconColor),
-                            modifier = Modifier.size(width = 48.dp, height = actionButtonsHeight),
+                            modifier = Modifier.size(width = 48.dp, height = actionButtonsHeight).graphicsLayer { scaleX = removeScale; scaleY = removeScale },
                         ) {
                             Icon(Icons.Default.RemoveCircleOutline, contentDescription = removeSongsCd, modifier = Modifier.size(20.dp))
                         }
                         Button(
-                            onClick = { isReorderModeEnabled = !isReorderModeEnabled },
+                            interactionSource = reorderInteraction,
+                            onClick = { performAppCompatHapticFeedback(view, appHapticsConfig, HapticFeedbackConstantsCompat.CLOCK_TICK); isReorderModeEnabled = !isReorderModeEnabled },
                             shape = RoundedCornerShape(reorderCornerRadius),
                             contentPadding = PaddingValues(0.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = reorderButtonColor, contentColor = reorderIconColor),
-                            modifier = Modifier.size(width = 48.dp, height = actionButtonsHeight),
+                            modifier = Modifier.size(width = 48.dp, height = actionButtonsHeight).graphicsLayer { scaleX = reorderScale; scaleY = reorderScale },
                         ) {
                             Icon(painterResource(R.drawable.drag_order_icon), contentDescription = reorderSongsCd, modifier = Modifier.size(22.dp))
                         }

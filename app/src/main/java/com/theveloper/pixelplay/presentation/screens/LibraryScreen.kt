@@ -22,12 +22,14 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.updateTransition
 import androidx.compose.animation.expandHorizontally
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -890,16 +892,42 @@ fun LibraryScreen(
                                 onArrowClick = { showTabSwitcherSheet = true }
                             )
                         } else {
-                            Text(
-                                modifier = Modifier.padding(start = 8.dp),
-                                text = stringResource(R.string.library_screen_title),
+                            val title = stringResource(R.string.library_screen_title)
+                            val titleStyle = TextStyle(
                                 fontFamily = GoogleSansRounded,
                                 fontWeight = FontWeight.ExtraBold,
-                                color = MaterialTheme.colorScheme.primary,
                                 fontSize = if (!usesSideNavigation && LocalAdaptiveLayout.current.contentWidth < 420f) 28.sp else 40.sp,
-                                maxLines = 1,
-                                letterSpacing = 1.sp
+                                letterSpacing = 1.sp,
                             )
+                            val textMeasurer = rememberTextMeasurer()
+                            val titleWidth = textMeasurer.measure(title, style = titleStyle, maxLines = 1).size.width
+                            val density = LocalDensity.current
+                            BoxWithConstraints(Modifier.fillMaxWidth()) {
+                                val hasRoomForSticker = with(density) {
+                                    maxWidth.toPx() >= titleWidth + 80.dp.toPx()
+                                }
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(start = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Text(
+                                        modifier = Modifier.weight(1f),
+                                        text = title,
+                                        style = titleStyle,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                    if (hasRoomForSticker) {
+                                        Image(
+                                            painter = painterResource(R.drawable.mascot_library_sticker),
+                                            contentDescription = null,
+                                            contentScale = ContentScale.Fit,
+                                            modifier = Modifier.padding(start = 8.dp, end = 8.dp).size(52.dp),
+                                        )
+                                    }
+                                }
+                            }
                         }
                     },
                     actions = {

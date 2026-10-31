@@ -1,0 +1,9 @@
+<resources>
+    <string name="home_library_summary">Your library</string>
+    <string name="home_library_albums">Albums</string>
+    <string name="home_library_artists">Artists</string>
+    <string name="home_library_songs">Songs</string>
+    <string name="home_library_playlists">Playlists</string>
+    <string name="home_library_favorites">Liked songs</string>
+    <string name="home_library_details">Device capabilities</string>
+</resources>

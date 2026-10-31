@@ -1,5 +1,9 @@
 package com.theveloper.pixelplay.presentation.components
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -43,7 +47,9 @@ fun AlbumPlaybackActions(
     onPlayPause: () -> Unit,
     onShuffle: () -> Unit,
     modifier: Modifier = Modifier,
+    playLabel: String? = null,
 ) {
+    val haptics = LocalHapticFeedback.current
     val playInteraction = remember { MutableInteractionSource() }
     val shuffleInteraction = remember { MutableInteractionSource() }
     val playPressed by playInteraction.collectIsPressedAsState()
@@ -59,12 +65,14 @@ fun AlbumPlaybackActions(
         label = "albumShuffleCorner",
     )
 
+    val playScale by rememberExpressivePressScale(playInteraction)
+    val shuffleScale by rememberExpressivePressScale(shuffleInteraction)
     Row(
         modifier = modifier.fillMaxWidth().height(IntrinsicSize.Min),
         horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         Button(
-            onClick = onPlayPause,
+            onClick = { haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove); onPlayPause() },
             enabled = enabled,
             interactionSource = playInteraction,
             shape = RoundedCornerShape(
@@ -72,7 +80,7 @@ fun AlbumPlaybackActions(
                 topEnd = 8.dp, bottomEnd = 8.dp,
             ),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-            modifier = Modifier.weight(1f).fillMaxHeight().heightIn(min = 56.dp),
+            modifier = Modifier.weight(1f).fillMaxHeight().heightIn(min = 56.dp).graphicsLayer { scaleX = playScale; scaleY = playScale },
         ) {
             Icon(
                 if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
@@ -81,14 +89,14 @@ fun AlbumPlaybackActions(
             )
             Spacer(Modifier.width(8.dp))
             Text(
-                stringResource(if (isPlaying) R.string.common_pause else R.string.album_action_play),
+                playLabel ?: stringResource(if (isPlaying) R.string.common_pause else R.string.album_action_play),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
             )
         }
         FilledTonalButton(
-            onClick = onShuffle,
+            onClick = { haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove); onShuffle() },
             enabled = enabled,
             interactionSource = shuffleInteraction,
             shape = RoundedCornerShape(
@@ -96,7 +104,7 @@ fun AlbumPlaybackActions(
                 topEnd = shuffleOuterCorner, bottomEnd = shuffleOuterCorner,
             ),
             contentPadding = PaddingValues(0.dp),
-            modifier = Modifier.width(60.dp).fillMaxHeight().heightIn(min = 56.dp),
+            modifier = Modifier.width(60.dp).fillMaxHeight().heightIn(min = 56.dp).graphicsLayer { scaleX = shuffleScale; scaleY = shuffleScale },
         ) {
             Icon(
                 Icons.Rounded.Shuffle,

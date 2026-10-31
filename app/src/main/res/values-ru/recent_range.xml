@@ -1,0 +1,7 @@
+<resources>
+    <string name="recent_range_day">Сегодня</string>
+    <string name="recent_range_week">На этой неделе</string>
+    <string name="recent_range_month">В этом месяце</string>
+    <string name="recent_range_year">В этом году</string>
+    <string name="recent_range_all">За всё время</string>
+</resources>

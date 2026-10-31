@@ -118,9 +118,10 @@ internal fun LibraryAdaptiveContent(
         runCatching { navController.getBackStackEntry(Screen.Home.route) }.getOrNull()
             ?: visibleEntries.firstOrNull { it.destination.route == Screen.Home.route }
     }
-    val homeDetailVisible = route == Screen.DailyMixScreen.route ||
-        (route == Screen.Home.route && visibleEntries.any { it.destination.route == Screen.DailyMixScreen.route })
-    val homeParent = route == Screen.DailyMixScreen.route &&
+    val homeDetails = setOf(Screen.DailyMixScreen.route, Screen.RecentlyPlayed.route)
+    val homeDetailVisible = route in homeDetails ||
+        (route == Screen.Home.route && visibleEntries.any { it.destination.route in homeDetails })
+    val homeParent = route in homeDetails &&
         navController.previousBackStackEntry?.destination?.route == Screen.Home.route
     // The expanded rail can leave less than the library's 720 dp breakpoint.
     // Daily Mix still fits beside its browser down to two 260 dp panes.

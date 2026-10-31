@@ -2,6 +2,7 @@
 
 package com.theveloper.pixelplay.presentation.screens
 
+import com.theveloper.pixelplay.presentation.adaptive.LocalAdaptiveLayout
 import com.theveloper.pixelplay.presentation.adaptive.LocalLibraryDetailPane
 
 import com.theveloper.pixelplay.presentation.navigation.navigateSafely
@@ -221,7 +222,7 @@ fun AlbumDetailScreen(
                     WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
                 }
                 val minTopBarHeight = 64.dp + statusBarHeight
-                val maxTopBarHeight = 380.dp
+                val maxTopBarHeight = if (LocalAdaptiveLayout.current.usesSideNavigation) 380.dp else 410.dp
 
                 val minTopBarHeightPx = with(density) { minTopBarHeight.toPx() }
                 val maxTopBarHeightPx = with(density) { maxTopBarHeight.toPx() }
@@ -236,7 +237,7 @@ fun AlbumDetailScreen(
                     )
                 }
 
-                val topBarHeight = remember { Animatable(maxTopBarHeightPx) }
+                val topBarHeight = remember(maxTopBarHeightPx) { Animatable(maxTopBarHeightPx) }
                 val collapseFraction by remember(minTopBarHeightPx, maxTopBarHeightPx) {
                     derivedStateOf {
                         1f - ((topBarHeight.value - minTopBarHeightPx) / (maxTopBarHeightPx - minTopBarHeightPx)).coerceIn(

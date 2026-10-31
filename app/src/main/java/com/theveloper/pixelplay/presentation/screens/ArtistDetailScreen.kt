@@ -2,6 +2,9 @@
 
 package com.theveloper.pixelplay.presentation.screens
 
+import com.theveloper.pixelplay.presentation.components.AlbumPlaybackActions
+
+import com.theveloper.pixelplay.presentation.adaptive.LocalAdaptiveLayout
 import com.theveloper.pixelplay.presentation.adaptive.LocalLibraryDetailPane
 
 import com.theveloper.pixelplay.presentation.navigation.navigateSafely
@@ -167,7 +170,7 @@ fun ArtistDetailScreen(
         WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     }
     val minTopBarHeight = 64.dp + statusBarHeight
-    val maxTopBarHeight = 300.dp
+    val maxTopBarHeight = if (LocalAdaptiveLayout.current.usesSideNavigation) 300.dp else 370.dp
 
     val minTopBarHeightPx = with(density) { minTopBarHeight.toPx() }
     val maxTopBarHeightPx = with(density) { maxTopBarHeight.toPx() }
@@ -182,7 +185,7 @@ fun ArtistDetailScreen(
         )
     }
 
-    val topBarHeight = remember { Animatable(maxTopBarHeightPx) }
+    val topBarHeight = remember(maxTopBarHeightPx) { Animatable(maxTopBarHeightPx) }
     val collapseFraction by remember(minTopBarHeightPx, maxTopBarHeightPx) {
         derivedStateOf {
             1f - ((topBarHeight.value - minTopBarHeightPx) / (maxTopBarHeightPx - minTopBarHeightPx)).coerceIn(0f, 1f)
@@ -315,6 +318,18 @@ fun ArtistDetailScreen(
                             bottom = MiniPlayerHeight + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 8.dp
                         )
                     ) {
+                        item(key = "artist_playback_actions") {
+                            AlbumPlaybackActions(
+                                isPlaying = stablePlayerState.isPlaying && songs.any { it.id == stablePlayerState.currentSong?.id },
+                                enabled = songs.isNotEmpty(),
+                                onPlayPause = {
+                                    if (songs.any { it.id == stablePlayerState.currentSong?.id }) playerViewModel.playPause()
+                                    else songs.firstOrNull()?.let { playerViewModel.playSongs(songs, it, artist.name) }
+                                },
+                                onShuffle = { playerViewModel.playSongsShuffled(songs, artist.name, startAtZero = true) },
+                                modifier = Modifier.padding(bottom = 16.dp),
+                            )
+                        }
                         albumSections.forEachIndexed { index, section ->
                             if (section.songs.isEmpty()) return@forEachIndexed
 
@@ -906,21 +921,7 @@ private fun SharedArtistTopBarProbe(
             }
         )
 
-        LargeExtendedFloatingActionButton(
-            onClick = onPlayClick,
-            shape = RoundedStarShape(sides = 8, curve = 0.05, rotation = 0f),
-            modifier = Modifier
-                .align(shuffleAlignment)
-                .statusBarsPadding()
-                .padding(end = 16.dp)
-                .graphicsLayer {
-                    scaleX = expandedContentAlpha
-                    scaleY = expandedContentAlpha
-                    alpha = expandedContentAlpha
-                }
-        ) {
-            Icon(Icons.Rounded.Shuffle, contentDescription = stringResource(R.string.artist_cd_shuffle_play))
-        }
+
     }
 }
 
@@ -1129,21 +1130,7 @@ private fun CustomCollapsingTopBar(
                     }
                 }
 
-                // Botón de Play
-                LargeExtendedFloatingActionButton(
-                    onClick = onPlayClick,
-                    shape = RoundedStarShape(sides = 8, curve = 0.05, rotation = 0f),
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(16.dp)
-                        .graphicsLayer {
-                            scaleX = fabScale
-                            scaleY = fabScale
-                            alpha = fabScale
-                        }
-                ) {
-                    Icon(Icons.Rounded.Shuffle, contentDescription = stringResource(R.string.common_shuffle_play_album))
-                }
+
             }
         }
     }

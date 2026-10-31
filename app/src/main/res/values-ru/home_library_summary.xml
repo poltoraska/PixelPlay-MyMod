@@ -1,0 +1,9 @@
+<resources>
+    <string name="home_library_summary">Ваша медиатека</string>
+    <string name="home_library_albums">Альбомы</string>
+    <string name="home_library_artists">Исполнители</string>
+    <string name="home_library_songs">Песни</string>
+    <string name="home_library_playlists">Плейлисты</string>
+    <string name="home_library_favorites">Избранные песни</string>
+    <string name="home_library_details">Возможности устройства</string>
+</resources>

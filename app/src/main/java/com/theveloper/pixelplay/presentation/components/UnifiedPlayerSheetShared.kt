@@ -208,7 +208,7 @@ internal fun MiniPlayerContentInternal(
                     interactionSource = nextInteraction,
                     indication = miniPlayerIndication,
                     enabled = controlsEnabled
-                ) { onNext() },
+                ) { hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove); onNext() },
             contentAlignment = Alignment.Center
         ) {
             Icon(
