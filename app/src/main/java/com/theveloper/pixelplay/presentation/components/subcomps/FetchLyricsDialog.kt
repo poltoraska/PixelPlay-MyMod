@@ -1,6 +1,9 @@
 package com.theveloper.pixelplay.presentation.components.subcomps
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -80,13 +83,14 @@ fun FetchLyricsDialog(
         Surface(
             modifier = Modifier
                 .padding(24.dp)
+                .widthIn(max = 560.dp)
                 .fillMaxWidth(),
             shape = RoundedCornerShape(32.dp), // Forma muy redondeada (Expressive)
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
             tonalElevation = 6.dp
         ) {
             Column(
-                modifier = Modifier.padding(24.dp),
+                modifier = Modifier.verticalScroll(rememberScrollState()).padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 when (uiState) {

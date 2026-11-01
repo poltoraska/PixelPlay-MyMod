@@ -1,5 +1,6 @@
 package com.theveloper.pixelplay.presentation.components
 
+import com.theveloper.pixelplay.presentation.components.player.LocalTabletPlayerQueuePane
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
@@ -260,6 +261,8 @@ fun QueueBottomSheet(
 ) {
     val colors = MaterialTheme.colorScheme
     var showTimerOptions by rememberSaveable { mutableStateOf(false) }
+    val inlineTimer = embedded && LocalTabletPlayerQueuePane.current.width >= 320f
+    BackHandler(enabled = isVisible && showTimerOptions && inlineTimer) { showTimerOptions = false }
     var showClearQueueDialog by remember { mutableStateOf(false) }
     var isFabExpanded by rememberSaveable { mutableStateOf(false) }
     // Hoist resource strings at composition time so they react to locale changes
@@ -777,7 +780,12 @@ fun QueueBottomSheet(
                     embedded = embedded,
                     onDismiss = onDismiss,
                     isPlaying = isPlaying,
-                    queueSourceName = currentQueueSourceName,
+                    queueSourceName = when (currentQueueSourceName) {
+                        "Your Mix" -> stringResource(R.string.queue_your_mix)
+                        "All Songs" -> stringResource(R.string.library_storage_filter_all_songs)
+                        "All Songs (Shuffled)" -> stringResource(R.string.queue_all_songs_shuffled)
+                        else -> currentQueueSourceName
+                    },
                     queueCount = displaySongCount,
                     topPadding = headerTopPadding,
                     onPrevious = { viewModel.previousSong() },
@@ -1181,9 +1189,27 @@ fun QueueBottomSheet(
                     }
                 }
             }
+            AnimatedVisibility(visible = showTimerOptions && inlineTimer,
+                enter = fadeIn(tween(180)), exit = fadeOut(tween(180)),
+                modifier = Modifier.matchParentSize()) {
+            TimerOptionsBottomSheet(
+                onPlayCounter = onPlayCounter,
+                activeTimerValueDisplay = activeTimerValueDisplay.value,
+                activeTimerDurationMinutes = activeTimerDurationMinutes.value,
+                playCount = playCount.value,
+                isEndOfTrackTimerActive = isEndOfTrackTimerActive.value,
+                onDismiss = { showTimerOptions = false },
+                onSetPredefinedTimer = onSetPredefinedTimer,
+                onSetEndOfTrackTimer = onSetEndOfTrackTimer,
+                onOpenCustomTimePicker = onOpenCustomTimePicker,
+                onCancelCountedPlay = onCancelCountedPlay,
+                onCancelTimer = onCancelTimer,
+                embedded = true,
+            )
+            }
         }
 
-        if (showTimerOptions) {
+        if (showTimerOptions && !inlineTimer) {
             TimerOptionsBottomSheet(
                 onPlayCounter = onPlayCounter,
                 activeTimerValueDisplay = activeTimerValueDisplay.value,

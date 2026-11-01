@@ -2,8 +2,17 @@ package com.theveloper.pixelplay.presentation.components
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,6 +27,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Surface
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -70,8 +83,16 @@ fun TimerOptionsBottomSheet(
     onSetPredefinedTimer: (minutes: Int) -> Unit,
     onSetEndOfTrackTimer: (enable: Boolean) -> Unit,
     onOpenCustomTimePicker: () -> Unit,
-    onCancelTimer: () -> Unit
+    onCancelTimer: () -> Unit,
+    embedded: Boolean = false,
 ) {
+    val haptics = LocalHapticFeedback.current
+    val customInteraction = remember { MutableInteractionSource() }
+    val cancelInteraction = remember { MutableInteractionSource() }
+    val backInteraction = remember { MutableInteractionSource() }
+    val customScale by rememberExpressivePressScale(customInteraction)
+    val cancelScale by rememberExpressivePressScale(cancelInteraction)
+    val backScale by rememberExpressivePressScale(backInteraction)
     var showCustomTimePicker by rememberSaveable { mutableStateOf(false) }
     val context = LocalContext.current
     var timerSliderPosition by remember { mutableStateOf(0f) }
@@ -111,30 +132,34 @@ fun TimerOptionsBottomSheet(
         }
     }
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState
-    ) {
+    val timerContent: @Composable () -> Unit = {
         Column(
             modifier = Modifier
-                .padding(horizontal = 18.dp, vertical = 4.dp)
-                .fillMaxWidth(),
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 18.dp, vertical = 4.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Box(
-                modifier = Modifier
-                    .background(
-                        color = MaterialTheme.colorScheme.surfaceContainerLowest,
-                        shape = CircleShape
-                    )
-            ) {
-                Text(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                    text = stringResource(R.string.sleep_timer_title),
-                    fontFamily = GoogleSansRounded,
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.primary
+            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Image(
+                    painter = painterResource(R.drawable.mascot_sleep_timer),
+                    contentDescription = null,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.size(144.dp),
                 )
+                Box(modifier = Modifier.background(
+                    color = MaterialTheme.colorScheme.surfaceContainerLowest,
+                    shape = CircleShape
+                )) {
+                    Text(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        text = stringResource(R.string.sleep_timer_title),
+                        fontFamily = GoogleSansRounded,
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 2,
+                    )
+                }
             }
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -173,6 +198,7 @@ fun TimerOptionsBottomSheet(
                     Slider(
                         value = timerSliderPosition,
                         onValueChange = {
+                            if (it.roundToInt() != timerSliderPosition.roundToInt()) haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             timerSliderPosition = it
                             isTimerMode = true
                         },
@@ -254,6 +280,7 @@ fun TimerOptionsBottomSheet(
                     Slider(
                         value = counterSliderPosition,
                         onValueChange = {
+                            if (it.roundToInt() != counterSliderPosition.roundToInt()) haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             counterSliderPosition = it
                             isTimerMode = false
                         },
@@ -302,6 +329,7 @@ fun TimerOptionsBottomSheet(
                     .clickable(
                         enabled = isTimerMode || counterSliderPosition == 1f,
                         onClick = {
+                            haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             onSetEndOfTrackTimer(!isSwitchEnabled)
                         }
                     )
@@ -323,6 +351,7 @@ fun TimerOptionsBottomSheet(
                         checked = isSwitchEnabled,
                         enabled = isTimerMode || counterSliderPosition == 1f,
                         onCheckedChange = {
+                            haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             onSetEndOfTrackTimer(it)
                         },
                         colors = SwitchDefaults.colors(
@@ -356,8 +385,10 @@ fun TimerOptionsBottomSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Button(
+                    interactionSource = customInteraction,
                     enabled = counterSliderPosition == 1f,
                     onClick = {
+                        haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         showCustomTimePicker = true
                     },
                     shape = RoundedCornerShape(
@@ -369,11 +400,14 @@ fun TimerOptionsBottomSheet(
                     modifier = Modifier
                         .weight(1f) // Give buttons equal space if desired
                         .height(buttonHeight)
+                        .graphicsLayer { scaleX = customScale; scaleY = customScale }
                 ) {
                     Text(stringResource(R.string.sleep_timer_custom_time))
                 }
                 Button(
+                    interactionSource = cancelInteraction,
                     onClick = {
+                        haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         onCancelTimer()
                         onDismiss()
                         onCancelCountedPlay()
@@ -392,12 +426,27 @@ fun TimerOptionsBottomSheet(
                     modifier = Modifier
                         .weight(1f)
                         .height(buttonHeight)
+                        .graphicsLayer { scaleX = cancelScale; scaleY = cancelScale }
                 ) {
                     Text(stringResource(R.string.sleep_timer_cancel_timer))
                 }
             }
             Spacer(modifier = Modifier.height(16.dp))
         }
+    }
+
+    if (embedded) {
+        Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surfaceContainer) {
+            Column(Modifier.fillMaxSize()) {
+                IconButton(onClick = { haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove); onDismiss() }, interactionSource = backInteraction,
+                    modifier = Modifier.padding(start = 8.dp, top = 8.dp).graphicsLayer { scaleX = backScale; scaleY = backScale }) {
+                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.common_back))
+                }
+                timerContent()
+            }
+        }
+    } else {
+        ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) { timerContent() }
     }
 
     if (showCustomTimePicker) {
@@ -423,6 +472,7 @@ fun TimerOptionsBottomSheet(
             confirmButton = {
                 TextButton(
                     onClick = {
+                        haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         val hour = timePickerState.hour
                         val minute = timePickerState.minute
                         val totalMinutes = hour * 60 + minute
@@ -440,6 +490,7 @@ fun TimerOptionsBottomSheet(
             dismissButton = {
                 TextButton(
                     onClick = {
+                        haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         showCustomTimePicker = false // Dismiss the M3 dialog
                     }
                 ) {

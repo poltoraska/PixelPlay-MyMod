@@ -1,5 +1,6 @@
 package com.theveloper.pixelplay.presentation.screens
 
+
 import com.theveloper.pixelplay.presentation.components.rememberExpressivePressScale
 
 import androidx.compose.animation.core.animateFloatAsState
@@ -22,6 +23,7 @@ import com.theveloper.pixelplay.presentation.navigation.navigateSafelyReplacing
 
 import android.content.Intent
 import androidx.activity.compose.ReportDrawnWhen
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.asPaddingValues
@@ -111,7 +113,6 @@ import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.preferences.CollagePattern
 import com.theveloper.pixelplay.presentation.components.AlbumArtCollage
-import com.theveloper.pixelplay.presentation.components.Beta05CleanInstallDisclaimerDialog
 import com.theveloper.pixelplay.presentation.components.DailyMixSection
 import com.theveloper.pixelplay.presentation.components.HomeGradientTopBar
 import com.theveloper.pixelplay.presentation.components.HomeOptionsBottomSheet
@@ -263,7 +264,6 @@ fun HomeScreen(
     val bottomGradientHeight = resolveMainScreenBottomGradientHeight(navBarCompactMode)
 
     var showOptionsBottomSheet by remember { mutableStateOf(false) }
-    var cleanInstallDisclaimerDismissedThisSession by rememberSaveable { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
     val scope = rememberCoroutineScope()
     LocalContext.current
@@ -315,9 +315,6 @@ fun HomeScreen(
 
     // Drawer state for sidebar
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val shouldShowCleanInstallDisclaimer =
-        settingsUiState.beta05CleanInstallDisclaimerDismissed == false &&
-            !cleanInstallDisclaimerDismissedThisSession
 
     Box(
         modifier = Modifier.fillMaxSize()
@@ -512,7 +509,7 @@ fun HomeScreen(
                         )
                     }
                 }
-                item(key = "library_summary", span = { GridItemSpan(maxLineSpan) }) {
+                if (yourMixSongs.isNotEmpty()) item(key = "library_summary", span = { GridItemSpan(maxLineSpan) }) {
                     HomeLibrarySummaryCard(
                         onDetails = { navController.navigateSafely(Screen.DeviceCapabilities.route) },
                         onOpenTab = { tab ->
@@ -563,16 +560,6 @@ fun HomeScreen(
             )
         }
     }
-    if (shouldShowCleanInstallDisclaimer) {
-        Beta05CleanInstallDisclaimerDialog(
-            onDismiss = { dontShowAgain ->
-                cleanInstallDisclaimerDismissedThisSession = true
-                if (dontShowAgain) {
-                    settingsViewModel.setBeta05CleanInstallDisclaimerDismissed(true)
-                }
-            }
-        )
-    }
 }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -606,33 +593,16 @@ private fun YourMixEmptyPlaceholder(
         contentAlignment = Alignment.Center
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.widthIn(max = 560.dp).fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Surface(
-                modifier = Modifier.size(76.dp),
-                shape = AbsoluteSmoothCornerShape(
-                    cornerRadiusTL = 28.dp,
-                    smoothnessAsPercentTR = 60,
-                    cornerRadiusBR = 28.dp,
-                    smoothnessAsPercentTL = 60,
-                    cornerRadiusBL = 28.dp,
-                    smoothnessAsPercentBR = 60,
-                    cornerRadiusTR = 28.dp,
-                    smoothnessAsPercentBL = 60,
-                ),
-                color = colors.secondaryContainer,
-                contentColor = colors.onSecondaryContainer
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Icons.Rounded.MusicNote,
-                        contentDescription = null,
-                        modifier = Modifier.size(34.dp)
-                    )
-                }
-            }
+            Image(
+                painter = painterResource(R.drawable.mascot_home_empty),
+                contentDescription = null,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.widthIn(max = 360.dp).fillMaxWidth(0.72f).aspectRatio(752f / 705f),
+            )
 
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -726,7 +696,7 @@ fun YourMixHeader(
                 text = subtitle,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                modifier = Modifier.padding(top = 4.dp)
+                modifier = Modifier.padding(start = 4.dp, top = 4.dp)
             )
         }
         // Play Button - color changes based on shuffle state

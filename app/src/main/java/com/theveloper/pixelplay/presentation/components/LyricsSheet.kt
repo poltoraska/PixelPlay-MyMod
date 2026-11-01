@@ -1,5 +1,7 @@
 package com.theveloper.pixelplay.presentation.components
 
+import com.theveloper.pixelplay.presentation.adaptive.LocalAdaptiveLayout
+
 import android.widget.Toast
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.model.Lyrics
@@ -675,8 +677,11 @@ fun LyricsSheet(
         // Removed TopBar and FAB
     ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize()) {
+            val tabletLyrics = LocalAdaptiveLayout.current.usesSideNavigation
             Column(
                 modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .then(if (tabletLyrics) Modifier.widthIn(max = 760.dp) else Modifier)
                     .fillMaxSize()
                     .padding(top = paddingValues.calculateTopPadding())
                 .clickable(

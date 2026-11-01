@@ -349,6 +349,7 @@ fun FullPlayerContent(
 
     // Lógica para el botón de Lyrics en el reproductor expandido
     val onLyricsClick = {
+        if (isTabletPlayer) tabletQueuePane.close()
         val lyrics = lyricsProvider()
         if (lyrics?.synced.isNullOrEmpty() && lyrics?.plain.isNullOrEmpty()) {
             // Si no hay letra, mostramos el diálogo para buscar
@@ -357,6 +358,10 @@ fun FullPlayerContent(
             // Si hay letra, mostramos el sheet directamente
             showLyricsSheet = true
         }
+    }
+
+    LaunchedEffect(showLyricsSheet) {
+        if (showLyricsSheet && isTabletPlayer) tabletQueuePane.close()
     }
 
     if (showFetchLyricsDialog) {

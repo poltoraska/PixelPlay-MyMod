@@ -1,0 +1,4 @@
+<resources>
+    <string name="queue_all_songs_shuffled">Все треки (в случайном порядке)</string>
+    <string name="queue_your_mix">Ваш микс</string>
+</resources>

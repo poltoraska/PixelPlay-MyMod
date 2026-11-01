@@ -570,6 +570,7 @@ fun UnifiedPlayerSheetV2(
         width = if (isTabletPlayer) tabletQueuePaneWidth(availableWidth) else 0f,
         openFraction = sheetOverlayState.queueVisualOpenFraction,
         viewportTop = tabletTopInset.value,
+        close = { if (isTabletPlayer && showQueueSheet) sheetActionHandlers.animateQueueSheet(false) },
     )
     val onQueueButtonClick: () -> Unit = {
         if (isTabletPlayer && showQueueSheet) sheetActionHandlers.animateQueueSheet(false)

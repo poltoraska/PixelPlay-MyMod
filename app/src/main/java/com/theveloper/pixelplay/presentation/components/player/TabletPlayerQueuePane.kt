@@ -9,6 +9,7 @@ internal data class TabletPlayerQueuePane(
     val width: Float = 0f,
     val openFraction: Float = 0f,
     val viewportTop: Float = 0f,
+    val close: () -> Unit = {},
 ) {
     val enabled: Boolean get() = width > 0f
     val visibleWidth: Float get() = width * openFraction.coerceIn(0f, 1f)

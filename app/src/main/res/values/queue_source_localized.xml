@@ -1,0 +1,4 @@
+<resources>
+    <string name="queue_all_songs_shuffled">All songs (shuffled)</string>
+    <string name="queue_your_mix">Your Mix</string>
+</resources>

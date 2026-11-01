@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -401,7 +402,7 @@ private fun ExpressiveRecentlyPlayedHeader(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(if (LocalLibraryDetailPane.current) 190.dp else 220.dp)
+            .heightIn(min = if (LocalLibraryDetailPane.current) 130.dp else 220.dp)
             .graphicsLayer {
                 translationY = parallaxOffset
                 alpha = headerAlpha

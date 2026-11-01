@@ -129,7 +129,7 @@
     <!-- LyricsSheet -->
     <string name="lyrics_title">Текст песни</string>
     <string name="lyrics_loading">Загрузка текста песни…</string>
-    <string name="lyrics_mode_synced">Синхронизированный</string>
+    <string name="lyrics_mode_synced">Синхронно</string>
     <string name="lyrics_mode_static">Статический</string>
     <string name="lyrics_options">Параметры текста песни</string>
     <string name="lyrics_offset_minus_half">−.5</string>
