@@ -25,13 +25,13 @@ import kotlin.math.PI
 import kotlin.math.sin
 
 @Composable
-internal fun HomeMusicMascot(isPlaying: Boolean) {
+internal fun HomeMusicMascot(isPlaying: Boolean, isVisible: Boolean) {
     val context = LocalContext.current
     val lifecycle by LocalLifecycleOwner.current.lifecycle.currentStateAsState()
     var elapsed by remember { mutableLongStateOf(0L) }
     var animationsEnabled by remember { mutableStateOf(true) }
-    LaunchedEffect(isPlaying, lifecycle) {
-        if (!isPlaying || !lifecycle.isAtLeast(Lifecycle.State.STARTED)) return@LaunchedEffect
+    LaunchedEffect(isPlaying, lifecycle, isVisible) {
+        if (!isPlaying || !isVisible || !lifecycle.isAtLeast(Lifecycle.State.RESUMED)) return@LaunchedEffect
         animationsEnabled = currentCoroutineContext()[MotionDurationScale]?.scaleFactor != 0f
         if (!animationsEnabled) return@LaunchedEffect
         var lastFrame = 0L
@@ -62,7 +62,7 @@ internal fun HomeMusicMascot(isPlaying: Boolean) {
         val artHeight = availableWidth * (340.55801f / 627.43272f)
         Box(Modifier.fillMaxWidth().height(artHeight + 48.dp)) {
             AnimatedVisibility(
-                visible = isPlaying && animationsEnabled && lifecycle.isAtLeast(Lifecycle.State.STARTED),
+                visible = isPlaying && isVisible && animationsEnabled && lifecycle.isAtLeast(Lifecycle.State.RESUMED),
                 enter = fadeIn(tween(350)),
                 exit = fadeOut(tween(600)),
             ) {

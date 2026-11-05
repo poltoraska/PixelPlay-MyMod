@@ -126,4 +126,8 @@
     <string name="common_play_album">Воспроизвести альбом</string>
     <string name="common_shuffle_play_album">Перемешать альбом</string>
     <string name="common_album_art_for_title">Обложка альбома: %1$s</string>
+
+    <string name="home_shuffle_mixing">Перемешиваю…</string>
+    <string name="home_shuffle_shaking">Встряхиваю…</string>
+    <string name="home_shuffle_picking">Выбираю песни…</string>
 </resources>

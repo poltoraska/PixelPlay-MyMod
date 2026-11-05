@@ -42,6 +42,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -176,6 +178,8 @@ fun HomeScreen(
             else -> homeMixPreviewSongs
         }
     }
+    var shuffleAnimationGeneration by remember { mutableIntStateOf(0) }
+    var showShuffleAnimation by remember { mutableStateOf(false) }
     var homePlaceholderRefreshGeneration by rememberSaveable { mutableIntStateOf(0) }
     var hasHomeLoadingMinimumElapsed by rememberSaveable(homePlaceholderRefreshGeneration) {
         mutableStateOf(false)
@@ -378,6 +382,8 @@ fun HomeScreen(
                             subtitle = yourMixSubtitle,
                             isShuffleEnabled = isShuffleEnabled,
                             onPlayShuffled = {
+                                shuffleAnimationGeneration++
+                                showShuffleAnimation = true
                                 if (usesFallbackHomeMix) {
                                     playerViewModel.shuffleAllSongs(queueName = "Your Mix")
                                 } else {
@@ -416,7 +422,10 @@ fun HomeScreen(
                             val mascotPlaying by remember(playerViewModel) {
                                 playerViewModel.stablePlayerState.map { it.isPlaying }.distinctUntilChanged()
                             }.collectAsStateWithLifecycle(initialValue = false)
-                            HomeMusicMascot(isPlaying = mascotPlaying)
+                            val mascotVisible by remember(listState) {
+                                derivedStateOf { listState.layoutInfo.visibleItemsInfo.any { it.key == "album_art_collage" } }
+                            }
+                            HomeMusicMascot(isPlaying = mascotPlaying, isVisible = mascotVisible)
                         AlbumArtCollage(
                             modifier = Modifier.fillMaxWidth(),
                             songs = yourMixSongs,
@@ -541,6 +550,12 @@ fun HomeScreen(
 
         }
     }
+    if (showShuffleAnimation) {
+        HomeShuffleAnimation(
+            songs = yourMixSongs, generation = shuffleAnimationGeneration,
+            onDismiss = { showShuffleAnimation = false }
+        )
+    }
     if (showOptionsBottomSheet) {
         ModalBottomSheet(
             onDismissRequest = { showOptionsBottomSheet = false },
@@ -561,6 +576,89 @@ fun HomeScreen(
         }
     }
 }
+
+@Composable
+private fun HomeShuffleAnimation(songs: List<Song>, generation: Int, onDismiss: () -> Unit) {
+    val motion = remember(generation) { androidx.compose.animation.core.Animatable(0f) }
+    val currentDismiss by rememberUpdatedState(onDismiss)
+    val haptics = LocalHapticFeedback.current
+    val tablet = LocalAdaptiveLayout.current.usesSideNavigation
+    val phraseId = remember(generation) {
+        listOf(R.string.home_shuffle_mixing, R.string.home_shuffle_shaking, R.string.home_shuffle_picking).random()
+    }
+    LaunchedEffect(generation) {
+        repeat(3) {
+            haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            motion.animateTo(1f, androidx.compose.animation.core.tween(160))
+            haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            motion.animateTo(-1f, androidx.compose.animation.core.tween(160))
+        }
+        motion.animateTo(0f, androidx.compose.animation.core.tween(120))
+        currentDismiss()
+    }
+    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            modifier = Modifier.widthIn(max = if (tablet) 340.dp else 480.dp).fillMaxWidth(),
+            shape = RoundedCornerShape(32.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        ) {
+            Column {
+                Text(
+                    text = stringResource(phraseId),
+                    modifier = Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, top = 20.dp),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                )
+            androidx.compose.foundation.layout.BoxWithConstraints(
+                modifier = Modifier.fillMaxWidth().padding(start = 20.dp, top = 16.dp, bottom = 24.dp).aspectRatio(1618f / 1320f)
+            ) {
+                val imageWidth = maxWidth
+                val imageHeight = maxHeight
+                Box(Modifier.fillMaxSize().graphicsLayer {
+                    rotationZ = motion.value * 3f
+                    translationX = 8.dp.toPx()
+                    translationY = motion.value * 5.dp.toPx()
+                }) {
+                    val covers = remember(songs) {
+                        songs.filter { !it.albumArtUriString.isNullOrBlank() }
+                            .distinctBy { it.albumArtUriString }.take(4)
+                    }
+                    val positions = listOf(0.11f to 0.39f, 0.26f to 0.53f, 0.09f to 0.68f, 0.26f to 0.75f)
+                    covers.forEachIndexed { index, song ->
+                        val (x, y) = positions[index]
+                        AsyncImage(
+                            model = song.albumArtUriString,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .androidxOffset(imageWidth * x, imageHeight * y)
+                                .size(imageWidth * 0.15f)
+                                .graphicsLayer {
+                                    rotationZ = (if (index % 2 == 0) -12f else 12f) + motion.value * 7f
+                                    translationY = motion.value * (if (index % 2 == 0) 3.dp else (-3).dp).toPx()
+                                }
+                                .then(Modifier.clipCover(index))
+                        )
+                    }
+                    Image(
+                        painter = painterResource(R.drawable.home_shuffle_jar),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Fit,
+                    )
+                }
+            }
+            }
+        }
+    }
+}
+
+private fun Modifier.androidxOffset(x: Dp, y: Dp): Modifier = this.then(Modifier.offset(x, y))
+private fun Modifier.clipCover(index: Int): Modifier = this.clip(
+    if (index % 2 == 0) androidx.compose.foundation.shape.CircleShape else RoundedCornerShape(25)
+)
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable

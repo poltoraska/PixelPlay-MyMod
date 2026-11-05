@@ -1245,7 +1245,7 @@ class MusicService : MediaLibraryService() {
     private val playerListener = object : Player.Listener {
         override fun onVolumeChanged(volume: Float) {
             replayGainProcessor.onPlayerVolumeChanged(volume)
-            if (pauseOnVolumeZeroEnabled && volume == 0f) {
+            if (pauseOnVolumeZeroEnabled && !engine.isTransitionRunning() && volume == 0f) {
                 val player = mediaSession?.player ?: engine.masterPlayer
                 if (player.isPlaying) {
                     player.pause()

@@ -87,7 +87,6 @@ internal fun LandscapeCassettePlayer(
             seekState.stopIfUnchanged(seekGeneration)
         }
     }
-    if (animateReels) CassetteSeekSound(direction = seekState.direction, enabled = seekState.isSeeking)
     MaterialTheme(colorScheme = colors) {
         Surface(
             modifier = Modifier.fillMaxSize().padding(paddingValues).padding(horizontal = 8.dp, vertical = 4.dp),

@@ -126,4 +126,8 @@
     <string name="common_play_album">Play album</string>
     <string name="common_shuffle_play_album">Shuffle play album</string>
     <string name="common_album_art_for_title">Album art for %1$s</string>
+
+    <string name="home_shuffle_mixing">Mixing…</string>
+    <string name="home_shuffle_shaking">Shaking…</string>
+    <string name="home_shuffle_picking">Picking songs…</string>
 </resources>

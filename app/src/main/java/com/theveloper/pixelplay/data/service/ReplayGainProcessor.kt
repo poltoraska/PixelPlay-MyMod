@@ -112,7 +112,11 @@ class ReplayGainProcessor(
      */
     fun prepareForTransition(player: Player) {
         val incomingItem = player.currentMediaItem
-        cachedVolumeFor(incomingItem)?.let { engine.incomingTrackReplayGainVolume = it }
+        // Seed the incoming player before its fade starts. Reading tags is asynchronous;
+        // falling back to full volume here causes a jump when normalization is disabled,
+        // unavailable, or has not been calculated yet.
+        engine.incomingTrackReplayGainVolume = cachedVolumeFor(incomingItem)
+            ?: if (enabled) (lastAppliedVolume ?: userSelectedVolume) else userSelectedVolume
         apply(incomingItem)
     }
 

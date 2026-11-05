@@ -282,6 +282,8 @@ class DualPlayerEngine @Inject constructor(
 
     // Audio Focus Management
     private val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+    // Both players feed the same effects session, including during crossfade.
+    private var sharedAudioSessionId = 0
     private var audioFocusRequest: AudioFocusRequest? = null
     private var isFocusLossPause = false
     private var lastPlayWhenReadyAtMs: Long = 0L
@@ -782,6 +784,12 @@ class DualPlayerEngine @Inject constructor(
         playerB?.let { try { it.release() } catch (e: Exception) { /* Ignore */ } }
         playerB = null
 
+        sharedAudioSessionId = runCatching { audioManager.generateAudioSessionId() }
+            .getOrDefault(0).takeIf { it > 0 } ?: 0
+        AdvancedPerformanceDiagnostics.recordEventIfEnabled(
+            type = AdvancedPerformanceDiagnostics.EventTypes.PLAYBACK, name = "audio_session_strategy"
+        ) { mapOf("shared" to (sharedAudioSessionId != 0).toString()) }
+
         playerA = buildPlayer()
 
         addMasterPlayerListeners(playerA)
@@ -1130,6 +1138,7 @@ class DualPlayerEngine @Inject constructor(
             .setMediaSourceFactory(DefaultMediaSourceFactory(resolvingFactory, extractorsFactory))
             .setLoadControl(loadControl)
             .build().apply {
+            if (sharedAudioSessionId != 0) setAudioSessionId(sharedAudioSessionId)
             setAudioAttributes(audioAttributes, false)
             val offloadPreferences = TrackSelectionParameters.AudioOffloadPreferences.Builder()
                 .setAudioOffloadMode(
@@ -1355,21 +1364,52 @@ class DualPlayerEngine @Inject constructor(
         setPauseAtEndOfMediaItems(false)
     }
 
+    // Opt-in diagnostics contain only player state, never track names or file paths.
+    private fun recordCrossfadeState(name: String, outgoing: Player?, incoming: Player?, extra: Map<String, String> = emptyMap()) {
+        AdvancedPerformanceDiagnostics.recordEventIfEnabled(
+            type = AdvancedPerformanceDiagnostics.EventTypes.PLAYBACK, name = name
+        ) {
+            // Keep incoming-player data within the diagnostics limit of eight fields.
+            mapOf(
+                "out_state" to (outgoing?.playbackState?.toString() ?: "none"),
+                "out_volume" to (outgoing?.volume?.toString() ?: "none"),
+                "in_state" to (incoming?.playbackState?.toString() ?: "none"),
+                "in_playing" to (incoming?.isPlaying?.toString() ?: "none"),
+                "in_ready" to (incoming?.playWhenReady?.toString() ?: "none"),
+                "in_suppression" to (incoming?.playbackSuppressionReason?.toString() ?: "none"),
+                "in_volume" to (incoming?.volume?.toString() ?: "none"),
+                "in_error" to (incoming?.playerError?.errorCode?.toString() ?: extra["error_type"] ?: "none"),
+            )
+        }
+    }
+
     fun performTransition(settings: TransitionSettings) {
         transitionJob?.cancel()
         transitionRunning = true
         transitionStartedAtMs = SystemClock.elapsedRealtime()
+        val originalVolume = playerA.volume.coerceIn(0f, 1f)
+        recordCrossfadeState("crossfade_start", playerA, playerB, mapOf("duration_ms" to settings.durationMs.toString()))
         transitionJob = scope.launch {
             try {
                 performOverlapTransition(settings)
             } catch (e: Exception) {
                 if (e !is kotlinx.coroutines.CancellationException) {
-                    Timber.tag("TransitionDebug").e(e, "Error performing transition")
+                    recordCrossfadeState("crossfade_failed", playerA, playerB, mapOf("error_type" to e.javaClass.simpleName))
+                    Timber.tag("TransitionDebug").e(e, "Crossfade failed; restoring the active player")
+                    val shouldContinue = playerA.playWhenReady || playerB?.playWhenReady == true
+                    playerB?.stop()
+                    playerA.volume = originalVolume
+                    setPauseAtEndOfMediaItems(false)
+                    // The incoming player may already have been published to MediaSession.
+                    // Restore the real master before attempting the regular transition.
+                    onPlayerSwappedListeners.forEach { it(playerA) }
+                    if (shouldContinue && playerA.playbackState == Player.STATE_ENDED && playerA.hasNextMediaItem()) {
+                        playerA.seekToNextMediaItem()
+                        playerA.play()
+                    }
                 }
-                playerA.volume = 1f
-                setPauseAtEndOfMediaItems(false)
-                playerB?.stop()
             } finally {
+                recordCrossfadeState("crossfade_end", playerA, playerB)
                 transitionRunning = false
                 lastTransitionFinishedAtMs = SystemClock.elapsedRealtime()
                 if (transitionStartedAtMs > 0L) {
@@ -1393,13 +1433,10 @@ class DualPlayerEngine @Inject constructor(
         }
 
         if (auxiliaryPlayer.playbackState == Player.STATE_IDLE) auxiliaryPlayer.prepare()
-        if (auxiliaryPlayer.playbackState == Player.STATE_BUFFERING) {
-            if (!awaitPlayerReady(auxiliaryPlayer, 3000L)) {
-                playerA.volume = 1f
-                setPauseAtEndOfMediaItems(false)
-                return
-            }
+        if (auxiliaryPlayer.playbackState != Player.STATE_READY && !awaitPlayerReady(auxiliaryPlayer, 3000L)) {
+            error("Incoming player did not become ready for crossfade")
         }
+        if (auxiliaryPlayer.playerError != null) error("Incoming player failed before crossfade")
 
         val outgoingStartVolume = playerA.volume.coerceIn(0f, 1f)
         auxiliaryPlayer.volume = 0f
@@ -1415,17 +1452,56 @@ class DualPlayerEngine @Inject constructor(
         outgoingPlayer.pauseAtEndOfMediaItems = true
         incomingPlayer.pauseAtEndOfMediaItems = false
         onTransitionDisplayPlayerListeners.forEach { it(incomingPlayer) }
+        recordCrossfadeState("crossfade_incoming_started", outgoingPlayer, incomingPlayer)
 
         val duration = settings.durationMs.toLong().coerceAtLeast(500L)
         val stepMs = 32L
-        val startedAtMs = SystemClock.elapsedRealtime()
+        var startedAtMs = SystemClock.elapsedRealtime()
 
         while (true) {
+            if (!incomingPlayer.isPlaying && incomingPlayer.playerError == null &&
+                incomingPlayer.playbackState != Player.STATE_IDLE && incomingPlayer.playbackState != Player.STATE_ENDED) {
+                // Do not fade out the audible player while the incoming one cannot render.
+                val waitStarted = SystemClock.elapsedRealtime()
+                var pausedOutgoing = false
+                var stalledAt: Long? = null
+                recordCrossfadeState("crossfade_wait", outgoingPlayer, incomingPlayer)
+                while (!incomingPlayer.isPlaying && incomingPlayer.playerError == null &&
+                    incomingPlayer.playbackState != Player.STATE_IDLE && incomingPlayer.playbackState != Player.STATE_ENDED) {
+                    if (!incomingPlayer.playWhenReady && outgoingPlayer.playWhenReady) {
+                        outgoingPlayer.pause()
+                        pausedOutgoing = true
+                    }
+                    // An explicit pause or transient suppression can last indefinitely; only
+                    // time out a player that is expected to render but remains stalled.
+                    if (incomingPlayer.playWhenReady && incomingPlayer.playbackSuppressionReason == Player.PLAYBACK_SUPPRESSION_REASON_NONE) {
+                        val now = SystemClock.elapsedRealtime()
+                        val start = stalledAt ?: now.also { stalledAt = it }
+                        if (now - start >= 3000L) error("Incoming player did not start rendering")
+                    } else {
+                        stalledAt = null
+                    }
+                    delay(50L)
+                }
+                if (pausedOutgoing && incomingPlayer.isPlaying && !outgoingPlayer.playWhenReady) outgoingPlayer.play()
+                startedAtMs += SystemClock.elapsedRealtime() - waitStarted
+                recordCrossfadeState("crossfade_resumed", outgoingPlayer, incomingPlayer)
+            }
+            if (incomingPlayer.playerError != null || incomingPlayer.playbackState == Player.STATE_IDLE ||
+                incomingPlayer.playbackState == Player.STATE_ENDED) {
+                error("Incoming player stopped during crossfade")
+            }
+            if (incomingPlayer.playbackState == Player.STATE_BUFFERING) {
+                val bufferingStartedAt = SystemClock.elapsedRealtime()
+                if (!awaitPlayerReady(incomingPlayer, 3000L)) error("Incoming player stalled during crossfade")
+                // Keep the current volumes while buffering rather than fading to silence.
+                startedAtMs += SystemClock.elapsedRealtime() - bufferingStartedAt
+            }
             val elapsed = (SystemClock.elapsedRealtime() - startedAtMs).coerceAtMost(duration)
             val progress = (elapsed.toFloat() / duration).coerceIn(0f, 1f)
             val volIn = envelope(progress, settings.curveIn)
             val volOut = 1f - envelope(progress, settings.curveOut)
-            val incomingTarget = incomingTrackReplayGainVolume ?: 1f
+            val incomingTarget = incomingTrackReplayGainVolume ?: outgoingStartVolume
             incomingPlayer.volume = (volIn * incomingTarget).coerceIn(0f, 1f)
             outgoingPlayer.volume = (volOut * outgoingStartVolume).coerceIn(0f, 1f)
 
@@ -1434,7 +1510,7 @@ class DualPlayerEngine @Inject constructor(
         }
 
         outgoingPlayer.volume = 0f
-        incomingPlayer.volume = incomingTrackReplayGainVolume ?: 1f
+        incomingPlayer.volume = incomingTrackReplayGainVolume ?: outgoingStartVolume
         incomingTrackReplayGainVolume = null
 
         removeMasterPlayerListeners(outgoingPlayer)
@@ -1452,6 +1528,14 @@ class DualPlayerEngine @Inject constructor(
 
         onPlayerSwappedListeners.forEach { it(playerA) }
         _activeAudioSessionId.value = playerA.audioSessionId
+        recordCrossfadeState("crossfade_swapped", outgoingPlayer, playerA)
+        if (AdvancedPerformanceDiagnostics.isEnabled) {
+            val observedPlayer = playerA
+            scope.launch {
+                delay(2000L)
+                if (playerA === observedPlayer) recordCrossfadeState("crossfade_after_2s", null, observedPlayer)
+            }
+        }
 
         playerB?.pause()
         playerB?.stop()
