@@ -35,6 +35,15 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.ui.res.pluralStringResource
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,7 +58,6 @@ import coil.size.Size
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.model.Album
 import com.theveloper.pixelplay.presentation.components.subcomps.AutoSizingTextToFill
-import com.theveloper.pixelplay.presentation.components.subcomps.TightWrapText
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
@@ -86,9 +94,9 @@ fun AlbumMultiSelectionOptionSheet(
 
                 Spacer(modifier = Modifier.width(10.dp))
 
-                Column {
+                Column(Modifier.weight(1f)) {
                     AutoSizingTextToFill(
-                        text = stringResource(R.string.multi_selection_albums_count_upper, selectedAlbums.size),
+                        text = pluralStringResource(R.plurals.menu_selected_album_count, selectedAlbums.size, selectedAlbums.size),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         fontFamily = GoogleSansRounded,
@@ -238,22 +246,29 @@ private fun AlbumSelectionActionButton(
     icon: @Composable () -> Unit,
     text: String
 ) {
+    val source = remember { MutableInteractionSource() }
+    val scope = rememberCoroutineScope()
+    var pending by remember { mutableStateOf(false) }
     FilledTonalButton(
-        onClick = onClick,
-        modifier = modifier.heightIn(min = 66.dp),
+        interactionSource = source,
+        onClick = {
+            if (!pending) {
+                pending = true
+                scope.launch {
+                    delay(160)
+                    onClick()
+                    pending = false
+                }
+            }
+        },
+        modifier = modifier.menuPressFeedback(source).heightIn(min = 66.dp),
         contentPadding = PaddingValues(horizontal = 10.dp),
         colors = colors,
         shape = CircleShape
     ) {
         icon()
         Spacer(modifier = Modifier.width(6.dp))
-        TightWrapText(
-            text = text,
-            modifier = Modifier.padding(end = 4.dp),
-            overflow = TextOverflow.Ellipsis,
-            maxLines = 2,
-            lineHeight = 20.sp,
-        )
+        SongActionLabel(text = text, modifier = Modifier.weight(1f))
     }
 }
 

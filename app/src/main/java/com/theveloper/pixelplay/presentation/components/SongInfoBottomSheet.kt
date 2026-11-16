@@ -246,6 +246,7 @@ fun SongInfoBottomSheet(
         when (result) {
             is SongInfoBottomSheetViewModel.ToneActionResult.Success -> {
                 Toast.makeText(context, result.message, Toast.LENGTH_LONG).show()
+                onDismiss()
             }
             is SongInfoBottomSheetViewModel.ToneActionResult.Error -> {
                 Toast.makeText(context, result.message, Toast.LENGTH_LONG).show()
@@ -429,8 +430,11 @@ fun SongInfoBottomSheet(
                             }
                             val isEditable = remember(song) { songInfoViewModel.isSongEditable(song) }
                             if (isEditable) {
+                                val editSource = remember { MutableInteractionSource() }
                                 FilledTonalIconButton(
+                                    interactionSource = editSource,
                                     modifier = Modifier
+                                        .menuPressFeedback(editSource)
                                         .fillMaxHeight()
                                         .padding(vertical = 6.dp),
                                     colors = IconButtonDefaults.filledTonalIconButtonColors(
@@ -500,8 +504,8 @@ fun SongInfoBottomSheet(
                                     ) {
                                         Row1Actions(
                                             isFavorite = isFavorite,
-                                            onPlaySong = onPlaySong,
-                                            onToggleFavorite = onToggleFavorite,
+                                            onPlaySong = { onPlaySong(); onDismiss() },
+                                            onToggleFavorite = { onToggleFavorite(); onDismiss() },
                                             onShareClick = {
                                                 try {
                                                     val shareIntent = Intent(Intent.ACTION_SEND).apply {
@@ -515,6 +519,7 @@ fun SongInfoBottomSheet(
                                                             shareChooserTitle
                                                         )
                                                     )
+                                                    onDismiss()
                                                 } catch (e: Exception) {
                                                     Toast.makeText(
                                                         context,
@@ -528,12 +533,12 @@ fun SongInfoBottomSheet(
                                         )
 
                                         Row2Actions(
-                                            onAddToQueue = onAddToQueue,
-                                            onAddNextToQueue = onAddNextToQueue
+                                            onAddToQueue = { onAddToQueue(); onDismiss() },
+                                            onAddNextToQueue = { onAddNextToQueue(); onDismiss() }
                                         )
 
                                         Row3Actions(
-                                            onAddToPlaylist = onAddToPlayList,
+                                            onAddToPlaylist = { onAddToPlayList(); onDismiss() },
                                             onDelete = {
                                                 (context as? Activity)?.let { activity ->
                                                     onDeleteFromDevice(activity, song) { result ->
@@ -757,6 +762,7 @@ fun SongInfoBottomSheet(
                 coverArt
             )
             showEditSheet = false
+            onDismiss()
         },
     )
 
@@ -1012,7 +1018,7 @@ private val SongActionTextAutoSize = TextAutoSize.StepBased(
 )
 
 @Composable
-private fun SongActionLabel(text: String, modifier: Modifier = Modifier) {
+internal fun SongActionLabel(text: String, modifier: Modifier = Modifier) {
     Text(
         text = text,
         modifier = modifier,
@@ -1032,6 +1038,8 @@ private fun RingtoneActionButton(
     interactionSource: MutableInteractionSource? = null,
     onClick: () -> Unit,
 ) {
+    val source = interactionSource ?: remember { MutableInteractionSource() }
+    val pressModifier = Modifier.menuPressFeedback(source)
     val colors = ButtonDefaults.filledTonalButtonColors(
         containerColor = MaterialTheme.colorScheme.secondaryContainer,
         contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -1039,12 +1047,12 @@ private fun RingtoneActionButton(
 
     if (showText) {
         FilledTonalButton(
-            modifier = modifier,
+            modifier = modifier.then(pressModifier),
             colors = colors,
             contentPadding = PaddingValues(horizontal = if (compactText) 12.dp else 18.dp),
             shape = CircleShape,
             onClick = onClick,
-            interactionSource = interactionSource ?: remember { MutableInteractionSource() },
+            interactionSource = source,
         ) {
             Icon(
                 modifier = Modifier.size(if (compactText) 20.dp else 24.dp),
@@ -1060,14 +1068,14 @@ private fun RingtoneActionButton(
         }
     } else {
         FilledTonalIconButton(
-            modifier = modifier,
+            modifier = modifier.then(pressModifier),
             colors = IconButtonDefaults.filledTonalIconButtonColors(
                 containerColor = MaterialTheme.colorScheme.secondaryContainer,
                 contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
             ),
             shape = CircleShape,
             onClick = onClick,
-            interactionSource = interactionSource ?: remember { MutableInteractionSource() },
+            interactionSource = source,
         ) {
             Icon(
                 modifier = Modifier.size(FloatingActionButtonDefaults.LargeIconSize),
@@ -1242,6 +1250,7 @@ private fun Row1Actions(
     ) {
         FilledTonalButton(
             modifier = Modifier
+                .menuPressFeedback(playInteractionSource)
                 .weight(weightPlay)
                 .heightIn(min = 80.dp),
             colors = ButtonDefaults.filledTonalButtonColors(
@@ -1275,6 +1284,7 @@ private fun Row1Actions(
 
         FilledIconButton(
             modifier = Modifier
+                .menuPressFeedback(favoriteInteractionSource)
                 .weight(weightFavorite)
                 .fillMaxHeight(),
             onClick = {
@@ -1307,6 +1317,7 @@ private fun Row1Actions(
 
         FilledTonalIconButton(
             modifier = Modifier
+                .menuPressFeedback(shareInteractionSource)
                 .weight(weightShare)
                 .fillMaxHeight(),
             onClick = {
@@ -1393,6 +1404,7 @@ private fun Row2Actions(
     ) {
         FilledTonalButton(
             modifier = Modifier
+                .menuPressFeedback(queueInteractionSource)
                 .weight(weightQueue)
                 .heightIn(min = 66.dp),
             colors = ButtonDefaults.filledTonalButtonColors(
@@ -1425,6 +1437,7 @@ private fun Row2Actions(
 
         FilledTonalButton(
             modifier = Modifier
+                .menuPressFeedback(nextInteractionSource)
                 .weight(weightNext)
                 .heightIn(min = 66.dp),
             colors = ButtonDefaults.filledTonalButtonColors(
@@ -1517,6 +1530,7 @@ private fun Row3Actions(
     ) {
         FilledTonalButton(
             modifier = Modifier
+                .menuPressFeedback(playlistInteractionSource)
                 .weight(weightPlaylist)
                 .heightIn(min = 66.dp),
             colors = ButtonDefaults.filledTonalButtonColors(
@@ -1549,6 +1563,7 @@ private fun Row3Actions(
 
         FilledTonalButton(
             modifier = Modifier
+                .menuPressFeedback(deleteInteractionSource)
                 .weight(weightDelete)
                 .heightIn(min = 66.dp),
             colors = ButtonDefaults.filledTonalButtonColors(
@@ -1689,6 +1704,7 @@ private fun Row4Actions(
 
         FilledTonalButton(
             modifier = Modifier
+                .menuPressFeedback(watchInteractionSource)
                 .weight(weightWatch)
                 .fillMaxHeight(),
             colors = ButtonDefaults.filledTonalButtonColors(

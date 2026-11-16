@@ -570,4 +570,10 @@
     <string name="ai_state_daily_mix_updated">Daily Mix обновлён с помощью AI</string>
     <string name="ai_state_could_not_update">Не удалось обновить: %s</string>
     <string name="ai_state_no_songs_for_mix">AI не смог подобрать треки для этого микса</string>
+    <plurals name="menu_selected_album_count">
+        <item quantity="one">%1$d альбом</item>
+        <item quantity="few">%1$d альбома</item>
+        <item quantity="many">%1$d альбомов</item>
+        <item quantity="other">%1$d альбома</item>
+    </plurals>
 </resources>

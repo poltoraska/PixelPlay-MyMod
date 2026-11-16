@@ -568,4 +568,8 @@
     <string name="ai_state_daily_mix_updated">Daily Mix updated with AI</string>
     <string name="ai_state_could_not_update">Could not update: %s</string>
     <string name="ai_state_no_songs_for_mix">AI couldn\'t find songs for this mix</string>
+    <plurals name="menu_selected_album_count">
+        <item quantity="one">%1$d album</item>
+        <item quantity="other">%1$d albums</item>
+    </plurals>
 </resources>
