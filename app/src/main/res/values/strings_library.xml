@@ -578,4 +578,11 @@
     <string name="album_year_old_first">Oldest first</string>
     <string name="album_year_new_first">Newest first</string>
     <string name="queue_current_context">Current selection</string>
+    <string name="album_edit_metadata">Edit album</string>
+    <string name="album_edit_title">Album title</string>
+    <string name="album_edit_artist">Album artist</string>
+    <string name="album_edit_year">Year</string>
+    <string name="album_edit_hint">Changes apply to every song in this album.</string>
+    <string name="album_edit_loading">Loading songs…</string>
+    <string name="album_edit_no_songs">Unable to load songs for this album.</string>
 </resources>

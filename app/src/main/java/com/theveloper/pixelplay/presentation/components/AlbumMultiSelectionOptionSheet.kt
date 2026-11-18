@@ -24,6 +24,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.automirrored.rounded.PlaylistAdd
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -69,7 +70,8 @@ fun AlbumMultiSelectionOptionSheet(
     onPlay: () -> Unit,
     onPlayNext: () -> Unit,
     onAddToQueue: () -> Unit,
-    onAddToPlaylist: () -> Unit
+    onAddToPlaylist: () -> Unit,
+    onEdit: (() -> Unit)? = null
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -113,6 +115,29 @@ fun AlbumMultiSelectionOptionSheet(
                         overflow = TextOverflow.Ellipsis,
                         maxLines = 1,
                     )
+                }
+                if (selectedAlbums.size == 1 && onEdit != null) {
+                    val editSource = remember { MutableInteractionSource() }
+                    val editScope = rememberCoroutineScope()
+                    var editPending by remember { mutableStateOf(false) }
+                    Spacer(Modifier.width(12.dp))
+                    androidx.compose.material3.FilledTonalIconButton(
+                        modifier = Modifier.size(48.dp).menuPressFeedback(editSource),
+                        interactionSource = editSource,
+                        shape = CircleShape,
+                        onClick = {
+                            if (!editPending) {
+                                editPending = true
+                                editScope.launch {
+                                    delay(160)
+                                    onEdit()
+                                    onDismiss()
+                                }
+                            }
+                        },
+                    ) {
+                        Icon(Icons.Rounded.Edit, contentDescription = stringResource(R.string.album_edit_metadata))
+                    }
                 }
             }
 

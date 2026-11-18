@@ -244,6 +244,7 @@ class SongMetadataEditor(
         newLyrics: String,
         newTrackNumber: Int,
         newDiscNumber: Int?,
+        newYear: Int? = null,
         newReplayGainTrackGainDb: String? = null,
         newReplayGainAlbumGainDb: String? = null,
         coverArtUpdate: CoverArtUpdate? = null,
@@ -356,6 +357,7 @@ class SongMetadataEditor(
                         newLyrics = trimmedLyrics,
                         newTrackNumber = newTrackNumber,
                         newDiscNumber = newDiscNumber,
+                        newYear = newYear,
                         replayGainTrackUpdate = replayGainTrackUpdate,
                         replayGainAlbumUpdate = replayGainAlbumUpdate,
                         coverArtUpdate = coverArtUpdate
@@ -373,6 +375,7 @@ class SongMetadataEditor(
                         newLyrics = trimmedLyrics,
                         newTrackNumber = newTrackNumber,
                         newDiscNumber = newDiscNumber,
+                        newYear = newYear,
                         replayGainTrackUpdate = replayGainTrackUpdate,
                         replayGainAlbumUpdate = replayGainAlbumUpdate,
                         coverArtUpdate = coverArtUpdate
@@ -390,6 +393,7 @@ class SongMetadataEditor(
                         newLyrics = trimmedLyrics,
                         newTrackNumber = newTrackNumber,
                         newDiscNumber = newDiscNumber,
+                        newYear = newYear,
                         replayGainTrackUpdate = replayGainTrackUpdate,
                         replayGainAlbumUpdate = replayGainAlbumUpdate,
                         coverArtUpdate = coverArtUpdate
@@ -408,6 +412,7 @@ class SongMetadataEditor(
                             newLyrics = trimmedLyrics,
                             newTrackNumber = newTrackNumber,
                             newDiscNumber = newDiscNumber,
+                        newYear = newYear,
                             replayGainTrackUpdate = replayGainTrackUpdate,
                             replayGainAlbumUpdate = replayGainAlbumUpdate,
                             coverArtUpdate = coverArtUpdate
@@ -532,6 +537,18 @@ class SongMetadataEditor(
                 trackNumber = newTrackNumber,
                 discNumber = newDiscNumber
             )
+
+            musicDao.refreshAlbumMetadataFromSongs(songId)
+            newYear?.let { year ->
+                musicDao.updateSongYear(songId, year)
+                musicDao.repairAlbumYears()
+                if (songId > 0) runCatching {
+                    context.contentResolver.update(
+                        android.content.ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, songId),
+                        ContentValues().apply { put(MediaStore.Audio.Media.YEAR, year) }, null, null
+                    )
+                }
+            }
 
             coverArtUpdate?.let {
                 AlbumArtUtils.clearCacheForSong(context, songId)
@@ -759,6 +776,7 @@ class SongMetadataEditor(
         newLyrics: String,
         newTrackNumber: Int,
         newDiscNumber: Int?,
+        newYear: Int? = null,
         replayGainTrackUpdate: ReplayGainUpdate = ReplayGainUpdate.Keep,
         replayGainAlbumUpdate: ReplayGainUpdate = ReplayGainUpdate.Keep,
         coverArtUpdate: CoverArtUpdate? = null
@@ -805,6 +823,7 @@ class SongMetadataEditor(
                 propertyMap.upsertOrRemove("COMPOSER", newComposer)
                 propertyMap.upsertOrRemove("GENRE", newGenre)
                 propertyMap.upsertOrRemove("LYRICS", newLyrics)
+                newYear?.let { propertyMap["DATE"] = arrayOf(it.toString()) }
                 propertyMap["TRACKNUMBER"] = arrayOf(newTrackNumber.toString())
                 if (newDiscNumber != null && newDiscNumber > 0) {
                     propertyMap["DISCNUMBER"] = arrayOf(newDiscNumber.toString())
@@ -885,6 +904,7 @@ class SongMetadataEditor(
         newLyrics: String,
         newTrackNumber: Int,
         newDiscNumber: Int?,
+        newYear: Int? = null,
         replayGainTrackUpdate: ReplayGainUpdate = ReplayGainUpdate.Keep,
         replayGainAlbumUpdate: ReplayGainUpdate = ReplayGainUpdate.Keep,
         coverArtUpdate: CoverArtUpdate? = null
@@ -923,6 +943,7 @@ class SongMetadataEditor(
                 tag.deleteField(FieldKey.LYRICS)
             }
             
+            newYear?.let { tag.setField(FieldKey.YEAR, it.toString()) }
             tag.setField(FieldKey.TRACK, newTrackNumber.toString())
             if (newDiscNumber != null && newDiscNumber > 0) {
                 tag.setField(FieldKey.DISC_NO, newDiscNumber.toString())
@@ -983,6 +1004,7 @@ class SongMetadataEditor(
         newLyrics: String,
         newTrackNumber: Int,
         newDiscNumber: Int?,
+        newYear: Int? = null,
         replayGainTrackUpdate: ReplayGainUpdate = ReplayGainUpdate.Keep,
         replayGainAlbumUpdate: ReplayGainUpdate = ReplayGainUpdate.Keep,
         coverArtUpdate: CoverArtUpdate? = null
@@ -1014,6 +1036,7 @@ class SongMetadataEditor(
             tags.replaceSingleComment("ALBUM", newAlbum)
             tags.replaceSingleComment("GENRE", newGenre)
             tags.replaceSingleComment("LYRICS", newLyrics)
+            newYear?.let { tags.replaceSingleComment("DATE", it.toString()) }
             tags.replaceSingleComment("TRACKNUMBER", newTrackNumber.takeIf { it > 0 }?.toString())
             tags.replaceSingleComment("DISCNUMBER", newDiscNumber?.takeIf { it > 0 }?.toString())
             tags.applyReplayGainUpdate(REPLAYGAIN_TRACK_GAIN_KEY, replayGainTrackUpdate)

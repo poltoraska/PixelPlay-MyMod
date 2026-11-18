@@ -1078,6 +1078,15 @@ interface MusicDao {
     ): PagingSource<Int, SongEntity>
 
     // --- Album Queries ---
+    @Query("UPDATE albums SET title = COALESCE((SELECT album_name FROM songs WHERE album_id = albums.id GROUP BY album_name ORDER BY COUNT(*) DESC, album_name LIMIT 1), title), artist_name = COALESCE((SELECT album_artist FROM songs WHERE album_id = albums.id AND album_artist IS NOT NULL AND TRIM(album_artist) != '' GROUP BY album_artist ORDER BY COUNT(*) DESC, album_artist LIMIT 1), artist_name), album_artist = (SELECT album_artist FROM songs WHERE album_id = albums.id AND album_artist IS NOT NULL AND TRIM(album_artist) != '' GROUP BY album_artist ORDER BY COUNT(*) DESC, album_artist LIMIT 1) WHERE id = (SELECT album_id FROM songs WHERE id = :songId)")
+    suspend fun refreshAlbumMetadataFromSongs(songId: Long)
+
+    @Query("UPDATE songs SET year = :year WHERE id = :songId")
+    suspend fun updateSongYear(songId: Long, year: Int)
+
+    @Query("UPDATE albums SET year = COALESCE((SELECT songs.year FROM songs WHERE songs.album_id = albums.id AND songs.year > 0 GROUP BY songs.year ORDER BY COUNT(*) DESC, songs.year DESC LIMIT 1), year) WHERE EXISTS (SELECT 1 FROM songs WHERE songs.album_id = albums.id AND songs.year > 0)")
+    suspend fun repairAlbumYears()
+
     @Query("""
         SELECT
             albums.id AS id,

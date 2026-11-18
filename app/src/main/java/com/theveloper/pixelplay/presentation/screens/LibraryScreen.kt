@@ -2058,9 +2058,17 @@ fun LibraryScreen(
     }
 
     // Album Multi-Selection Option Sheet
+    var albumsToEdit by remember { mutableStateOf<List<com.theveloper.pixelplay.data.model.Album>>(emptyList()) }
+    if (albumsToEdit.isNotEmpty()) {
+        com.theveloper.pixelplay.presentation.components.AlbumMetadataDialog(
+            albums = albumsToEdit, playerViewModel = playerViewModel,
+            onDismiss = { albumsToEdit = emptyList() }
+        )
+    }
     if (showAlbumMultiSelectionSheet && selectedAlbums.isNotEmpty()) {
         AlbumMultiSelectionOptionSheet(
             selectedAlbums = selectedAlbums,
+            onEdit = { albumsToEdit = selectedAlbums.toList() },
             maxSelection = MAX_ALBUM_MULTI_SELECTION,
             onDismiss = { showAlbumMultiSelectionSheet = false },
             onPlay = {

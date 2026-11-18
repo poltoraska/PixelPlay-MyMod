@@ -780,6 +780,7 @@ fun QueueBottomSheet(
                     onDismiss = onDismiss,
                     isPlaying = isPlaying,
                     queueSourceName = when (currentQueueSourceName) {
+                        "Недавно прослушанные", "Recently Played" -> stringResource(R.string.recently_played_queue_name)
                         "Current Context" -> stringResource(R.string.queue_current_context)
                         "Your Mix" -> stringResource(R.string.queue_your_mix)
                         "All Songs" -> stringResource(R.string.library_storage_filter_all_songs)

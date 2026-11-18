@@ -226,6 +226,7 @@ class MusicRepositoryImpl @Inject constructor(
             Triple(allowedDirs, blockedDirs, yearOrder)
         }.flatMapLatest { (allowedDirs, blockedDirs, yearOrder) ->
             flow {
+                musicDao.repairAlbumYears()
                 val (allowedParentDirs, applyDirectoryFilter) =
                     computeAllowedDirs(allowedDirs, blockedDirs)
                 emit(

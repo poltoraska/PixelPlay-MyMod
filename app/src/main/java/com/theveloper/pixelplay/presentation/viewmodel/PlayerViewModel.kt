@@ -2848,11 +2848,12 @@ class PlayerViewModel @Inject constructor(
         discNumber: Int?,
         replayGainTrackGainDb: String?,
         replayGainAlbumGainDb: String?,
-        coverArtUpdate: CoverArtUpdate?
+        coverArtUpdate: CoverArtUpdate?,
+        newYear: Int? = null
     ) = metadataEditStateHolder.saveBatchMetadata(
         songs, title, artist, album, albumArtist, composer, genre, lyrics,
         trackNumber, discNumber, replayGainTrackGainDb, replayGainAlbumGainDb, coverArtUpdate,
-        metadataEditCallbacks()
+        metadataEditCallbacks(), newYear
     )
 
     fun editSongMetadata(

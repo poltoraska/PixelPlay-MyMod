@@ -581,5 +581,12 @@
     <string name="album_year_default">Обычный</string>
     <string name="album_year_old_first">Сначала старые</string>
     <string name="album_year_new_first">Сначала новые</string>
-    <string name="queue_current_context">Текущая подборка</string>
+    <string name="queue_current_context">Подборка</string>
+    <string name="album_edit_metadata">Изменить альбом</string>
+    <string name="album_edit_title">Название альбома</string>
+    <string name="album_edit_artist">Исполнитель альбома</string>
+    <string name="album_edit_year">Год</string>
+    <string name="album_edit_hint">Изменения применятся ко всем песням альбома.</string>
+    <string name="album_edit_loading">Загрузка песен…</string>
+    <string name="album_edit_no_songs">Не удалось загрузить песни альбома.</string>
 </resources>

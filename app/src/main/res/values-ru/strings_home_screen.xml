@@ -147,14 +147,14 @@
     <string name="ai_playlist_generate">Создать плейлист</string>
 
     <!-- RecentlyPlayedSection -->
-    <string name="home_recently_played_title">Недавно прослушанные</string>
+    <string name="home_recently_played_title">Недавнее</string>
 
     <!-- RecentlyPlayedScreen -->
-    <string name="recently_played_title">Недавно прослушанные</string>
+    <string name="recently_played_title">Недавнее</string>
     <string name="recently_played_action_play_latest">Воспроизвести последнее</string>
     <string name="recently_played_empty_title">Нет недавних прослушиваний за %1$s</string>
     <string name="recently_played_empty_subtitle">Измените период или прослушайте больше песен, чтобы заполнить эту временную шкалу.</string>
-    <string name="recently_played_queue_name">Недавно прослушанные</string>
+    <string name="recently_played_queue_name">Недавнее</string>
     <string name="recently_played_date_today">Сегодня</string>
     <string name="recently_played_date_yesterday">Вчера</string>
 

@@ -77,7 +77,8 @@ private data class PendingBatchMetadataEdit(
     val discNumber: Int?,
     val replayGainTrackGainDb: String?,
     val replayGainAlbumGainDb: String?,
-    val coverArtUpdate: CoverArtUpdate?
+    val coverArtUpdate: CoverArtUpdate?,
+    val year: Int? = null
 )
 
 private data class PendingLyricsSave(
@@ -151,7 +152,8 @@ class MetadataEditStateHolder @Inject constructor(
         newDiscNumber: Int?,
         newReplayGainTrackGainDb: String? = null,
         newReplayGainAlbumGainDb: String? = null,
-        coverArtUpdate: CoverArtUpdate?
+        coverArtUpdate: CoverArtUpdate?,
+        newYear: Int? = null
     ): MetadataEditResult = withContext(Dispatchers.IO) {
         
         Log.d("MetadataEditStateHolder", "Starting saveMetadata for: ${song.title}")
@@ -208,6 +210,7 @@ class MetadataEditStateHolder @Inject constructor(
             newReplayGainAlbumGainDb = newReplayGainAlbumGainDb,
             coverArtUpdate = finalCoverArtUpdate,
             songId = resolvedSongId,
+            newYear = newYear,
         )
 
         Log.d("MetadataEditStateHolder", "Editor result: success=${result.success}, error=${result.error}")
@@ -227,6 +230,7 @@ class MetadataEditStateHolder @Inject constructor(
             }
 
             val updatedSong = song.copy(
+                year = newYear ?: song.year,
                 title = newTitle,
                 artist = newArtist,
                 album = newAlbum,
@@ -396,6 +400,7 @@ class MetadataEditStateHolder @Inject constructor(
         replayGainAlbumGainDb: String?,
         coverArtUpdate: CoverArtUpdate?,
         cb: MetadataEditCallbacks,
+        newYear: Int? = null,
     ) {
         cb.scope.launch {
             // Check if we need MediaStore permission (Android 11+)
@@ -434,7 +439,8 @@ class MetadataEditStateHolder @Inject constructor(
                             discNumber = discNumber,
                             replayGainTrackGainDb = replayGainTrackGainDb,
                             replayGainAlbumGainDb = replayGainAlbumGainDb,
-                            coverArtUpdate = coverArtUpdate
+                            coverArtUpdate = coverArtUpdate,
+                            year = newYear
                         )
                         _writePermissionRequest.emit(intentSender)
                         return@launch
@@ -444,7 +450,7 @@ class MetadataEditStateHolder @Inject constructor(
 
             performBatchMetadataEdit(
                 songs, title, artist, album, albumArtist, composer, genre, lyrics,
-                trackNumber, discNumber, replayGainTrackGainDb, replayGainAlbumGainDb, coverArtUpdate, cb
+                trackNumber, discNumber, replayGainTrackGainDb, replayGainAlbumGainDb, coverArtUpdate, cb, newYear
             )
         }
     }
@@ -525,7 +531,8 @@ class MetadataEditStateHolder @Inject constructor(
                     batchMetadata.replayGainTrackGainDb,
                     batchMetadata.replayGainAlbumGainDb,
                     batchMetadata.coverArtUpdate,
-                    cb
+                    cb,
+                    batchMetadata.year
                 )
             }
             return
@@ -712,6 +719,7 @@ class MetadataEditStateHolder @Inject constructor(
         replayGainAlbumGainDb: String?,
         coverArtUpdate: CoverArtUpdate?,
         cb: MetadataEditCallbacks,
+        newYear: Int? = null,
     ) {
         var successCount = 0
         var failureCount = 0
@@ -726,14 +734,17 @@ class MetadataEditStateHolder @Inject constructor(
                 newArtist = artist ?: song.displayArtist,
                 newAlbum = album ?: song.album,
                 newAlbumArtist = albumArtist ?: (song.albumArtist ?: ""),
-                newComposer = composer ?: "",
+                newComposer = composer ?: withContext(Dispatchers.IO) {
+                    runCatching { com.theveloper.pixelplay.data.media.AudioMetadataReader.read(java.io.File(song.path))?.composer }.getOrNull()
+                }.orEmpty(),
                 newGenre = genre ?: (song.genre ?: ""),
                 newLyrics = lyrics ?: (song.lyrics ?: ""),
                 newTrackNumber = trackNumber ?: song.trackNumber,
                 newDiscNumber = discNumber ?: song.discNumber,
                 newReplayGainTrackGainDb = replayGainTrackGainDb,
                 newReplayGainAlbumGainDb = replayGainAlbumGainDb,
-                coverArtUpdate = coverArtUpdate
+                coverArtUpdate = coverArtUpdate,
+                newYear = newYear
             )
 
             if (result.success && result.updatedSong != null) {

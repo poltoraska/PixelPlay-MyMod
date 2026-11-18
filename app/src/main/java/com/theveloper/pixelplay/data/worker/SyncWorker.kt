@@ -648,7 +648,9 @@ constructor(
                  albumArtUriString = representativeAlbumArt,
                  songCount = songsInAlbum.size,
                  dateAdded = firstSong.dateAdded,
-                 year = firstSong.year,
+                 year = songsInAlbum.map { it.year }.filter { it > 0 }.groupingBy { it }.eachCount()
+                     .entries.sortedWith(compareByDescending<Map.Entry<Int, Int>> { it.value }.thenByDescending { it.key })
+                     .firstOrNull()?.key ?: 0,
                  albumArtist = metadataAlbumArtist
              )
         }
