@@ -519,7 +519,8 @@ class SongMetadataEditor(
                     albumArtist = newAlbumArtist,
                     genre = trimmedGenre,
                     trackNumber = newTrackNumber,
-                    discNumber = newDiscNumber
+                    discNumber = newDiscNumber,
+                    year = newYear
                 )
                 if (!mediaStoreSuccess) {
                     Timber.w("MediaStore update failed, but file was updated for songId: $songId")
@@ -542,12 +543,6 @@ class SongMetadataEditor(
             newYear?.let { year ->
                 musicDao.updateSongYear(songId, year)
                 musicDao.repairAlbumYears()
-                if (songId > 0) runCatching {
-                    context.contentResolver.update(
-                        android.content.ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, songId),
-                        ContentValues().apply { put(MediaStore.Audio.Media.YEAR, year) }, null, null
-                    )
-                }
             }
 
             coverArtUpdate?.let {
@@ -1108,12 +1103,16 @@ class SongMetadataEditor(
         albumArtist: String?,
         genre: String,
         trackNumber: Int,
-        discNumber: Int?
+        discNumber: Int?,
+        year: Int? = null
     ): Boolean {
         return try {
-            val uri = ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, songId)
+            // Use the same volume-specific URI as the write-permission request.
+            val uri = MediaStorePermissionHelper.getMediaStoreUri(context, songId)
+                ?: return false
 
             val values = ContentValues().apply {
+                year?.let { put(MediaStore.Audio.Media.YEAR, it) }
                 put(MediaStore.Audio.Media.TITLE, title)
                 put(MediaStore.Audio.Media.ARTIST, artist)
                 put(MediaStore.Audio.Media.ALBUM, album)

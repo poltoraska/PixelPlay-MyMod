@@ -1105,6 +1105,9 @@ constructor(
         var genre: String? = genreMap[raw.id] ?: raw.genre // Use mapped genre as default, or direct genre from main cursor
 
         val shouldAugmentMetadata =
+                // MediaScanner can omit a valid embedded year (for example ID3v2.4 TDRC).
+                // Read the file before replacing our indexed year with MediaStore's zero.
+                raw.year <= 0 ||
                 deepScan ||
                         raw.filePath.endsWith(".wav", true) ||
                         raw.filePath.endsWith(".opus", true) ||
