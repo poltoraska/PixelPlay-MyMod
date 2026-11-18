@@ -203,6 +203,14 @@ class LibraryStateHolder @Inject constructor(
 
     fun initialize(scope: CoroutineScope) {
         this.scope = scope
+        scope.launch {
+            userPreferencesRepository.albumYearOrderFlow.collect { order ->
+                albumYearOrder = order
+                _albums.value = withContext(Dispatchers.Default) {
+                    sortAlbumsList(_albums.value, _currentAlbumSortOption.value).toImmutableList()
+                }
+            }
+        }
         // Initial load of sort preferences
         scope.launch {
             val songSortKey = userPreferencesRepository.songsSortOptionFlow.first()
@@ -422,7 +430,18 @@ class LibraryStateHolder @Inject constructor(
         }
     }
 
+    private var albumYearOrder = "off"
+
     private fun sortAlbumsList(albums: Iterable<Album>, sortOption: SortOption): List<Album> {
+        val yearComparator = Comparator<Album> { a, b ->
+            when {
+                albumYearOrder == "off" -> 0
+                a.year <= 0 && b.year > 0 -> 1
+                b.year <= 0 && a.year > 0 -> -1
+                albumYearOrder == "asc" -> a.year.compareTo(b.year)
+                else -> b.year.compareTo(a.year)
+            }
+        }
         return when (sortOption) {
             SortOption.AlbumTitleAZ -> albums.sortedWith(
                 compareBy<Album> { it.title.lowercase() }
@@ -436,36 +455,43 @@ class LibraryStateHolder @Inject constructor(
             )
             SortOption.AlbumArtist -> albums.sortedWith(
                 compareBy<Album> { it.artist.lowercase() }
+                    .then(yearComparator)
                     .thenBy { it.title.lowercase() }
                     .thenBy { it.id }
             )
             SortOption.AlbumArtistDesc -> albums.sortedWith(
                 compareByDescending<Album> { it.artist.lowercase() }
+                    .then(yearComparator)
                     .thenBy { it.title.lowercase() }
                     .thenBy { it.id }
             )
             SortOption.AlbumReleaseYear -> albums.sortedWith(
                 compareByDescending<Album> { it.year }
+                    .then(yearComparator)
                     .thenBy { it.title.lowercase() }
                     .thenBy { it.id }
             )
             SortOption.AlbumReleaseYearAsc -> albums.sortedWith(
                 compareBy<Album> { it.year }
+                    .then(yearComparator)
                     .thenBy { it.title.lowercase() }
                     .thenBy { it.id }
             )
             SortOption.AlbumDateAdded -> albums.sortedWith(
                 compareByDescending<Album> { it.dateAdded }
+                    .then(yearComparator)
                     .thenBy { it.title.lowercase() }
                     .thenBy { it.id }
             )
             SortOption.AlbumSizeAsc -> albums.sortedWith(
                 compareBy<Album> { it.songCount }
+                    .then(yearComparator)
                     .thenBy { it.title.lowercase() }
                     .thenBy { it.id }
             )
             SortOption.AlbumSizeDesc -> albums.sortedWith(
                 compareByDescending<Album> { it.songCount }
+                    .then(yearComparator)
                     .thenBy { it.title.lowercase() }
                     .thenBy { it.id }
             )

@@ -572,4 +572,10 @@
         <item quantity="one">%1$d album</item>
         <item quantity="other">%1$d albums</item>
     </plurals>
+    <string name="album_year_secondary_title">Within the selected sort</string>
+    <string name="album_year_secondary_hint">Order albums with the same artist or sort value by year.</string>
+    <string name="album_year_default">Default</string>
+    <string name="album_year_old_first">Oldest first</string>
+    <string name="album_year_new_first">Newest first</string>
+    <string name="queue_current_context">Current selection</string>
 </resources>

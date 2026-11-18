@@ -220,10 +220,11 @@ class MusicRepositoryImpl @Inject constructor(
     ): Flow<PagingData<Album>> {
         return combine(
             userPreferencesRepository.allowedDirectoriesFlow,
-            userPreferencesRepository.blockedDirectoriesFlow
-        ) { allowedDirs, blockedDirs ->
-            allowedDirs to blockedDirs
-        }.flatMapLatest { (allowedDirs, blockedDirs) ->
+            userPreferencesRepository.blockedDirectoriesFlow,
+            userPreferencesRepository.albumYearOrderFlow
+        ) { allowedDirs, blockedDirs, yearOrder ->
+            Triple(allowedDirs, blockedDirs, yearOrder)
+        }.flatMapLatest { (allowedDirs, blockedDirs, yearOrder) ->
             flow {
                 val (allowedParentDirs, applyDirectoryFilter) =
                     computeAllowedDirs(allowedDirs, blockedDirs)
@@ -236,6 +237,7 @@ class MusicRepositoryImpl @Inject constructor(
                                 applyDirectoryFilter = applyDirectoryFilter,
                                 filterMode = storageFilter.toFilterMode(),
                                 sortOrder = sortOption.storageKey,
+                                yearOrder = yearOrder,
                                 minTracks = minTracks
                             )
                         }

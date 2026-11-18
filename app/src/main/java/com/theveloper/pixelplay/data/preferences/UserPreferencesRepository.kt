@@ -106,6 +106,7 @@ class UserPreferencesRepository @Inject constructor(
         // Sort options
         val SONGS_SORT_OPTION = stringPreferencesKey("songs_sort_option")
         val SONGS_SORT_OPTION_MIGRATED = booleanPreferencesKey("songs_sort_option_migrated_v2")
+        val ALBUM_YEAR_ORDER = stringPreferencesKey("album_year_order")
         val ALBUMS_SORT_OPTION = stringPreferencesKey("albums_sort_option")
         val ARTISTS_SORT_OPTION = stringPreferencesKey("artists_sort_option")
         val PLAYLISTS_SORT_OPTION = stringPreferencesKey("playlists_sort_option")
@@ -774,6 +775,12 @@ suspend fun markDirectoryRulesVersionApplied(version: Int) {
 
     val songsSortOptionFlow: Flow<String> =
         pref { SortOption.fromStorageKey(it[PreferencesKeys.SONGS_SORT_OPTION], SortOption.SONGS, SortOption.SongTitleAZ).storageKey }
+
+    val albumYearOrderFlow: Flow<String> = pref { it[PreferencesKeys.ALBUM_YEAR_ORDER] ?: "off" }
+    suspend fun setAlbumYearOrder(order: String) {
+        require(order in listOf("off", "asc", "desc"))
+        dataStore.edit { it[PreferencesKeys.ALBUM_YEAR_ORDER] = order }
+    }
 
     val albumsSortOptionFlow: Flow<String> =
         pref { SortOption.fromStorageKey(it[PreferencesKeys.ALBUMS_SORT_OPTION], SortOption.ALBUMS, SortOption.AlbumTitleAZ).storageKey }

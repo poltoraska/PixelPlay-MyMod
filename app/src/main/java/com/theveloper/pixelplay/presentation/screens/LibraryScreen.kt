@@ -1501,6 +1501,20 @@ fun LibraryScreen(
                                     }
                                 } else null,
                                 extraContent = {
+                                    if (isAlbumTab) {
+                                        val yearOrder by playerViewModel.albumYearOrder.collectAsStateWithLifecycle(initialValue = "off")
+                                        Text(stringResource(R.string.album_year_secondary_title), style = MaterialTheme.typography.titleMedium)
+                                        Text(stringResource(R.string.album_year_secondary_hint), style = MaterialTheme.typography.bodySmall)
+                                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                            listOf("off" to R.string.album_year_default, "asc" to R.string.album_year_old_first, "desc" to R.string.album_year_new_first).forEach { (order, label) ->
+                                                androidx.compose.material3.FilterChip(
+                                                    selected = yearOrder == order,
+                                                    onClick = { playerViewModel.setAlbumYearOrder(order) },
+                                                    label = { Text(stringResource(label), fontSize = 12.sp) },
+                                                )
+                                            }
+                                        }
+                                    }
                                     if (isPlaylistsTab && playlistUiState.showTelegramCloudPlaylists) {
                                         Text(
                                             text = stringResource(R.string.library_telegram_topics_display_title),

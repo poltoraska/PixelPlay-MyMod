@@ -1167,6 +1167,9 @@ interface MusicDao {
             CASE WHEN :sortOrder = 'album_date_added' THEN albums.date_added END DESC,
             CASE WHEN :sortOrder = 'album_size_asc' THEN song_count END ASC,
             CASE WHEN :sortOrder = 'album_size_desc' THEN song_count END DESC,
+            CASE WHEN :yearOrder = 'asc' THEN NULLIF(albums.year, 0) IS NULL WHEN :yearOrder = 'desc' THEN NULLIF(albums.year, 0) IS NULL ELSE 0 END ASC,
+            CASE WHEN :yearOrder = 'asc' THEN albums.year END ASC,
+            CASE WHEN :yearOrder = 'desc' THEN albums.year END DESC,
             albums.title COLLATE NOCASE ASC,
             albums.artist_name COLLATE NOCASE ASC,
             albums.id ASC
@@ -1176,6 +1179,7 @@ interface MusicDao {
         applyDirectoryFilter: Boolean,
         filterMode: Int,
         sortOrder: String,
+        yearOrder: String = "off",
         minTracks: Int
     ): PagingSource<Int, AlbumEntity>
 
@@ -1224,6 +1228,9 @@ interface MusicDao {
             CASE WHEN :sortOrder = 'album_date_added' THEN albums.date_added END DESC,
             CASE WHEN :sortOrder = 'album_size_asc' THEN song_count END ASC,
             CASE WHEN :sortOrder = 'album_size_desc' THEN song_count END DESC,
+            CASE WHEN :yearOrder = 'asc' THEN NULLIF(albums.year, 0) IS NULL WHEN :yearOrder = 'desc' THEN NULLIF(albums.year, 0) IS NULL ELSE 0 END ASC,
+            CASE WHEN :yearOrder = 'asc' THEN albums.year END ASC,
+            CASE WHEN :yearOrder = 'desc' THEN albums.year END DESC,
             albums.title COLLATE NOCASE ASC,
             albums.artist_name COLLATE NOCASE ASC,
             albums.id ASC
@@ -1234,6 +1241,7 @@ interface MusicDao {
         applyDirectoryFilter: Boolean,
         filterMode: Int,
         sortOrder: String,
+        yearOrder: String = "off",
         minTracks: Int,
         limit: Int,
         offset: Int

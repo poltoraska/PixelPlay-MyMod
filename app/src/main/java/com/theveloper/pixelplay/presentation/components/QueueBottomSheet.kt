@@ -721,6 +721,7 @@ fun QueueBottomSheet(
 
     Surface(
         modifier = modifier
+            .padding(top = if (embedded) 0.dp else WindowInsets.statusBars.asPaddingValues().calculateTopPadding())
             .graphicsLayer {
                 if (embedded) {
                     scaleX = 1f
@@ -772,15 +773,14 @@ fun QueueBottomSheet(
             modifier = Modifier.fillMaxSize()
         ) {
             Column {
-                val headerTopPadding = if (embedded) 10.dp else WindowInsets.statusBars
-                    .asPaddingValues()
-                    .calculateTopPadding() + 10.dp
+                val headerTopPadding = 10.dp
 
                 QueueHeaderSection(
                     embedded = embedded,
                     onDismiss = onDismiss,
                     isPlaying = isPlaying,
                     queueSourceName = when (currentQueueSourceName) {
+                        "Current Context" -> stringResource(R.string.queue_current_context)
                         "Your Mix" -> stringResource(R.string.queue_your_mix)
                         "All Songs" -> stringResource(R.string.library_storage_filter_all_songs)
                         "All Songs (Shuffled)" -> stringResource(R.string.queue_all_songs_shuffled)

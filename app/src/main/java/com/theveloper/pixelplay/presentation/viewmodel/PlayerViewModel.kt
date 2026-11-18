@@ -2480,6 +2480,11 @@ class PlayerViewModel @Inject constructor(
         libraryStateHolder.sortSongs(sortOption, persist)
     }
 
+    val albumYearOrder = userPreferencesRepository.albumYearOrderFlow
+    fun setAlbumYearOrder(order: String) {
+        viewModelScope.launch { userPreferencesRepository.setAlbumYearOrder(order) }
+    }
+
     fun sortAlbums(sortOption: SortOption, persist: Boolean = true) {
         libraryStateHolder.sortAlbums(sortOption, persist)
     }
