@@ -265,7 +265,7 @@ fun HomeScreen(
     // Padding inferior si hay canción en reproducción
     val bottomPadding = if (currentSong != null) MiniPlayerHeight else 0.dp
     val navBarCompactMode by playerViewModel.navBarCompactMode.collectAsStateWithLifecycle()
-    val bottomGradientHeight = resolveMainScreenBottomGradientHeight(navBarCompactMode)
+    val bottomGradientHeight = resolveMainScreenBottomGradientHeight(navBarCompactMode, com.theveloper.pixelplay.presentation.components.LocalPhoneChromeCollapse.current)
 
     var showOptionsBottomSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()

@@ -1,6 +1,8 @@
 package com.theveloper.pixelplay.presentation.components
 
 import com.theveloper.pixelplay.ui.theme.GoogleSansNunitoFont
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -49,6 +51,8 @@ fun ExpressiveTopBarContent(
     collapseFraction: Float,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
+    onSubtitleClick: (() -> Unit)? = null,
+    titlePersonalizationKey: String? = null,
     collapsedTitleStartPadding: Dp = 56.dp, // Default safe for standard Nav Icon
     expandedTitleStartPadding: Dp = 16.dp,
     collapsedTitleEndPadding: Dp = 24.dp,
@@ -89,6 +93,7 @@ fun ExpressiveTopBarContent(
     val titleFontWeight = FontWeight.ExtraBold
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val expandedPersonalizedWidth = (maxWidth - expandedTitleStartPadding - expandedTitleEndPadding).coerceAtLeast(1.dp)
         val availableTitleWidthPx = with(density) {
             (maxWidth - titlePaddingStart - titlePaddingEnd).coerceAtLeast(0.dp).roundToPx()
         }
@@ -143,7 +148,13 @@ fun ExpressiveTopBarContent(
             Column(
                 modifier = Modifier.align(Alignment.CenterStart)
             ) {
-                Text(
+                if (titlePersonalizationKey != null) {
+                    PersonalizedEntityTitle(
+                        text = title, entityKey = titlePersonalizationKey,
+                        collapseFraction = clampedFraction,
+                        expandedWidth = expandedPersonalizedWidth
+                    )
+                } else Text(
                     text = title,
                     style = resolvedTitleStyle,
                     color = contentColor,
@@ -162,7 +173,9 @@ fun ExpressiveTopBarContent(
                         color = subtitleColor,
                         maxLines = subtitleMaxLines,
                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                        modifier = Modifier.alpha(subtitleAlpha)
+                        modifier = Modifier.alpha(subtitleAlpha).then(
+                            if (onSubtitleClick != null) Modifier.clickable(role = Role.Button, onClick = onSubtitleClick) else Modifier
+                        )
                     )
                 }
                 if (supportingContent != null) {

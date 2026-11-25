@@ -77,11 +77,35 @@ data class AdvancedPerformanceDiagnosticsSettings(
         enabled && expiresAtEpochMs?.let { nowEpochMs < it } == true
 }
 
+data class MotionArtworkPreferences(
+    val enabled: Boolean = false,
+    val wifiOnly: Boolean = true,
+    val cacheLimitMb: Int = 200
+)
+
 @Singleton
 class UserPreferencesRepository @Inject constructor(
     private val dataStore: DataStore<Preferences>,
     private val json: Json
 ) {
+
+    val motionArtworkPreferences: Flow<MotionArtworkPreferences> = dataStore.data.map {
+        MotionArtworkPreferences(
+            enabled = it[PreferencesKeys.MOTION_ARTWORK_ENABLED] ?: false,
+            wifiOnly = it[PreferencesKeys.MOTION_ARTWORK_WIFI_ONLY] ?: true,
+            cacheLimitMb = (it[PreferencesKeys.MOTION_ARTWORK_CACHE_MB] ?: 200).coerceIn(100, 500)
+        )
+    }.distinctUntilChanged()
+
+    suspend fun setMotionArtworkEnabled(value: Boolean) {
+        dataStore.edit { it[PreferencesKeys.MOTION_ARTWORK_ENABLED] = value }
+    }
+    suspend fun setMotionArtworkWifiOnly(value: Boolean) {
+        dataStore.edit { it[PreferencesKeys.MOTION_ARTWORK_WIFI_ONLY] = value }
+    }
+    suspend fun setMotionArtworkCacheLimit(value: Int) {
+        dataStore.edit { it[PreferencesKeys.MOTION_ARTWORK_CACHE_MB] = value.coerceIn(100, 500) }
+    }
 
     private val backupExcludedKeyNames = setOf(
         PreferencesKeys.INITIAL_SETUP_DONE.name
@@ -90,6 +114,12 @@ class UserPreferencesRepository @Inject constructor(
     // ─── Preference keys ────────────────────────────────────────────────────
 
     private object PreferencesKeys {
+        val ENTITY_TITLE_STYLES = stringPreferencesKey("entity_title_styles")
+        val ENTITY_TITLE_HINT_SEEN = booleanPreferencesKey("entity_title_hint_seen")
+        val COLLAPSE_PHONE_CHROME = booleanPreferencesKey("collapse_phone_chrome_on_scroll")
+        val MOTION_ARTWORK_ENABLED = booleanPreferencesKey("motion_artwork_enabled")
+        val MOTION_ARTWORK_WIFI_ONLY = booleanPreferencesKey("motion_artwork_wifi_only")
+        val MOTION_ARTWORK_CACHE_MB = intPreferencesKey("motion_artwork_cache_mb")
         val APP_REBRAND_DIALOG_SHOWN = booleanPreferencesKey("app_rebrand_dialog_shown")
         val BETA_05_CLEAN_INSTALL_DISCLAIMER_DISMISSED =
             booleanPreferencesKey("beta_05_clean_install_disclaimer_dismissed")
@@ -976,6 +1006,34 @@ suspend fun markDirectoryRulesVersionApplied(version: Int) {
 
     suspend fun setNavBarStyle(style: String) {
         dataStore.edit { it[PreferencesKeys.NAV_BAR_STYLE] = style }
+    }
+
+    val entityTitleStylesFlow: Flow<Map<String, String>> = pref {
+        decodeJsonPref(it, PreferencesKeys.ENTITY_TITLE_STYLES, emptyMap<String, String>())
+    }.distinctUntilChanged()
+
+    suspend fun setEntityTitleStyle(entityKey: String, style: EntityTitleStyle) {
+        if (entityKey.isBlank()) return
+        editJsonMap<String>(PreferencesKeys.ENTITY_TITLE_STYLES) {
+            if (style == EntityTitleStyle.AUTO) remove(entityKey) else put(entityKey, style.name)
+        }
+    }
+
+    suspend fun consumeEntityTitleHint(): Boolean {
+        var consumed = false
+        dataStore.edit {
+            if (it[PreferencesKeys.ENTITY_TITLE_HINT_SEEN] != true) {
+                it[PreferencesKeys.ENTITY_TITLE_HINT_SEEN] = true
+                consumed = true
+            }
+        }
+        return consumed
+    }
+
+    val collapsePhoneChromeFlow: Flow<Boolean> = pref { it[PreferencesKeys.COLLAPSE_PHONE_CHROME] ?: true }
+
+    suspend fun setCollapsePhoneChrome(enabled: Boolean) {
+        dataStore.edit { it[PreferencesKeys.COLLAPSE_PHONE_CHROME] = enabled }
     }
 
     val navBarCompactModeFlow: Flow<Boolean> =

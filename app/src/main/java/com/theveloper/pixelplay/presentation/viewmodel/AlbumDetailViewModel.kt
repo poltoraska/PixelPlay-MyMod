@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.theveloper.pixelplay.data.model.Artist
+import kotlinx.coroutines.flow.first
 import com.theveloper.pixelplay.data.model.Album
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.repository.MusicRepository // Importar MusicRepository
@@ -48,6 +50,22 @@ class AlbumDetailViewModel @Inject constructor(
         } else {
             _uiState.update { it.copy(error = context.getString(R.string.album_detail_id_not_found), isLoading = false) }
         }
+    }
+
+    suspend fun resolveAlbumArtists(): List<Artist> {
+        val snapshot = uiState.value
+        val album = snapshot.album ?: return emptyList()
+        val name = album.albumArtist?.takeIf { it.isNotBlank() } ?: album.artist
+        val namedId = musicRepository.getArtistIdByName(name)
+        if (namedId != null && namedId != 0L && namedId != -1L) {
+            musicRepository.getArtistById(namedId).first()?.let { return listOf(it) }
+        }
+        val song = snapshot.songs.firstOrNull() ?: return emptyList()
+        val linked = song.id.toLongOrNull()?.let { musicRepository.getArtistsForSong(it).first() }.orEmpty()
+            .filter { it.id != 0L && it.id != -1L }.distinctBy { it.id }
+        if (linked.isNotEmpty()) return linked
+        val ids = (song.artists.map { it.id } + song.artistId).filter { it != 0L && it != -1L }.distinct()
+        return ids.mapNotNull { musicRepository.getArtistById(it).first() }
     }
 
     private fun loadAlbumData(id: Long) {

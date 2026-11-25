@@ -922,6 +922,13 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    val collapsePhoneChrome = userPreferencesRepository.collapsePhoneChromeFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
+    fun setCollapsePhoneChrome(enabled: Boolean) {
+        viewModelScope.launch { userPreferencesRepository.setCollapsePhoneChrome(enabled) }
+    }
+
     fun setNavBarCompactMode(enabled: Boolean) {
         viewModelScope.launch {
             userPreferencesRepository.setNavBarCompactMode(enabled)

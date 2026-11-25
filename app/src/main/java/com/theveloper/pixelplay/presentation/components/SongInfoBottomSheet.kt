@@ -1146,6 +1146,9 @@ private fun SongInfoSegmentedListItem(
     }
 }
 
+// Let the release spring become visible before an action dismisses this sheet or opens another UI.
+private const val SongMenuReleaseSettleMillis = 180L
+
 @Composable
 private fun Row1Actions(
     isFavorite: Boolean,
@@ -1268,6 +1271,7 @@ private fun Row1Actions(
                 coroutineScope.launch {
                     kotlinx.coroutines.delay(180)
                     playVisualPressed = false
+                    kotlinx.coroutines.delay(SongMenuReleaseSettleMillis)
                     clickPending = false
                     onPlaySong()
                 }
@@ -1295,6 +1299,7 @@ private fun Row1Actions(
                 coroutineScope.launch {
                     kotlinx.coroutines.delay(180)
                     favoriteVisualPressed = false
+                    kotlinx.coroutines.delay(SongMenuReleaseSettleMillis)
                     clickPending = false
                     onToggleFavorite()
                 }
@@ -1328,6 +1333,7 @@ private fun Row1Actions(
                 coroutineScope.launch {
                     kotlinx.coroutines.delay(180)
                     shareVisualPressed = false
+                    kotlinx.coroutines.delay(SongMenuReleaseSettleMillis)
                     clickPending = false
                     onShareClick()
                 }
@@ -1422,6 +1428,7 @@ private fun Row2Actions(
                 coroutineScope.launch {
                     kotlinx.coroutines.delay(180)
                     queueVisualPressed = false
+                    kotlinx.coroutines.delay(SongMenuReleaseSettleMillis)
                     clickPending = false
                     onAddToQueue()
                 }
@@ -1455,6 +1462,7 @@ private fun Row2Actions(
                 coroutineScope.launch {
                     kotlinx.coroutines.delay(180)
                     nextVisualPressed = false
+                    kotlinx.coroutines.delay(SongMenuReleaseSettleMillis)
                     clickPending = false
                     onAddNextToQueue()
                 }
@@ -1548,6 +1556,7 @@ private fun Row3Actions(
                 coroutineScope.launch {
                     kotlinx.coroutines.delay(180)
                     playlistVisualPressed = false
+                    kotlinx.coroutines.delay(SongMenuReleaseSettleMillis)
                     clickPending = false
                     onAddToPlaylist()
                 }
@@ -1581,6 +1590,7 @@ private fun Row3Actions(
                 coroutineScope.launch {
                     kotlinx.coroutines.delay(180)
                     deleteVisualPressed = false
+                    kotlinx.coroutines.delay(SongMenuReleaseSettleMillis)
                     clickPending = false
                     onDelete()
                 }
@@ -1696,6 +1706,7 @@ private fun Row4Actions(
                 coroutineScope.launch {
                     kotlinx.coroutines.delay(180)
                     ringtoneVisualPressed = false
+                    kotlinx.coroutines.delay(SongMenuReleaseSettleMillis)
                     clickPending = false
                     onRingtoneClick()
                 }
@@ -1732,6 +1743,7 @@ private fun Row4Actions(
                 coroutineScope.launch {
                     kotlinx.coroutines.delay(180)
                     watchVisualPressed = false
+                    kotlinx.coroutines.delay(SongMenuReleaseSettleMillis)
                     clickPending = false
                     onSendToWatchClick()
                 }

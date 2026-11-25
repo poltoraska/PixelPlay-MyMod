@@ -20,6 +20,7 @@ import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -40,6 +41,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.absolutePadding
 import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -53,6 +55,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import com.theveloper.pixelplay.presentation.components.scoped.PhoneChromeScrollState
+import com.theveloper.pixelplay.presentation.components.LocalPhoneChromeCollapse
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.Scaffold
@@ -715,6 +724,49 @@ class MainActivity : ComponentActivity() {
             if (appHapticsConfig.enabled) platformHapticFeedback else NoOpHapticFeedback
         }
 
+        val collapsePhoneChrome by playerViewModel.collapsePhoneChrome.collectAsStateWithLifecycle()
+        val chromeHasSong by remember(playerViewModel) {
+            playerViewModel.stablePlayerState.map { it.currentSong != null }.distinctUntilChanged()
+        }.collectAsStateWithLifecycle(initialValue = false)
+        val phoneConfiguration = LocalConfiguration.current
+        val phoneChromeEligible = collapsePhoneChrome && !adaptiveLayout.usesSideNavigation &&
+            phoneConfiguration.smallestScreenWidthDp < 600 && !adaptiveLayout.isTabletop &&
+            !shouldHideNavigationBar && !isMiniPlayerDismissing &&
+            commonNavItems.any { it.screen.route == currentRoute }
+        val chromeDensity = LocalDensity.current
+        val chromeScroll = remember(chromeDensity) {
+            PhoneChromeScrollState(with(chromeDensity) { 36.dp.toPx() }, with(chromeDensity) { 24.dp.toPx() })
+        }
+        var phoneChromeCollapsed by remember { mutableStateOf(false) }
+        LaunchedEffect(currentRoute, phoneChromeEligible, chromeHasSong) {
+            chromeScroll.reset()
+            phoneChromeCollapsed = false
+        }
+        val chromeScrollConnection = remember(phoneChromeEligible, chromeScroll) {
+            object : NestedScrollConnection {
+                override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
+                    if (phoneChromeEligible && source == NestedScrollSource.UserInput) {
+                        if (available.y > 0f && consumed.y >= 0f) {
+                            chromeScroll.reset()
+                            phoneChromeCollapsed = false
+                        } else {
+                            phoneChromeCollapsed = chromeScroll.onScroll(consumed.y)
+                        }
+                    }
+                    return Offset.Zero
+                }
+            }
+        }
+        val phoneChromeProgress by animateFloatAsState(
+            targetValue = if (phoneChromeEligible && phoneChromeCollapsed) 1f else 0f,
+            animationSpec = spring(dampingRatio = 0.68f, stiffness = 120f, visibilityThreshold = 0.001f),
+            label = "phoneChromeCollapse"
+        )
+        val phoneChromeMotion = if (adaptiveLayout.usesSideNavigation || phoneConfiguration.smallestScreenWidthDp >= 600 || adaptiveLayout.isTabletop) 0f else phoneChromeProgress
+        val phoneChromeFraction = phoneChromeMotion.coerceIn(0f, 1f)
+        // Keep dimensions/insets valid while retaining the spring's settling motion in draw layers.
+        val phoneChromeOvershoot = phoneChromeMotion - phoneChromeFraction
+
         val systemNavBarInset = sanitizeNavigationBarBottomInset(
             WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
         )
@@ -736,11 +788,10 @@ class MainActivity : ComponentActivity() {
             animationSpec = tween(400),
             label = "BottomBarPadding"
         )
-        val bottomBarPadding = animatedBottomBarPadding
-        val navBarHeight = resolveNavBarSurfaceHeight(navBarStyle, systemNavBarInset, navBarCompactMode)
-        val navBarOccupiedHeight by remember(systemNavBarInset, navBarCompactMode, adaptiveLayout.usesSideNavigation) {
-            derivedStateOf { if (adaptiveLayout.usesSideNavigation) systemNavBarInset else resolveNavBarOccupiedHeight(systemNavBarInset, navBarCompactMode) }
-        }
+        val bottomBarPadding = lerp(animatedBottomBarPadding, systemNavBarInset, phoneChromeFraction)
+        val navBarHeight = lerp(resolveNavBarSurfaceHeight(navBarStyle, systemNavBarInset, navBarCompactMode), 64.dp, phoneChromeFraction)
+        val navBarOccupiedHeight = if (adaptiveLayout.usesSideNavigation) systemNavBarInset else
+            lerp(resolveNavBarOccupiedHeight(systemNavBarInset, navBarCompactMode), 64.dp + systemNavBarInset, phoneChromeFraction)
         val navBarVisibilityProgressState = animateFloatAsState(
             targetValue = if (shouldHideNavigationBar) 0f else 1f,
             animationSpec = tween(
@@ -916,11 +967,13 @@ class MainActivity : ComponentActivity() {
                                         }
                                         val routeHide = (1f - navBarVisibilityProgressState.value).coerceIn(0f, 1f)
                                         val hideFraction = maxOf(expansionHide, routeHide)
-                                        translationY = (componentHeightPx + shadowOverflowPx + bottomBarPaddingPx) * hideFraction
+                                        translationY = (componentHeightPx + shadowOverflowPx + bottomBarPaddingPx) * hideFraction +
+                                            28.dp.toPx() * phoneChromeOvershoot * (1f - hideFraction)
                                         alpha = 1f
                                     }
                                     .height(navBarHeight)
-                                    .padding(horizontal = horizontalPadding)
+                                    .absolutePadding(right = if (chromeHasSong) 124.dp * phoneChromeFraction else 0.dp)
+                                    .padding(horizontal = lerp(horizontalPadding, 14.dp, phoneChromeFraction))
                                     .graphicsLayer {
                                         // Animated corner shape resolved in the draw phase:
                                         // animating the radius re-clips this layer only — no
@@ -941,7 +994,7 @@ class MainActivity : ComponentActivity() {
                                             NavBarStyle.FULL_WIDTH -> 0.dp
                                             else -> animatedNavBarCornerRadius.value
                                         }
-                                        shape = navBarShapeCache.get(this, topDp.toPx(), bottomDp.toPx(), useSmoothCorners)
+                                        shape = navBarShapeCache.get(this, lerp(topDp, 32.dp, phoneChromeFraction).toPx(), lerp(bottomDp, 32.dp, phoneChromeFraction).toPx(), useSmoothCorners)
                                         clip = true
                                         shadowElevation = navBarElevationPx
                                     },
@@ -953,6 +1006,7 @@ class MainActivity : ComponentActivity() {
                                     currentRoute = currentRoute,
                                     navBarStyle = navBarStyle,
                                     compactMode = navBarCompactMode,
+                                    labelVisibilityFraction = if (navBarCompactMode) 0f else 1f - phoneChromeFraction,
                                     bottomBarPadding = bottomBarPadding,
                                     onSearchIconDoubleTap = onSearchIconDoubleTap,
                                     modifier = Modifier.fillMaxSize()
@@ -982,7 +1036,7 @@ class MainActivity : ComponentActivity() {
                         val miniPlayerH = with(density) { MiniPlayerHeight.toPx() }
                         val totalSheetHeightWhenContentCollapsedPx = if (showPlayerContentInitially && !shouldHideMiniPlayer) miniPlayerH else 0f
 
-                        val bottomMargin = miniPlayerBottomMargin
+                        val bottomMargin = lerp(miniPlayerBottomMargin, (systemNavBarInset - MiniPlayerBottomSpacer).coerceAtLeast(0.dp), phoneChromeFraction)
 
                         val spacerPx = with(density) { MiniPlayerBottomSpacer.toPx() }
                         val bottomMarginPx = with(density) { bottomMargin.toPx() }
@@ -1002,6 +1056,7 @@ class MainActivity : ComponentActivity() {
                             modifier = Modifier
                                 // Reclaiming the rail belongs to the player sheet only. Keep
                                 // background destinations at their original window bounds.
+                                .nestedScroll(chromeScrollConnection)
                                 .absoluteOffset(x = (navigationLayout.contentLeft - adaptiveLayout.contentLeft).dp)
                                 .width(navigationLayout.contentWidth.dp)
                                 .fillMaxHeight()
@@ -1021,7 +1076,7 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                         ) {
-                            CompositionLocalProvider(LocalAdaptiveLayout provides navigationLayout) {
+                            CompositionLocalProvider(LocalAdaptiveLayout provides navigationLayout, LocalPhoneChromeCollapse provides phoneChromeFraction) {
                                 AppNavigation(
                                     playerViewModel = playerViewModel,
                                     navController = navController,
@@ -1067,7 +1122,9 @@ class MainActivity : ComponentActivity() {
                             hideMiniPlayer = shouldHideMiniPlayer,
                             containerHeight = containerHeight,
                             navController = navController,
-                            isNavBarHidden = isNavBarEffectivelyHidden
+                            isNavBarHidden = isNavBarEffectivelyHidden,
+                            phoneChromeFraction = phoneChromeFraction,
+                            phoneChromeOvershoot = phoneChromeOvershoot
                         )
 
                         val dismissUndoBarSlice by remember {

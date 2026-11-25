@@ -631,6 +631,10 @@ fun SettingsCategoryScreen(
                                 )
                             }
 
+                            SettingsSubsection(title = stringResource(R.string.motion_artwork_title)) {
+                                MotionArtworkSettings()
+                            }
+
                             SettingsSubsection(title = stringResource(R.string.settings_home_collage_section)) {
                                 ThemeSelectorItem(
                                     label = stringResource(R.string.settings_collage_pattern_title),
@@ -652,6 +656,14 @@ fun SettingsCategoryScreen(
                             }
 
                             SettingsSubsection(title = stringResource(R.string.settings_navigation_bar_section)) {
+                                val collapsePhoneChrome by settingsViewModel.collapsePhoneChrome.collectAsStateWithLifecycle()
+                                SwitchSettingItem(
+                                    title = stringResource(R.string.settings_collapse_phone_chrome_title),
+                                    subtitle = stringResource(R.string.settings_collapse_phone_chrome_subtitle),
+                                    checked = collapsePhoneChrome,
+                                    onCheckedChange = settingsViewModel::setCollapsePhoneChrome,
+                                    leadingIcon = { Icon(Icons.Rounded.UnfoldMore, null, tint = MaterialTheme.colorScheme.secondary) }
+                                )
                                 ThemeSelectorItem(
                                     label = stringResource(R.string.settings_navbar_style_title),
                                     description = stringResource(R.string.settings_navbar_style_subtitle),

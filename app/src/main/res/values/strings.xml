@@ -130,4 +130,35 @@
     <string name="home_shuffle_mixing">Mixing…</string>
     <string name="home_shuffle_shaking">Shaking…</string>
     <string name="home_shuffle_picking">Picking songs…</string>
+
+    <string name="motion_artwork_title">Live album covers</string>
+    <string name="motion_artwork_description">Find animated artwork in Apple Music. Experimental: availability depends on the album and Apple’s web service. Sends artist, album and track information when enabled. Keeps animating while music is paused; stops when hidden, in the background and in battery saver.</string>
+    <string name="motion_artwork_wifi">Download only over Wi-Fi</string>
+    <string name="motion_artwork_wifi_description">Saved covers also play offline. No Apple account is required.</string>
+    <string name="motion_artwork_cache">Saved covers</string>
+    <string name="motion_artwork_cache_description">Covers are saved on this device and reused without downloading. The oldest covers are removed when the limit is reached.</string>
+    <string name="motion_artwork_mb">%1$d MB</string>
+    <string name="motion_artwork_clear">Clear saved covers</string>
+    <string name="motion_artwork_used">Used: %1$.1f MB. Covers will download again when needed.</string>
+    <string name="settings_collapse_phone_chrome_title">Collapse while scrolling</string>
+    <string name="settings_collapse_phone_chrome_subtitle">On phones, scrolling down turns navigation and the mini player into two compact islands. Scroll up to expand them. Tablet layout stays unchanged.</string>
+    <string name="queue_finished_title">Listen to something else?</string>
+    <string name="queue_finished_message">Your queue has finished. Let’s keep the music going.</string>
+    <string name="queue_finished_mix">Play Your Mix</string>
+    <string name="queue_finished_replay">Replay queue</string>
+    <plurals name="artist_album_count">
+        <item quantity="one">%1$d album</item>
+        <item quantity="other">%1$d albums</item>
+    </plurals>
+    <string name="title_style_auto">Auto</string>
+    <string name="title_style_wide">Wide</string>
+    <string name="title_style_compact">Compact</string>
+    <string name="title_style_soft">Soft</string>
+    <string name="title_style_accent">Accent</string>
+    <string name="title_style_picker_title">Title style</string>
+    <string name="title_style_picker_description">Preview the expanded title. Your choice applies only to this album or artist. Auto adapts the style to the available space.</string>
+    <string name="title_style_hint">Tap the album or artist title to change its style</string>
+    <string name="title_style_save_failed">Could not save the style. Please try again.</string>
+    <string name="title_style_done">Done</string>
+    <string name="artist_navigation_unavailable">Artist page is unavailable for this album</string>
 </resources>

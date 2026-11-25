@@ -811,7 +811,7 @@ fun LibraryScreen(
     val systemNavBarInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val navBarCompactMode by playerViewModel.navBarCompactMode.collectAsStateWithLifecycle()
     val bottomBarHeightDp = if (LocalAdaptiveLayout.current.usesSideNavigation) systemNavBarInset else resolveNavBarOccupiedHeight(systemNavBarInset, navBarCompactMode)
-    val bottomGradientHeight = resolveMainScreenBottomGradientHeight(navBarCompactMode)
+    val bottomGradientHeight = resolveMainScreenBottomGradientHeight(navBarCompactMode, com.theveloper.pixelplay.presentation.components.LocalPhoneChromeCollapse.current)
 
     val dm = LocalPixelPlayDarkTheme.current
 

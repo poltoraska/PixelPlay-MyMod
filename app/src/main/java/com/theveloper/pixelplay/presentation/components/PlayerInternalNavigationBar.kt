@@ -68,8 +68,9 @@ internal fun calculatePlayerSheetCollapsedTargetY(
 internal fun resolveNavBarContentHeight(compactMode: Boolean): Dp =
     if (compactMode) NavBarCompactContentHeight else NavBarContentHeight
 
-internal fun resolveMainScreenBottomGradientHeight(compactMode: Boolean): Dp =
-    resolveNavBarContentHeight(compactMode) + MainScreenBottomGradientExtraHeight
+internal fun resolveMainScreenBottomGradientHeight(compactMode: Boolean, scrollCollapseFraction: Float = 0f): Dp =
+    androidx.compose.ui.unit.lerp(resolveNavBarContentHeight(compactMode) + MainScreenBottomGradientExtraHeight,
+        NavBarCompactContentHeight + 8.dp, scrollCollapseFraction.coerceIn(0f, 1f))
 
 internal fun resolveNavBarSurfaceHeight(
     navBarStyle: String,
@@ -97,6 +98,7 @@ private fun PlayerInternalNavigationItemsRow(
     modifier: Modifier = Modifier,
     navBarStyle: String,
     compactMode: Boolean,
+    labelVisibilityFraction: Float?,
     bottomBarPadding: Dp,
     onSearchIconDoubleTap: () -> Unit
 ) {
@@ -156,12 +158,8 @@ private fun PlayerInternalNavigationItemsRow(
                     )
                 }
             }
-            val labelLambda: (@Composable () -> Unit)? = if (compactMode) {
-                null
-            } else {
-                remember(localizedLabel) {
-                    { Text(localizedLabel) }
-                }
+            val labelLambda: @Composable () -> Unit = remember(localizedLabel) {
+                { Text(localizedLabel, maxLines = 1, softWrap = false) }
             }
             val onClickLambda: () -> Unit = remember(item.screen.route, navController, scope, hapticFeedback) {
                 click@{
@@ -213,6 +211,7 @@ private fun PlayerInternalNavigationItemsRow(
                 onClick = onClickLambda,
                 enabled = currentRoute != null,
                 compactMode = compactMode,
+                labelVisibilityFraction = labelVisibilityFraction,
                 icon = iconLambda,
                 selectedIcon = selectedIconLambda,
                 label = labelLambda,
@@ -236,6 +235,7 @@ fun PlayerInternalNavigationBar(
     modifier: Modifier = Modifier,
     navBarStyle: String,
     compactMode: Boolean,
+    labelVisibilityFraction: Float? = null,
     bottomBarPadding: Dp = 0.dp,
     onSearchIconDoubleTap: () -> Unit = {}
 ) {
@@ -245,6 +245,7 @@ fun PlayerInternalNavigationBar(
         currentRoute = currentRoute,
         navBarStyle = navBarStyle,
         compactMode = compactMode,
+        labelVisibilityFraction = labelVisibilityFraction,
         bottomBarPadding = bottomBarPadding,
         onSearchIconDoubleTap = onSearchIconDoubleTap,
         modifier = modifier

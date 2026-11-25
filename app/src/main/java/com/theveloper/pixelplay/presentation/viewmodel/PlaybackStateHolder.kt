@@ -674,7 +674,7 @@ class PlaybackStateHolder @Inject constructor(
                             state.totalDuration == duration &&
                             state.isPlaying == isRemotePlaying &&
                             state.playWhenReady == remotePlayWhenReady &&
-                            state.isBuffering == (remotePlayback?.isBuffering ?: false)
+                            state.isBuffering == (remotePlayback?.isBuffering ?: false) && !state.hasPlaybackEnded
                         ) {
                             state
                         } else {
@@ -682,7 +682,8 @@ class PlaybackStateHolder @Inject constructor(
                                 totalDuration = duration,
                                 isPlaying = isRemotePlaying,
                                 playWhenReady = remotePlayWhenReady,
-                                isBuffering = remotePlayback?.isBuffering ?: false
+                                isBuffering = remotePlayback?.isBuffering ?: false,
+                                hasPlaybackEnded = false
                             )
                         }
                     }

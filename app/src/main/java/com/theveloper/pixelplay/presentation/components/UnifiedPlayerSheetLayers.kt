@@ -45,6 +45,7 @@ import com.theveloper.pixelplay.presentation.viewmodel.StablePlayerState
 internal fun BoxScope.UnifiedPlayerMiniAndFullLayers(
     currentSong: Song?,
     miniPlayerScheme: ColorScheme?,
+    phoneChromeFraction: Float,
     overallSheetTopCornerRadiusProvider: () -> Dp,
     infrequentPlayerState: StablePlayerState,
     isCastConnecting: Boolean,
@@ -118,7 +119,7 @@ internal fun BoxScope.UnifiedPlayerMiniAndFullLayers(
                     val isMiniPlayerVisible by remember {
                         derivedStateOf { playerContentExpansionFraction.value < 0.01f }
                     }
-                    MiniPlayerContentInternal(
+                    if (phoneChromeFraction < 0.5f) MiniPlayerContentInternal(
                         song = currentSongNonNull,
                         isPlaying = infrequentPlayerState.isPlaying,
                         isCastConnecting = isCastConnecting,
@@ -127,8 +128,17 @@ internal fun BoxScope.UnifiedPlayerMiniAndFullLayers(
                         onPrevious = { playerViewModel.previousSong() },
                         onNext = { playerViewModel.nextSong() },
                         canScroll = isMiniPlayerVisible && infrequentPlayerState.isPlaying,
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier.fillMaxSize().graphicsLayer {
+                            alpha = (1f - phoneChromeFraction * 2f).coerceIn(0f, 1f)
+                        }
                     )
+                    if (phoneChromeFraction >= 0.5f) {
+                        Box(Modifier.fillMaxSize().graphicsLayer { alpha = ((phoneChromeFraction - 0.5f) * 2f).coerceIn(0f, 1f) }) {
+                            CompactPhonePlayer(currentSongNonNull, infrequentPlayerState.isPlaying,
+                                isCastConnecting || isPreparingPlayback, onPlayPause = { playerViewModel.playPause() },
+                                position = currentPositionProvider, duration = { infrequentPlayerState.totalDuration })
+                        }
+                    }
                 }
             }
         }

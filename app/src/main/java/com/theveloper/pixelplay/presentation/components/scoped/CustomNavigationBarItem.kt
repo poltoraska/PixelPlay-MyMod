@@ -33,9 +33,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.layoutId
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.ui.semantics.Role
@@ -45,6 +47,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.roundToInt
 
 // En un nuevo archivo o junto a PlayerInternalNavigationItemsRow.kt
 
@@ -58,6 +61,7 @@ fun RowScope.CustomNavigationBarItem(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     compactMode: Boolean = false,
+    labelVisibilityFraction: Float? = null,
     label: @Composable (() -> Unit)? = null,
     contentDescription: String? = null,
     alwaysShowLabel: Boolean = true,
@@ -91,7 +95,13 @@ fun RowScope.CustomNavigationBarItem(
     )
 
     // Determinar si mostrar la etiqueta
-    val showLabel = label != null && (alwaysShowLabel || selected)
+    val showLabel = !compactMode && label != null && (alwaysShowLabel || selected)
+    val animatedLabelFraction by animateFloatAsState(
+        targetValue = if (showLabel) 1f else 0f,
+        animationSpec = tween(220), label = "navigationLabelVisibility"
+    )
+    val labelFraction = if (label == null || (!alwaysShowLabel && !selected)) 0f else
+        (labelVisibilityFraction ?: animatedLabelFraction).coerceIn(0f, 1f)
     val indicatorWidth = 64.dp
     val indicatorHeight = 32.dp
     val iconWidth = 48.dp
@@ -181,15 +191,21 @@ fun RowScope.CustomNavigationBarItem(
             }
         }
 
-        // Etiqueta con animación
-        androidx.compose.animation.AnimatedVisibility(
-            visible = showLabel,
-            enter = fadeIn(animationSpec = tween(200, delayMillis = 50)),
-            exit = fadeOut(animationSpec = tween(100))
-        ) {
-            Spacer(modifier = Modifier.height(4.dp))
+        // Keep the label measured throughout the transition. Its reserved height and opacity
+        // follow the same progress as the dock, so centering the column never jumps on removal.
+        if (label != null) {
             Box(
-                modifier = Modifier.padding(top = 4.dp)
+                modifier = Modifier
+                    .clipToBounds()
+                    .graphicsLayer { alpha = labelFraction }
+                    .clearAndSetSemantics { }
+                    .layout { measurable, constraints ->
+                        val placeable = measurable.measure(constraints.copy(minHeight = 0))
+                        layout(placeable.width, (placeable.height * labelFraction).roundToInt()) {
+                            placeable.placeRelative(0, 0)
+                        }
+                    }
+                    .padding(top = 4.dp)
             ) {
                 ProvideTextStyle(
                     value = MaterialTheme.typography.labelMedium.copy(
@@ -198,7 +214,7 @@ fun RowScope.CustomNavigationBarItem(
                         fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal
                     )
                 ) {
-                    label?.invoke()
+                    label()
                 }
             }
         }

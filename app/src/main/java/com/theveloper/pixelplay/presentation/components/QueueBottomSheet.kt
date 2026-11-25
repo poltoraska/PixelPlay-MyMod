@@ -260,6 +260,7 @@ fun QueueBottomSheet(
     shape: RoundedCornerShape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
 ) {
     val colors = MaterialTheme.colorScheme
+    val queueCompleted = rememberQueueCompletionVisible(viewModel)
     var showTimerOptions by rememberSaveable { mutableStateOf(false) }
     val inlineTimer = embedded && LocalTabletPlayerQueuePane.current.width >= 320f
     BackHandler(enabled = isVisible && showTimerOptions && inlineTimer) { showTimerOptions = false }
@@ -809,7 +810,14 @@ fun QueueBottomSheet(
                         .then(directSheetDragModifier)
                 )
 
-                if (displaySongCount == 0) {
+                if (queueCompleted && queue.isNotEmpty()) {
+                    QueueCompletionCard(
+                        onMix = viewModel::playMixAfterQueue,
+                        onReplay = viewModel::restartFinishedQueue,
+                        modifier = Modifier.weight(1f).fillMaxWidth()
+                            .padding(bottom = MiniPlayerHeight + 16.dp)
+                    )
+                } else if (displaySongCount == 0) {
                     Box(
                         modifier         = Modifier
                             .fillMaxWidth()

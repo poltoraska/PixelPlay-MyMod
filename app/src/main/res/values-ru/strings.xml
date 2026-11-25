@@ -130,4 +130,37 @@
     <string name="home_shuffle_mixing">Перемешиваю…</string>
     <string name="home_shuffle_shaking">Встряхиваю…</string>
     <string name="home_shuffle_picking">Выбираю песни…</string>
+
+    <string name="motion_artwork_title">Живые обложки</string>
+    <string name="motion_artwork_description">Поиск анимированных обложек в Apple Music. Экспериментальная функция: доступность зависит от альбома и веб-сервиса Apple. При включении передаются исполнитель, названия альбома и трека. Обложки продолжают анимацию на паузе и отключаются, когда скрыты, в фоне и при энергосбережении.</string>
+    <string name="motion_artwork_wifi">Загружать только по Wi-Fi</string>
+    <string name="motion_artwork_wifi_description">Сохранённые обложки доступны и без интернета. Аккаунт Apple не требуется.</string>
+    <string name="motion_artwork_cache">Сохранённые обложки</string>
+    <string name="motion_artwork_cache_description">Обложки хранятся на устройстве и используются без повторной загрузки. При достижении лимита удаляются самые старые.</string>
+    <string name="motion_artwork_mb">%1$d МБ</string>
+    <string name="motion_artwork_clear">Удалить сохранённые обложки</string>
+    <string name="motion_artwork_used">Занято: %1$.1f МБ. При необходимости обложки загрузятся снова.</string>
+    <string name="settings_collapse_phone_chrome_title">Сворачивать при прокрутке</string>
+    <string name="settings_collapse_phone_chrome_subtitle">На смартфоне при прокрутке вниз навигация и мини-плеер превращаются в два компактных островка. Прокрутите вверх, чтобы развернуть их. Режим планшета не меняется.</string>
+    <string name="queue_finished_title">Послушаем ещё?</string>
+    <string name="queue_finished_message">Очередь закончилась. Продолжим слушать?</string>
+    <string name="queue_finished_mix">Включить микс</string>
+    <string name="queue_finished_replay">Повторить очередь</string>
+    <plurals name="artist_album_count">
+        <item quantity="one">%1$d альбом</item>
+        <item quantity="few">%1$d альбома</item>
+        <item quantity="many">%1$d альбомов</item>
+        <item quantity="other">%1$d альбома</item>
+    </plurals>
+    <string name="title_style_auto">Авто</string>
+    <string name="title_style_wide">Широкий</string>
+    <string name="title_style_compact">Компактный</string>
+    <string name="title_style_soft">Мягкий</string>
+    <string name="title_style_accent">Акцентный</string>
+    <string name="title_style_picker_title">Стиль заголовка</string>
+    <string name="title_style_picker_description">Превью развёрнутого заголовка. Выбор применяется только к этому альбому или исполнителю. Режим «Авто» подбирает стиль под доступное место.</string>
+    <string name="title_style_hint">Нажмите на название альбома или имя исполнителя, чтобы изменить стиль</string>
+    <string name="title_style_save_failed">Не удалось сохранить стиль. Попробуйте ещё раз.</string>
+    <string name="title_style_done">Готово</string>
+    <string name="artist_navigation_unavailable">Не удалось найти страницу исполнителя этого альбома</string>
 </resources>

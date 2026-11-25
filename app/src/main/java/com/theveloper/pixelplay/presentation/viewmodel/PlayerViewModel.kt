@@ -468,6 +468,9 @@ class PlayerViewModel @Inject constructor(
             initialValue = NavBarStyle.DEFAULT
         )
 
+    val collapsePhoneChrome = userPreferencesRepository.collapsePhoneChromeFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
     val navBarCompactMode: StateFlow<Boolean> = userPreferencesRepository.navBarCompactModeFlow
         .stateIn(
             scope = viewModelScope,
@@ -1371,6 +1374,26 @@ class PlayerViewModel @Inject constructor(
     val dailyMixSongs: StateFlow<ImmutableList<Song>> = dailyMixStateHolder.dailyMixSongs
     val yourMixSongs: StateFlow<ImmutableList<Song>> = dailyMixStateHolder.yourMixSongs
 
+    val queuePlaybackEnded: StateFlow<Boolean> = stablePlayerState
+        .map { it.hasPlaybackEnded && it.currentSong != null && !it.isPlaying }
+        .distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    fun restartFinishedQueue() {
+        if (!stablePlayerState.value.hasPlaybackEnded) return
+        playbackStateHolder.updateStablePlayerState { it.copy(hasPlaybackEnded = false) }
+        playbackDispatchStateHolder.restartCurrentQueue()
+    }
+
+    fun playMixAfterQueue() {
+        if (!stablePlayerState.value.hasPlaybackEnded) return
+        playbackStateHolder.updateStablePlayerState { it.copy(hasPlaybackEnded = false) }
+        val mix = yourMixSongs.value.ifEmpty { dailyMixSongs.value }
+        if (mix.isEmpty()) shuffleAllSongs(queueName = "Your Mix")
+        else playSongsShuffled(mix, queueName = "Your Mix", startAtZero = true)
+    }
+
+
     fun removeFromDailyMix(songId: String) {
         dailyMixStateHolder.removeFromDailyMix(songId)
     }
@@ -2149,11 +2172,6 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun triggerArtistNavigationFromPlayer(artistId: Long) {
-        if (artistId == 0L) {
-            Log.d("ArtistDebug", "triggerArtistNavigationFromPlayer ignored invalid artistId=$artistId")
-            return
-        }
-
         val existingJob = artistNavigationJob
         if (existingJob != null && existingJob.isActive) {
             Log.d("ArtistDebug", "triggerArtistNavigationFromPlayer ignored; navigation already in progress for artistId=$artistId")
@@ -2165,8 +2183,8 @@ class PlayerViewModel @Inject constructor(
             var resolvedId = artistId
             val currentSong = playbackStateHolder.stablePlayerState.value.currentSong
             
-            if (resolvedId == -1L && currentSong != null) {
-                val idFromName = musicRepository.getArtistIdByName(currentSong.artist)
+            if ((resolvedId == -1L || resolvedId == 0L) && currentSong != null) {
+                val idFromName = musicRepository.getArtistIdByName(currentSong.primaryArtist.name)
                 if (idFromName != null) {
                     resolvedId = idFromName
                 }
@@ -2188,7 +2206,7 @@ class PlayerViewModel @Inject constructor(
                 awaitPlayerCollapse()
             }
 
-            _artistNavigationRequests.emit(artistId)
+            _artistNavigationRequests.emit(resolvedId)
         }
     }
 

@@ -49,7 +49,8 @@ fun AlbumCarouselSection(
     modifier: Modifier = Modifier,
     carouselStyle: String = CarouselStyle.NO_PEEK,
     itemSpacing: Dp = 8.dp,
-    albumArtQuality: AlbumArtQuality = AlbumArtQuality.MEDIUM
+    albumArtQuality: AlbumArtQuality = AlbumArtQuality.MEDIUM,
+    currentArtworkOverlay: (@Composable () -> Unit)? = null
 ) {
     if (queue.isEmpty()) return
 
@@ -213,12 +214,17 @@ fun AlbumCarouselSection(
                     OptimizedAlbumArt(
                         uri = song.albumArtUriString,
                         title = song.title,
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = if (index == currentSongIndex && isFocusedItem) Modifier.fillMaxSize().playerArtworkTarget()
+                            else Modifier.fillMaxSize(),
                         targetSize = targetSize,
                         placeholderModel = if (song.albumArtUriString?.startsWith("telegram_art") == true) {
                              "${song.albumArtUriString}?quality=thumb"
                         } else null
                     )
+                    if (index == currentSongIndex && isFocusedItem &&
+                        !carouselState.pagerState.isScrollInProgress && requestedTargetIndex == null) {
+                        Box(Modifier.fillMaxSize().playerArtworkTarget()) { currentArtworkOverlay?.invoke() }
+                    }
                 }
             }
         )

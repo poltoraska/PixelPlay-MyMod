@@ -1,9 +1,12 @@
 package com.theveloper.pixelplay.presentation.screens
 
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import com.theveloper.pixelplay.presentation.components.PersonalizedEntityTitle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -38,6 +41,9 @@ internal fun TabletAlbumHeader(
     imageRequestSize: Size,
     onArtworkState: (AsyncImagePainter.State) -> Unit,
     isPlaying: Boolean,
+    artworkSong: Song?,
+    allowMotionArtwork: Boolean,
+    onArtistClick: () -> Unit,
     onPlay: () -> Unit,
     onShuffle: () -> Unit,
 ) {
@@ -67,31 +73,29 @@ internal fun TabletAlbumHeader(
         ) {
             AlbumCoverWithCassette(
                 album = album,
+                isPlaying = isPlaying,
+                artworkSong = artworkSong,
+                allowMotionArtwork = allowMotionArtwork,
                 contentDescription = stringResource(R.string.album_cover_for, album.title),
                 imageRequestSize = imageRequestSize,
                 onArtworkState = onArtworkState,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
-                    .widthIn(max = 250.dp).fillMaxWidth(),
+                    .widthIn(max = 300.dp).fillMaxWidth(),
             )
             Spacer(Modifier.height(4.dp))
-            Text(
-                text = album.title,
-                modifier = Modifier.fillMaxWidth(),
-                style = MaterialTheme.typography.headlineMedium.copy(fontSize = 26.sp, lineHeight = 32.sp),
-                fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
+            PersonalizedEntityTitle(text = album.title, entityKey = "album:${album.id}")
             Text(
                 text = album.artist,
+                modifier = Modifier.fillMaxWidth().clickable(role = Role.Button, onClick = onArtistClick),
                 style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, lineHeight = 24.sp),
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
                 text = listOfNotNull(
+                    album.year.takeIf { it > 0 }?.toString(),
                     pluralStringResource(R.plurals.album_detail_song_count, songs.size, songs.size),
                     duration,
-                    album.year.takeIf { it > 0 }?.toString(),
                 ).joinToString(" · "),
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.SemiBold,

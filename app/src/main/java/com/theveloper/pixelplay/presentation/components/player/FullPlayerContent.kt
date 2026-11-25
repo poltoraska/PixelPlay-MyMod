@@ -1,5 +1,7 @@
 package com.theveloper.pixelplay.presentation.components.player
 
+import com.theveloper.pixelplay.presentation.components.QueueCompletionCard
+import com.theveloper.pixelplay.presentation.components.rememberQueueCompletionVisible
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.res.Configuration
@@ -28,6 +30,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.rememberScrollState
@@ -248,6 +251,8 @@ fun FullPlayerContent(
     }
 
     val song = currentSong ?: retainedSong ?: return // Keep the player visible while transitioning
+    val queueCompleted = rememberQueueCompletionVisible(playerViewModel)
+    val queueVisible by playerViewModel.isQueueSheetVisible.collectAsStateWithLifecycle()
     var showSongInfoBottomSheet by remember { mutableStateOf(false) }
     var showLyricsSheet by remember { mutableStateOf(false) }
     var showArtistPicker by rememberSaveable { mutableStateOf(false) }
@@ -425,7 +430,9 @@ fun FullPlayerContent(
         onShowQueueClicked()
     }
 
+    val artistNavigationHaptic = LocalHapticFeedback.current
     val onSongMetadataArtistClick = {
+        artistNavigationHaptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
         val resolvedArtistId = currentSongArtists.firstOrNull { it.id != 0L && it.id != -1L }?.id ?: song.artistId
         if (currentSongArtists.size > 1) {
             showArtistPicker = true
@@ -531,8 +538,17 @@ fun FullPlayerContent(
 
     val albumCoverSection: @Composable (Modifier) -> Unit = { modifier ->
         Box(modifier = modifier) {
-        FullPlayerAlbumCoverSection(
+        if (queueCompleted && !queueVisible) {
+            MaterialTheme(colorScheme = LocalMaterialTheme.current) {
+                QueueCompletionCard(
+                    onMix = playerViewModel::playMixAfterQueue,
+                    onReplay = playerViewModel::restartFinishedQueue,
+                    modifier = Modifier.fillMaxWidth().aspectRatio(1f)
+                )
+            }
+        } else FullPlayerAlbumCoverSection(
             song = song,
+            motionArtworkVisible = !showLyricsSheet && !landscapeCassette,
             currentPlaybackQueue = currentPlaybackQueue,
             currentMediaItemIndex = currentQueueIndex ?: currentMediaItemIndex,
             carouselStyle = carouselStyle,
@@ -969,7 +985,17 @@ fun FullPlayerContent(
                 .fillMaxSize()
                 .graphicsLayer { alpha = contentAlpha }
         ) {
-            if (landscapeCassette) {
+            if (landscapeCassette && queueCompleted && !queueVisible) {
+                Box(Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
+                    MaterialTheme(colorScheme = LocalMaterialTheme.current) {
+                        QueueCompletionCard(
+                            onMix = playerViewModel::playMixAfterQueue,
+                            onReplay = playerViewModel::restartFinishedQueue,
+                            modifier = Modifier.widthIn(max = 540.dp).fillMaxSize()
+                        )
+                    }
+                }
+            } else if (landscapeCassette) {
                 LandscapeCassettePlayer(
                     song = song,
                     paddingValues = paddingValues,
@@ -1098,6 +1124,7 @@ fun FullPlayerContent(
 @Composable
 private fun FullPlayerAlbumCoverSection(
     song: Song,
+    motionArtworkVisible: Boolean,
     currentPlaybackQueue: ImmutableList<Song>,
     currentMediaItemIndex: Int,
     carouselStyle: String,
@@ -1195,7 +1222,15 @@ private fun FullPlayerAlbumCoverSection(
                         scaleX = albumArtScale
                         scaleY = albumArtScale
                     },
-                albumArtQuality = albumArtQuality
+                albumArtQuality = albumArtQuality,
+                currentArtworkOverlay = {
+                    MotionArtworkOverlay(
+                        song = song,
+                        active = motionArtworkVisible && currentSheetState == PlayerSheetState.EXPANDED &&
+                            !isSheetDragGestureActive && expansionFractionProvider() >= 0.99f,
+                        playing = true
+                    )
+                }
             )
         }
     }

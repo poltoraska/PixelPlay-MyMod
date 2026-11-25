@@ -128,6 +128,8 @@ fun UnifiedPlayerSheetV2(
     collapsedStateHorizontalPadding: Dp = 12.dp,
     navController: NavHostController,
     hideMiniPlayer: Boolean = false,
+    phoneChromeFraction: Float = 0f,
+    phoneChromeOvershoot: Float = 0f,
     isNavBarHidden: Boolean = false
 ) {
     val context = LocalContext.current
@@ -350,11 +352,6 @@ fun UnifiedPlayerSheetV2(
         )
     }
 
-    LaunchedEffect(sheetCollapsedTargetY, sheetMotionController) {
-        // Keep the mini player anchored to the latest collapsed target whenever
-        // the navbar height/visibility changes under it.
-        sheetMotionController.syncToExpansion(sheetCollapsedTargetY)
-    }
 
     var previousSheetState by remember { mutableStateOf(currentSheetContentState) }
     LaunchedEffect(showPlayerContentArea, currentSheetContentState) {
@@ -435,10 +432,16 @@ fun UnifiedPlayerSheetV2(
     val playerContentAreaHeightPxProvider = sheetVisualState.playerContentAreaHeightPxProvider
     val visualSheetTranslationYProvider = sheetVisualState.visualSheetTranslationYProvider
     val baseTopCornerRadiusProvider = sheetVisualState.overallSheetTopCornerRadiusProvider
-    val overallSheetTopCornerRadiusProvider = remember(isTabletPlayer, baseTopCornerRadiusProvider) {
-        { if (isTabletPlayer) maxOf(32.dp, baseTopCornerRadiusProvider()) else baseTopCornerRadiusProvider() }
+    val compactTopRadius = rememberUpdatedState(if (isTabletPlayer) 0f else phoneChromeFraction)
+    val overallSheetTopCornerRadiusProvider = remember(isTabletPlayer, baseTopCornerRadiusProvider, playerContentExpansionFraction) {
+        { if (isTabletPlayer) maxOf(32.dp, baseTopCornerRadiusProvider()) else
+            androidx.compose.ui.unit.lerp(baseTopCornerRadiusProvider(), 32.dp, compactTopRadius.value * (1f - playerContentExpansionFraction.value.coerceIn(0f, 1f))) }
     }
-    val playerContentActualBottomRadiusProvider = sheetVisualState.playerContentActualBottomRadiusProvider
+    val baseBottomRadius = sheetVisualState.playerContentActualBottomRadiusProvider
+    val compactRadius = rememberUpdatedState(if (isTabletPlayer) 0f else phoneChromeFraction)
+    val playerContentActualBottomRadiusProvider = remember(baseBottomRadius, playerContentExpansionFraction) {
+        { androidx.compose.ui.unit.lerp(baseBottomRadius(), 32.dp, compactRadius.value * (1f - playerContentExpansionFraction.value.coerceIn(0f, 1f))) }
+    }
     val baseStartPadding = sheetVisualState.currentHorizontalPaddingStartPxProvider
     val baseEndPadding = sheetVisualState.currentHorizontalPaddingEndPxProvider
     val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
@@ -454,11 +457,19 @@ fun UnifiedPlayerSheetV2(
         }
     }
     // The extra inset is on the physical left: the compact player stays at the right edge.
-    val currentHorizontalPaddingStartPxProvider = remember(baseStartPadding, extraMiniPadding, isRtl) {
-        { baseStartPadding() + if (isRtl) 0f else extraMiniPadding() }
+    val phoneCompactState = rememberUpdatedState(if (isTabletPlayer) 0f else phoneChromeFraction)
+    val phoneEdgePx = with(density) { 14.dp.toPx() }
+    val phoneWidthPx = with(density) { CompactPhonePlayerWidth.toPx() }
+    val phoneCompactAmount = remember(playerContentExpansionFraction, predictiveBackCollapseProgress) {
+        { phoneCompactState.value * (1f - playerContentExpansionFraction.value.coerceIn(0f, 1f)) * (1f - predictiveBackCollapseProgress) }
     }
-    val currentHorizontalPaddingEndPxProvider = remember(baseEndPadding, extraMiniPadding, isRtl) {
-        { baseEndPadding() + if (isRtl) extraMiniPadding() else 0f }
+    val currentHorizontalPaddingStartPxProvider = remember(baseStartPadding, extraMiniPadding, isRtl, screenWidthPx, phoneEdgePx) {
+        { androidx.compose.ui.util.lerp(baseStartPadding() + if (isRtl) 0f else extraMiniPadding(),
+            if (isRtl) phoneEdgePx else (screenWidthPx - phoneEdgePx - phoneWidthPx).coerceAtLeast(0f), phoneCompactAmount()) }
+    }
+    val currentHorizontalPaddingEndPxProvider = remember(baseEndPadding, extraMiniPadding, isRtl, screenWidthPx, phoneEdgePx) {
+        { androidx.compose.ui.util.lerp(baseEndPadding() + if (isRtl) extraMiniPadding() else 0f,
+            if (isRtl) (screenWidthPx - phoneEdgePx - phoneWidthPx).coerceAtLeast(0f) else phoneEdgePx, phoneCompactAmount()) }
     }
 
     val queueSheetState = rememberQueueSheetState(
@@ -482,6 +493,17 @@ fun UnifiedPlayerSheetV2(
         showPlayerContentArea = showPlayerContentArea,
         currentSheetContentState = currentSheetContentState
     )
+    val watchPhoneDock = !isTabletPlayer && configuration.smallestScreenWidthDp < 600
+    LaunchedEffect(sheetCollapsedTargetY, sheetMotionController,
+        watchPhoneDock && playerContentExpansionFraction.isRunning,
+        watchPhoneDock && currentSheetTranslationY.isRunning,
+        watchPhoneDock && sheetBackAndDragState.isDragging) {
+        // Re-anchor phone chrome after expansion/drag settles, never cancelling that motion.
+        if (!watchPhoneDock || (!playerContentExpansionFraction.isRunning &&
+            !currentSheetTranslationY.isRunning && !sheetBackAndDragState.isDragging)) {
+            sheetMotionController.syncToExpansion(sheetCollapsedTargetY)
+        }
+    }
     val canHandlePlayerBack by remember(
         sheetBackAndDragState.predictiveBackEnabled,
         showQueueSheet,
@@ -677,7 +699,20 @@ fun UnifiedPlayerSheetV2(
             (infrequentPlayerState.currentSong?.title ?: "")
     }
 
-    CompositionLocalProvider(LocalTabletPlayerQueuePane provides tabletQueuePane) {
+    val artworkBackProgress = rememberUpdatedState(predictiveBackCollapseProgress)
+    val artworkSheetY = rememberUpdatedState(visualSheetTranslationYProvider)
+    val artworkExpandedY = rememberUpdatedState(sheetExpandedTargetY)
+    val artworkTransition = remember(infrequentPlayerState.currentSong?.id, configuration) {
+        PlayerArtworkTransition(
+            expansion = { playerContentExpansionFraction.value * (1f - artworkBackProgress.value) },
+            sheetY = { artworkSheetY.value() - artworkExpandedY.value },
+            canCaptureSource = { playerContentExpansionFraction.value <= 0.001f && artworkBackProgress.value <= 0.001f },
+        )
+    }
+    val allowArtworkTransition = !landscapeCassette && !infrequentPlayerState.hasPlaybackEnded &&
+        !showQueueSheet && !castSheetState.showCastSheet
+    CompositionLocalProvider(LocalTabletPlayerQueuePane provides tabletQueuePane,
+        LocalPlayerArtworkTransition provides artworkTransition.takeIf { allowArtworkTransition }) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -717,6 +752,8 @@ fun UnifiedPlayerSheetV2(
                             .fillMaxWidth()
                             .graphicsLayer {
                                 translationX = offsetAnimatable.value
+                                translationY = if (isTabletPlayer) 0f else 28.dp.toPx() * phoneChromeOvershoot *
+                                    (1f - playerContentExpansionFraction.value.coerceIn(0f, 1f))
                                 scaleX = miniAppearScale
                                 scaleY = visualOvershootScaleY.value * miniAppearScale
                                 alpha = miniReadyAlpha
@@ -812,6 +849,7 @@ fun UnifiedPlayerSheetV2(
                         UnifiedPlayerMiniAndFullLayers(
                             currentSong = infrequentPlayerState.currentSong,
                             miniPlayerScheme = miniPlayerScheme,
+                            phoneChromeFraction = if (isTabletPlayer) 0f else phoneChromeFraction,
                             overallSheetTopCornerRadiusProvider = overallSheetTopCornerRadiusProvider,
                             infrequentPlayerState = infrequentPlayerState,
                             isCastConnecting = isCastConnecting,
@@ -930,6 +968,10 @@ fun UnifiedPlayerSheetV2(
             )
         }
     }
+    }
+
+    if (allowArtworkTransition && !showQueueSheet && !castSheetState.showCastSheet) {
+        infrequentPlayerState.currentSong?.let { PlayerArtworkTransitionOverlay(artworkTransition, it) }
     }
 
     UnifiedPlayerCastLayer(

@@ -44,6 +44,14 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import com.theveloper.pixelplay.data.model.Artist
+import com.theveloper.pixelplay.presentation.components.player.PlayerArtistPickerBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
+import kotlinx.coroutines.CancellationException
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -67,6 +75,7 @@ import androidx.compose.ui.graphics.lerp as lerpColor
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
@@ -135,6 +144,30 @@ fun AlbumDetailScreen(
     val systemNavBarInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val bottomBarHeightDp = resolveNavBarOccupiedHeight(systemNavBarInset, navBarCompactMode)
     var showPlaylistBottomSheet by remember { mutableStateOf(false) }
+    var albumArtistChoices by remember(albumId) { mutableStateOf(emptyList<Artist>()) }
+    var resolvingArtist by remember(albumId) { mutableStateOf(false) }
+    val artistNavigationScope = rememberCoroutineScope()
+    val artistNavigationContext = LocalContext.current
+    val artistNavigationHaptic = LocalHapticFeedback.current
+    val unavailableArtistMessage = stringResource(R.string.artist_navigation_unavailable)
+    val onAlbumArtistClick: () -> Unit = {
+        if (!resolvingArtist) {
+            resolvingArtist = true
+            artistNavigationHaptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            artistNavigationScope.launch {
+                try {
+                    val artists = viewModel.resolveAlbumArtists()
+                    when (artists.size) {
+                        0 -> Toast.makeText(artistNavigationContext, unavailableArtistMessage, Toast.LENGTH_SHORT).show()
+                        1 -> navController.navigateSafely(Screen.ArtistDetail.createRoute(artists.first().id))
+                        else -> albumArtistChoices = artists
+                    }
+                } catch (cancelled: CancellationException) { throw cancelled }
+                catch (_: Exception) { Toast.makeText(artistNavigationContext, unavailableArtistMessage, Toast.LENGTH_SHORT).show() }
+                finally { resolvingArtist = false }
+            }
+        }
+    }
     val isDarkTheme = LocalPixelPlayDarkTheme.current
     val baseColorScheme = MaterialTheme.colorScheme
     val albumArtUri = uiState.album?.albumArtUriString?.takeIf { it.isNotBlank() }
@@ -195,6 +228,10 @@ fun AlbumDetailScreen(
             uiState.album != null -> {
                 val album = uiState.album!!
                 val songs = uiState.songs
+                val artworkSong = stablePlayerState.currentSong?.takeIf { it.albumId == album.id } ?: songs.firstOrNull()
+                val allowAlbumMotion by remember(playerViewModel) {
+                    derivedStateOf { playerViewModel.playerContentExpansionFraction.value < 0.01f }
+                }
                 val isAlbumPlaying = stablePlayerState.currentSong?.albumId == album.id && stablePlayerState.isPlaying
                 val onAlbumPlayPause: () -> Unit = {
                     if (stablePlayerState.currentSong?.albumId == album.id) {
@@ -222,7 +259,13 @@ fun AlbumDetailScreen(
                     WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
                 }
                 val minTopBarHeight = 64.dp + statusBarHeight
-                val maxTopBarHeight = if (LocalAdaptiveLayout.current.usesSideNavigation) 380.dp else 410.dp
+                // Size the expanded header around its artwork, rather than squeezing artwork
+                // into a fixed header after reserving space for three lines of album details.
+                val heroWidth = (configuration.screenWidthDp.dp * 0.78f).coerceIn(240.dp, 340.dp)
+                val desiredHeaderHeight = statusBarHeight + 16.dp + heroWidth / 0.90f + 148.dp
+                val maxTopBarHeight = if (LocalAdaptiveLayout.current.usesSideNavigation) 380.dp else
+                    desiredHeaderHeight.coerceAtMost((configuration.screenHeightDp.dp * 0.72f)
+                        .coerceAtLeast(minTopBarHeight + 100.dp))
 
                 val minTopBarHeightPx = with(density) { minTopBarHeight.toPx() }
                 val maxTopBarHeightPx = with(density) { maxTopBarHeight.toPx() }
@@ -345,6 +388,9 @@ fun AlbumDetailScreen(
                                     album = album,
                                     songs = songs,
                                     imageRequestSize = headerImageRequestSize,
+                                    artworkSong = artworkSong,
+                                    allowMotionArtwork = allowAlbumMotion,
+                                    onArtistClick = onAlbumArtistClick,
                                     onArtworkState = { state ->
                                         if (state is AsyncImagePainter.State.Success) headerArtworkLoaded = true
                                     },
@@ -415,6 +461,10 @@ fun AlbumDetailScreen(
                             SharedAlbumTopBarProbe(
                                 album = album,
                                 songs = songs,
+                                isPlaying = isAlbumPlaying,
+                                artworkSong = artworkSong,
+                                allowMotionArtwork = allowAlbumMotion,
+                                onArtistClick = onAlbumArtistClick,
                                 collapseFraction = collapseFraction,
                                 headerHeight = currentTopBarHeightDp,
                                 headerImageRequestSize = headerImageRequestSize,
@@ -442,6 +492,20 @@ fun AlbumDetailScreen(
                         }
                     }
                 }
+            }
+        }
+        if (albumArtistChoices.isNotEmpty()) {
+            uiState.songs.firstOrNull()?.let { referenceSong ->
+                PlayerArtistPickerBottomSheet(
+                    song = referenceSong, artists = albumArtistChoices,
+                    sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+                    onDismiss = { albumArtistChoices = emptyList() },
+                    onArtistClick = { artist ->
+                        artistNavigationHaptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        albumArtistChoices = emptyList()
+                        navController.navigateSafely(Screen.ArtistDetail.createRoute(artist.id))
+                    }
+                )
             }
         }
         if (showSongInfoBottomSheet && selectedSongForInfo != null) {
@@ -545,6 +609,10 @@ fun AlbumDetailScreen(
 private fun SharedAlbumTopBarProbe(
     album: Album,
     songs: List<Song>, // Принимаем список песен
+    isPlaying: Boolean,
+    artworkSong: Song?,
+    allowMotionArtwork: Boolean,
+    onArtistClick: () -> Unit,
     collapseFraction: Float,
     headerHeight: Dp,
     headerImageRequestSize: Size,
@@ -552,15 +620,20 @@ private fun SharedAlbumTopBarProbe(
     onBackPressed: () -> Unit,
 ) {
     // --- ВЫЧИСЛЕНИЕ ДЛИТЕЛЬНОСТИ И ФОРМАТИРОВАНИЕ ---
+    val compactArtworkProgress = rememberCollapsedAlbumArtworkProgress(collapseFraction)
     val totalDurationMs = remember(songs) {
         songs.sumOf { it.duration.toLong() }
     }
     val hours = java.util.concurrent.TimeUnit.MILLISECONDS.toHours(totalDurationMs)
     val minutes = java.util.concurrent.TimeUnit.MILLISECONDS.toMinutes(totalDurationMs) % 60
 
-    val durationText = if (hours > 0) "${hours} h ${minutes} min" else "${minutes} min"
-    val yearText = if (album.year > 0) " • ${album.year}" else ""
-    val subtitleText = "${album.artist} • ${formatSongCount(songs.size)} • $durationText$yearText"
+    val durationText = if (hours > 0) {
+        stringResource(R.string.duration_hours_minutes_long, hours, minutes)
+    } else stringResource(R.string.duration_minutes_long, minutes)
+    val subtitleText = listOfNotNull(
+        album.year.takeIf { it > 0 }?.toString(),
+        formatSongCount(songs.size), durationText
+    ).joinToString(" · ")
     // ------------------------------------------------
 
     val surfaceColor = MaterialTheme.colorScheme.surface
@@ -625,11 +698,14 @@ private fun SharedAlbumTopBarProbe(
                 modifier = Modifier
                     .fillMaxSize()
                     .statusBarsPadding()
-                    .padding(top = 16.dp, bottom = 112.dp),
+                    .padding(top = 16.dp, bottom = 148.dp),
                 contentAlignment = Alignment.Center
             ) {
                 AlbumCoverWithCassette(
                     album = album,
+                    isPlaying = isPlaying,
+                    artworkSong = artworkSong,
+                    allowMotionArtwork = allowMotionArtwork,
                     contentDescription = stringResource(R.string.album_cover_for, album.title),
                     imageRequestSize = headerImageRequestSize,
                     alpha = expandedContentAlpha,
@@ -652,16 +728,28 @@ private fun SharedAlbumTopBarProbe(
 
         CollapsibleCommonTopBar(
             title = album.title,
-            subtitle = subtitleText, // <--- Передаем нашу сформированную строку
+            titlePersonalizationKey = "album:${album.id}",
+            subtitle = album.artist,
+            onSubtitleClick = onArtistClick,
+            supportingContent = {
+                Text(subtitleText, style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.clipToBounds().layout { measurable, constraints ->
+                        val placeable = measurable.measure(constraints.copy(minHeight = 0))
+                        layout(placeable.width, (placeable.height * (1f - collapseFraction.coerceIn(0f, 1f))).roundToInt()) {
+                            placeable.placeRelative(0, 0)
+                        }
+                    })
+            },
             collapseFraction = collapseFraction,
             headerHeight = headerHeight,
             onBackClick = onBackPressed,
             containerColor = surfaceColor.copy(alpha = solidAlpha),
             collapsedTitleStartPadding = 68.dp,
             expandedTitleStartPadding = 24.dp,
-            collapsedTitleEndPadding = 24.dp,
+            collapsedTitleEndPadding = 24.dp + 52.dp * compactArtworkProgress.coerceIn(0f, 1f),
             expandedTitleEndPadding = 24.dp,
-            containerHeightRange = 112.dp to 56.dp,
+            containerHeightRange = 148.dp to 56.dp,
             titleStyle = MaterialTheme.typography.headlineMedium.copy(
                 fontFamily = GoogleSansRounded,
                 fontWeight = FontWeight.SemiBold,
@@ -675,7 +763,8 @@ private fun SharedAlbumTopBarProbe(
             contentColor = MaterialTheme.colorScheme.onSurface,
             subtitleColor = MaterialTheme.colorScheme.onSurfaceVariant,
             fadeSubtitleOnCollapse = false,
-            syncStatusBarWithContainer = false
+            syncStatusBarWithContainer = false,
+            actions = { CollapsedAlbumArtwork(album, compactArtworkProgress) }
         )
 
     }

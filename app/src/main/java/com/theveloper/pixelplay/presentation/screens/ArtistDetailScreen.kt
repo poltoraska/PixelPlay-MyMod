@@ -29,6 +29,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.GraphicEq
+import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.Album
 import androidx.compose.material.icons.rounded.AddAPhoto
 import androidx.compose.material.icons.rounded.Delete
@@ -96,6 +97,12 @@ import com.theveloper.pixelplay.presentation.components.subcomps.EnhancedSongLis
 import kotlin.math.roundToInt
 import androidx.compose.ui.unit.IntOffset
 import kotlinx.coroutines.delay
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
+import com.theveloper.pixelplay.presentation.components.CassetteWindow
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextGeometricTransform
@@ -170,7 +177,10 @@ fun ArtistDetailScreen(
         WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     }
     val minTopBarHeight = 64.dp + statusBarHeight
-    val maxTopBarHeight = if (LocalAdaptiveLayout.current.usesSideNavigation) 300.dp else 370.dp
+    val portraitWidth = if (LocalAdaptiveLayout.current.usesSideNavigation) 300.dp else
+        (configuration.screenWidthDp.dp * 0.78f).coerceIn(240.dp, 340.dp)
+    val maxTopBarHeight = (statusBarHeight + 16.dp + portraitWidth / 0.90f + 148.dp)
+        .coerceAtMost((configuration.screenHeightDp.dp * 0.72f).coerceAtLeast(minTopBarHeight + 100.dp))
 
     val minTopBarHeightPx = with(density) { minTopBarHeight.toPx() }
     val maxTopBarHeightPx = with(density) { maxTopBarHeight.toPx() }
@@ -343,13 +353,15 @@ fun ArtistDetailScreen(
                             ) {
                                 CollapsibleAlbumSectionHeader(
                                     section = section,
+                                    isPlaying = stablePlayerState.isPlaying && stablePlayerState.currentSong?.albumId == section.albumId,
                                     isExpanded = isExpanded,
                                     onToggleExpanded = {
                                         expandedSections[sectionKey] = !isExpanded
                                     },
                                     onPlayAlbum = {
-                                        section.songs.firstOrNull()?.let { firstSong ->
-                                            playerViewModel.showAndPlaySong(firstSong, section.songs)
+                                        if (stablePlayerState.currentSong?.albumId == section.albumId) playerViewModel.playPause()
+                                        else section.songs.firstOrNull()?.let { firstSong ->
+                                            playerViewModel.showAndPlaySong(firstSong, section.songs, section.title)
                                         }
                                     }
                                 )
@@ -432,6 +444,8 @@ fun ArtistDetailScreen(
                             artist = artist,
                             effectiveImageUrl = uiState.effectiveImageUrl,
                             songsCount = songs.size,
+                            albumArtwork = remember(albumSections) { albumSections.mapNotNull { it.albumArtUriString?.takeIf(String::isNotBlank) }.distinct().take(4) },
+                            albumCount = albumSections.size,
                             collapseFraction = collapseFraction,
                             headerHeight = currentTopBarHeightDp,
                             headerImageRequestSize = headerImageRequestSize,
@@ -580,11 +594,13 @@ private fun ArtistAlbumSection.collapseKey(): String = "artist_album_${albumId}_
 @Composable
 private fun CollapsibleAlbumSectionHeader(
     section: ArtistAlbumSection,
+    isPlaying: Boolean,
     isExpanded: Boolean,
     onToggleExpanded: () -> Unit,
     modifier: Modifier = Modifier,
     onPlayAlbum: () -> Unit
 ) {
+    var headerVisible by remember(section.albumId) { mutableStateOf(false) }
     val expandIconRotation by animateFloatAsState(
         targetValue = if (isExpanded) 180f else 0f,
         animationSpec = tween(durationMillis = 260),
@@ -615,6 +631,7 @@ private fun CollapsibleAlbumSectionHeader(
     Box(
         modifier = modifier
             .fillMaxWidth()
+            .onGloballyPositioned { headerVisible = !it.boundsInWindow().isEmpty }
             .background(containerColor, shape)
     ) {
         Row(
@@ -635,6 +652,14 @@ private fun CollapsibleAlbumSectionHeader(
                     .clip(RoundedCornerShape(10.dp))
             )
             Column(modifier = Modifier.weight(1f)) {
+                CassetteWindow(
+                    modifier = Modifier.width(88.dp).height(26.dp),
+                    container = MaterialTheme.colorScheme.surfaceContainerHighest,
+                    reel = MaterialTheme.colorScheme.onSurfaceVariant,
+                    hub = MaterialTheme.colorScheme.surface,
+                    isPlaying = isPlaying && headerVisible,
+                )
+                Spacer(Modifier.height(6.dp))
                 Text(
                     text = section.title,
                     style = MaterialTheme.typography.titleMedium,
@@ -659,7 +684,8 @@ private fun CollapsibleAlbumSectionHeader(
                     contentColor = MaterialTheme.colorScheme.onTertiaryContainer
                 )
             ) {
-                Icon(Icons.Rounded.PlayArrow, contentDescription = stringResource(R.string.artist_cd_play_title, section.title))
+                Icon(if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                    contentDescription = if (isPlaying) stringResource(R.string.common_pause) else stringResource(R.string.artist_cd_play_title, section.title))
             }
             Icon(
                 imageVector = Icons.Rounded.ExpandMore,
@@ -752,6 +778,8 @@ private fun SharedArtistTopBarProbe(
     artist: Artist,
     effectiveImageUrl: String?,
     songsCount: Int,
+    albumArtwork: List<String>,
+    albumCount: Int,
     collapseFraction: Float,
     headerHeight: Dp,
     headerImageRequestSize: Size,
@@ -761,6 +789,7 @@ private fun SharedArtistTopBarProbe(
     onChangeImage: () -> Unit,
     onClearCustomImage: () -> Unit
 ) {
+    val compactArtworkProgress = rememberCollapsedAlbumArtworkProgress(collapseFraction)
     var showImageMenu by remember { mutableStateOf(false) }
     val surfaceColor = MaterialTheme.colorScheme.surface
     val statusBarColor =
@@ -800,24 +829,10 @@ private fun SharedArtistTopBarProbe(
             .clipToBounds()
     ) {
         if (expandedContentAlpha > 0.01f) {
-            if (!displayUrl.isNullOrEmpty()) {
-                SmartImage(
-                    model = displayUrl,
-                    contentDescription = artist.name,
-                    contentScale = ContentScale.Crop,
-                    targetSize = headerImageRequestSize,
-                    allowHardware = true,
-                    crossfadeDurationMillis = 0,
-                    alpha = expandedContentAlpha,
-                    modifier = Modifier.fillMaxSize().blur(25.dp)
-                )
-            } else {
-                MusicIconPattern(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .graphicsLayer { alpha = expandedContentAlpha }
-                )
-            }
+            ArtistArtworkCollage(
+                albumArtwork,
+                Modifier.fillMaxSize().blur(32.dp).graphicsLayer { alpha = 0.50f * expandedContentAlpha }
+            )
 
             Box(
                 modifier = Modifier
@@ -826,17 +841,19 @@ private fun SharedArtistTopBarProbe(
             )
         }
 
-        if (!displayUrl.isNullOrEmpty() && expandedContentAlpha > 0.01f) {
-            Box(
-                modifier = Modifier.fillMaxSize().statusBarsPadding().padding(top = 16.dp, bottom = 112.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                SmartImage(
-                    model = displayUrl, contentDescription = artist.name,
-                    contentScale = ContentScale.Fit, targetSize = headerImageRequestSize,
-                    allowHardware = true, crossfadeDurationMillis = 0, alpha = expandedContentAlpha,
-                    modifier = Modifier.fillMaxHeight().aspectRatio(1f).clip(RoundedCornerShape(24.dp)),
-                )
+        if (expandedContentAlpha > 0.01f) {
+            Box(Modifier.fillMaxSize().statusBarsPadding().padding(top = 16.dp, bottom = 148.dp),
+                contentAlignment = Alignment.Center) {
+                BoxWithConstraints(Modifier.fillMaxHeight().aspectRatio(0.90f)) {
+                    Box(Modifier.size(maxWidth * 0.96f).align(Alignment.BottomCenter)
+                        .graphicsLayer { alpha = expandedContentAlpha }
+                        .shadow(4.dp, RoundedCornerShape(22.dp)).clip(RoundedCornerShape(22.dp))) {
+                        if (displayUrl != null) SmartImage(displayUrl, artist.name,
+                            contentScale = ContentScale.Crop, targetSize = headerImageRequestSize,
+                            crossfadeDurationMillis = 0, modifier = Modifier.fillMaxSize())
+                        else ArtistArtworkCollage(albumArtwork, Modifier.fillMaxSize())
+                    }
+                }
             }
         }
 
@@ -850,16 +867,17 @@ private fun SharedArtistTopBarProbe(
 
         CollapsibleCommonTopBar(
             title = artist.name,
-            subtitle = formatSongCount(songsCount),
+            titlePersonalizationKey = "artist:${artist.id}",
+            subtitle = pluralStringResource(R.plurals.artist_album_count, albumCount, albumCount) + " · " + formatSongCount(songsCount),
             collapseFraction = collapseFraction,
             headerHeight = headerHeight,
             onBackClick = onBackPressed,
             containerColor = surfaceColor.copy(alpha = solidAlpha),
             collapsedTitleStartPadding = 68.dp,
             expandedTitleStartPadding = 24.dp,
-            collapsedTitleEndPadding = 88.dp,
-            expandedTitleEndPadding = 136.dp,
-            containerHeightRange = 112.dp to 56.dp,
+            collapsedTitleEndPadding = 76.dp + 52.dp * compactArtworkProgress.coerceIn(0f, 1f),
+            expandedTitleEndPadding = 24.dp,
+            containerHeightRange = 148.dp to 56.dp,
             titleStyle = MaterialTheme.typography.headlineMedium.copy(
                 fontFamily = GoogleSansRounded,
                 fontWeight = FontWeight.SemiBold,
@@ -875,6 +893,15 @@ private fun SharedArtistTopBarProbe(
             fadeSubtitleOnCollapse = false,
             syncStatusBarWithContainer = false,
             actions = {
+                Box(Modifier.size(44.dp).graphicsLayer {
+                    alpha = compactArtworkProgress.coerceIn(0f, 1f)
+                    scaleX = 0.78f + 0.22f * compactArtworkProgress
+                    scaleY = scaleX
+                    translationY = 8.dp.toPx() * (1f - compactArtworkProgress)
+                }.clip(RoundedCornerShape(14.dp))) {
+                    if (displayUrl != null) SmartImage(displayUrl, null, targetSize = Size(128, 128), modifier = Modifier.fillMaxSize())
+                    else ArtistArtworkCollage(albumArtwork, Modifier.fillMaxSize())
+                }
                 Box(
                     modifier = Modifier.padding(end = 12.dp, top = 4.dp)
                 ) {

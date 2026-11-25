@@ -488,6 +488,7 @@ class MediaControllerSyncStateHolder @Inject constructor(
 
     /** One-time snapshot of the controller's current state when it first attaches. */
     private fun applyInitialControllerState(playerCtrl: MediaController) {
+        syncQueueCompletion(playerCtrl)
         cb.setTrackVolume(playerCtrl.volume)
         playbackStateHolder.updateStablePlayerState {
             it.copy(
@@ -554,9 +555,28 @@ class MediaControllerSyncStateHolder @Inject constructor(
         })
     }
 
+    private fun syncQueueCompletion(player: Player) {
+        val remote = isRemoteSessionControllingPlayback()
+        val hasNext = if (!remote && dualPlayerEngine.isUsingWindowedQueue()) {
+            dualPlayerEngine.getCurrentAbsoluteIndex() < dualPlayerEngine.getFullQueue().lastIndex
+        } else player.hasNextMediaItem()
+        val ended = !remote && hasCompletedPlaybackQueue(
+            playbackState = player.playbackState,
+            repeatMode = player.repeatMode,
+            hasError = player.playerError != null,
+            hasItems = player.mediaItemCount > 0,
+            hasNextItem = hasNext,
+            transitionRunning = dualPlayerEngine.isTransitionRunning(),
+        )
+        playbackStateHolder.updateStablePlayerState { it.copy(hasPlaybackEnded = ended) }
+    }
+
     /** Play/pause, playWhenReady and playback-state lifecycle. */
     private fun setupPlaybackListeners(playerCtrl: MediaController) {
         registerMediaControllerListener(playerCtrl, object : Player.Listener {
+            override fun onEvents(player: Player, events: Player.Events) {
+                syncQueueCompletion(player)
+            }
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 if (isRemoteSessionControllingPlayback()) return
                 playbackStateHolder.updateStablePlayerState {

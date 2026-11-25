@@ -25,6 +25,7 @@ import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.clickable
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -47,6 +48,8 @@ fun CollapsibleCommonTopBar(
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
+    onSubtitleClick: (() -> Unit)? = null,
+    titlePersonalizationKey: String? = null,
     collapsedTitleStartPadding: Dp = 68.dp,
     expandedTitleStartPadding: Dp = 20.dp,
     collapsedTitleEndPadding: Dp = 24.dp,
@@ -85,8 +88,10 @@ fun CollapsibleCommonTopBar(
                     Spacer(Modifier.width(8.dp))
                 }
                 Column(Modifier.weight(1f)) {
-                    Text(title, style = settingsPaneTitleStyle(), color = contentColor)
-                    subtitle?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = subtitleColor) }
+                    if (titlePersonalizationKey != null) PersonalizedEntityTitle(title, titlePersonalizationKey)
+                    else Text(title, style = settingsPaneTitleStyle(), color = contentColor)
+                    subtitle?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = subtitleColor,
+                        modifier = if (onSubtitleClick != null) Modifier.clickable(onClick = onSubtitleClick) else Modifier) }
                     supportingContent?.invoke()
                 }
                 actions()
@@ -123,9 +128,11 @@ fun CollapsibleCommonTopBar(
         ) {
             ExpressiveTopBarContent(
                 title = title,
+                titlePersonalizationKey = titlePersonalizationKey,
                 collapseFraction = collapseFraction,
                 modifier = Modifier.fillMaxSize(),
                 subtitle = subtitle,
+                onSubtitleClick = onSubtitleClick,
                 collapsedTitleStartPadding = if (LocalLibraryDetailPane.current || LocalSettingsRootSection.current) expandedTitleStartPadding else collapsedTitleStartPadding,
                 expandedTitleStartPadding = expandedTitleStartPadding,
                 collapsedTitleEndPadding = collapsedTitleEndPadding,

@@ -495,6 +495,22 @@ class PlaybackDispatchStateHolder @Inject constructor(
         }
     }
 
+    /** Replay the exact occurrence order, including duplicates, without applying persistent shuffle again. */
+    fun restartCurrentQueue() {
+        val snapshot = cb.getUiState()
+        val songs = snapshot.currentPlaybackQueue.toList()
+        if (songs.isEmpty()) return
+        cancelPendingFullQueuePlayback()
+        val requestToken = beginDirectPlaybackRequest()
+        directPlaybackJob = cb.scope.launch {
+            cb.cancelTransitionScheduler()
+            val hydrated = hydrateSongsIfNeeded(songs)
+            throwIfDirectPlaybackRequestIsStale(requestToken)
+            if (hydrated.isNotEmpty()) internalPlaySongs(hydrated, hydrated.first(), snapshot.currentQueueSourceName)
+            if (requestToken == directPlaybackToken) directPlaybackJob = null
+        }
+    }
+
     fun playSongs(songsToPlay: List<Song>, startSong: Song, queueName: String = "None", playlistId: String? = null) {
         cancelPendingFullQueuePlayback()
         val requestToken = beginDirectPlaybackRequest()

@@ -12,6 +12,75 @@ import java.nio.file.Files
 class UserPreferencesRepositoryTest {
 
     @Test
+    fun `entity title styles persist independently and auto removes the override`() = runTest {
+        val dir = Files.createTempDirectory("entity-title-styles")
+        try {
+            val store = PreferenceDataStoreFactory.create(scope = backgroundScope,
+                produceFile = { dir.resolve("settings.preferences_pb").toFile() })
+            val repository = UserPreferencesRepository(store, Json)
+            assertEquals(emptyMap<String, String>(), repository.entityTitleStylesFlow.first())
+            repository.setEntityTitleStyle("album:1", EntityTitleStyle.WIDE)
+            repository.setEntityTitleStyle("artist:1", EntityTitleStyle.SOFT)
+            repository.setEntityTitleStyle("album:2", EntityTitleStyle.ACCENT)
+            val restored = UserPreferencesRepository(store, Json)
+            assertEquals(mapOf("album:1" to "WIDE", "artist:1" to "SOFT", "album:2" to "ACCENT"), restored.entityTitleStylesFlow.first())
+            restored.setEntityTitleStyle("album:1", EntityTitleStyle.AUTO)
+            assertEquals(mapOf("artist:1" to "SOFT", "album:2" to "ACCENT"), repository.entityTitleStylesFlow.first())
+        } finally { dir.toFile().deleteRecursively() }
+    }
+
+    @Test
+    fun `title style hint is consumed only once across view models`() = runTest {
+        val dir = Files.createTempDirectory("entity-title-hint")
+        try {
+            val store = PreferenceDataStoreFactory.create(scope = backgroundScope,
+                produceFile = { dir.resolve("settings.preferences_pb").toFile() })
+            assertEquals(true, UserPreferencesRepository(store, Json).consumeEntityTitleHint())
+            assertEquals(false, UserPreferencesRepository(store, Json).consumeEntityTitleHint())
+        } finally { dir.toFile().deleteRecursively() }
+    }
+
+
+    @Test
+    fun `scroll collapse preference persists without changing existing compact style`() = runTest {
+        val dir = Files.createTempDirectory("phone-chrome-preferences")
+        try {
+            val store = PreferenceDataStoreFactory.create(scope = backgroundScope,
+                produceFile = { dir.resolve("settings.preferences_pb").toFile() })
+            val repository = UserPreferencesRepository(store, Json)
+            assertEquals(true, repository.collapsePhoneChromeFlow.first())
+            repository.setNavBarCompactMode(true)
+            repository.setCollapsePhoneChrome(false)
+            val reloaded = UserPreferencesRepository(store, Json)
+            assertEquals(false, reloaded.collapsePhoneChromeFlow.first())
+            assertEquals(true, reloaded.navBarCompactModeFlow.first())
+        } finally { dir.toFile().deleteRecursively() }
+    }
+
+
+    @Test
+    fun `motion artwork is opt in with wifi caching and bounded saved settings`() = runTest {
+        val tempDir = Files.createTempDirectory("motion-artwork-settings-test")
+        try {
+            val store = PreferenceDataStoreFactory.create(
+                scope = backgroundScope,
+                produceFile = { tempDir.resolve("settings.preferences_pb").toFile() }
+            )
+            val repository = UserPreferencesRepository(store, Json)
+            assertEquals(MotionArtworkPreferences(enabled = false, wifiOnly = true, cacheLimitMb = 200), repository.motionArtworkPreferences.first())
+            repository.setMotionArtworkEnabled(true)
+            repository.setMotionArtworkWifiOnly(false)
+            repository.setMotionArtworkCacheLimit(500)
+            assertEquals(MotionArtworkPreferences(true, false, 500), UserPreferencesRepository(store, Json).motionArtworkPreferences.first())
+            repository.setMotionArtworkCacheLimit(Int.MAX_VALUE)
+            assertEquals(500, repository.motionArtworkPreferences.first().cacheLimitMb)
+            repository.setMotionArtworkCacheLimit(-1)
+            assertEquals(100, repository.motionArtworkPreferences.first().cacheLimitMb)
+        } finally { tempDir.toFile().deleteRecursively() }
+    }
+
+
+    @Test
     fun `fresh view defaults use lists and explicit saved choices remain authoritative`() = runTest {
         val tempDir = Files.createTempDirectory("user-preferences-view-defaults-test")
         try {
