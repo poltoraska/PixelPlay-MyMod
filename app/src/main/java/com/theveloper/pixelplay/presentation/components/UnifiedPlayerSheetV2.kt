@@ -410,6 +410,10 @@ fun UnifiedPlayerSheetV2(
         }
     }
 
+    val sheetBackAndDragState = rememberSheetBackAndDragState(
+        showPlayerContentArea = showPlayerContentArea,
+        currentSheetContentState = currentSheetContentState
+    )
     val sheetVisualState = rememberSheetVisualState(
         showPlayerContentArea = showPlayerContentArea,
         collapsedStateHorizontalPadding = collapsedStateHorizontalPadding,
@@ -425,7 +429,9 @@ fun UnifiedPlayerSheetV2(
         isNavBarHidden = isNavBarHidden,
         isPlaying = infrequentPlayerState.isPlaying,
         hasCurrentSong = infrequentPlayerState.currentSong != null,
-        swipeDismissProgress = swipeDismissProgress
+        swipeDismissProgress = swipeDismissProgress,
+        directCollapsedAnchor = !isTabletPlayer && configuration.smallestScreenWidthDp < 600 &&
+            currentSheetContentState == PlayerSheetState.COLLAPSED && !sheetBackAndDragState.isDragging
     )
     val currentBottomPadding = sheetVisualState.currentBottomPadding
     val baseBottomPadding = sheetVisualState.baseBottomPadding
@@ -489,10 +495,6 @@ fun UnifiedPlayerSheetV2(
     val onQueueSheetHeightPxChange = queueSheetState.onQueueSheetHeightPxChange
 
     val castSheetState = rememberCastSheetState()
-    val sheetBackAndDragState = rememberSheetBackAndDragState(
-        showPlayerContentArea = showPlayerContentArea,
-        currentSheetContentState = currentSheetContentState
-    )
     val watchPhoneDock = !isTabletPlayer && configuration.smallestScreenWidthDp < 600
     LaunchedEffect(sheetCollapsedTargetY, sheetMotionController,
         watchPhoneDock && playerContentExpansionFraction.isRunning,
@@ -767,9 +769,9 @@ fun UnifiedPlayerSheetV2(
                                 val targetHeightPx = playerContentAreaHeightPxProvider()
                                     .toInt().coerceAtLeast(0)
                                 val startPaddingPx = currentHorizontalPaddingStartPxProvider()
-                                    .toInt().coerceAtLeast(0)
+                                    .roundToInt().coerceAtLeast(0)
                                 val endPaddingPx = currentHorizontalPaddingEndPxProvider()
-                                    .toInt().coerceAtLeast(0)
+                                    .roundToInt().coerceAtLeast(0)
                                 val innerWidth = (constraints.maxWidth - startPaddingPx - endPaddingPx)
                                     .coerceAtLeast(0)
                                 

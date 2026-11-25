@@ -39,6 +39,9 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import android.os.SystemClock
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -227,6 +230,7 @@ fun ExpressiveScrollBar(
     dragLabelGap: Dp = 10.dp
 ) {
     if (!LocalShowScrollbar.current) return
+    val hapticFeedback by rememberUpdatedState(LocalHapticFeedback.current)
 
     val canScrollForward by remember(listState, gridState) { derivedStateOf { listState?.canScrollForward ?: gridState?.canScrollForward ?: false } }
     val canScrollBackward by remember(listState, gridState) { derivedStateOf { listState?.canScrollBackward ?: gridState?.canScrollBackward ?: false } }
@@ -247,6 +251,8 @@ fun ExpressiveScrollBar(
         var isDragging by remember(listState, gridState) { mutableStateOf(false) }
         var dragProgress by remember(listState, gridState) { mutableFloatStateOf(-1f) }
         var pendingScrollIndex by remember(listState, gridState) { mutableIntStateOf(-1) }
+        var lastHapticIndex by remember(listState, gridState) { mutableIntStateOf(-1) }
+        var lastHapticTime by remember(listState, gridState) { mutableStateOf(0L) }
         var retainedDragLabel by remember(listState, gridState) { mutableStateOf<String?>(null) }
         val displayedProgress = remember(listState, gridState) { Animatable(0f) }
         var hasSyncedDisplayedProgress by remember(listState, gridState) { mutableStateOf(false) }
@@ -430,11 +436,18 @@ fun ExpressiveScrollBar(
             val newProgress = (targetHandleTop / scrollableHeight).coerceIn(0f, 1f)
 
             dragProgress = newProgress
-            pendingScrollIndex = resolveDragTargetIndex(
+            val targetIndex = resolveDragTargetIndex(
                 progress = newProgress,
                 maxScrollIndex = stats.maxScrollIndex,
                 totalItemsCount = stats.totalItemsCount
             )
+            pendingScrollIndex = targetIndex
+            val now = SystemClock.uptimeMillis()
+            if (isDragging && targetIndex >= 0 && targetIndex != lastHapticIndex && now - lastHapticTime >= 70L) {
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                lastHapticIndex = targetIndex
+                lastHapticTime = now
+            }
         }
 
         LaunchedEffect(listState, gridState) {
@@ -552,6 +565,9 @@ fun ExpressiveScrollBar(
                     detectDragGestures(
                         onDragStart = { offset ->
                             isDragging = true
+                            lastHapticTime = SystemClock.uptimeMillis()
+                            lastHapticIndex = listState?.firstVisibleItemIndex ?: gridState?.firstVisibleItemIndex ?: -1
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
 
                             val stats = getScrollStats()
                             val scrollableHeight = stats.scrollableHeight
@@ -575,6 +591,7 @@ fun ExpressiveScrollBar(
                             }
                         },
                         onDragEnd = {
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.GestureEnd)
                             isDragging = false
                             dragProgress = -1f
                             pendingScrollIndex = -1

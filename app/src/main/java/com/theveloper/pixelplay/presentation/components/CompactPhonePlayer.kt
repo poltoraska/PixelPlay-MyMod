@@ -44,7 +44,8 @@ internal fun CompactPhonePlayer(song: Song, playing: Boolean, preparing: Boolean
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
         Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
             SmartImage(model = song.albumArtUriString, contentDescription = song.title,
-                shape = CircleShape, targetSize = Size(128, 128), modifier = Modifier.size(40.dp).playerArtworkSource())
+                shape = CircleShape, targetSize = Size(150, 150), crossfadeDurationMillis = 0,
+                modifier = Modifier.size(40.dp).playerArtworkSource())
             Canvas(Modifier.fillMaxSize()) {
                 val stroke = 2.dp.toPx()
                 val arcSize = DrawSize(size.width - stroke * 2, size.height - stroke * 2)

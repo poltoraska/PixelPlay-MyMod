@@ -116,11 +116,11 @@ fun LibraryAlbumsTab(
     // across the entire browser when a detail opens. Grid placement handles row changes.
     val browserTargetWidth = LocalLibraryBrowserTargetWidth.current.takeIf { it > 0f } ?: layout.contentWidth
     val cassetteColumns = albumCassetteColumnCount(layout.usesSideNavigation, LocalLibraryBrowserPane.current, browserTargetWidth)
-    val cassetteEndPadding = if (LocalShowScrollbar.current) 24.dp else 14.dp
+    val cassetteHorizontalPadding = if (LocalShowScrollbar.current) 24.dp else 14.dp
     val targetCellWidth = with(LocalDensity.current) {
         albumCassetteCellWidth(
             browserTargetWidth.dp.roundToPx(),
-            14.dp.roundToPx() + cassetteEndPadding.roundToPx(),
+            cassetteHorizontalPadding.roundToPx() * 2,
             cassetteColumns,
             12.dp.roundToPx(),
         ).toDp()
@@ -257,7 +257,7 @@ fun LibraryAlbumsTab(
                     columns = GridCells.FixedSize(cassetteCellWidth),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier
-                        .padding(start = 14.dp, end = cassetteEndPadding, bottom = 6.dp)
+                        .padding(horizontal = cassetteHorizontalPadding).padding(bottom = 6.dp)
                         .clip(
                             RoundedCornerShape(
                                 topStart = 16.dp,
@@ -340,7 +340,7 @@ fun LibraryAlbumsTab(
                                 columns = GridCells.FixedSize(cassetteCellWidth),
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 modifier = Modifier
-                                    .padding(start = 14.dp, end = cassetteEndPadding, bottom = 6.dp)
+                                    .padding(horizontal = cassetteHorizontalPadding).padding(bottom = 6.dp)
                                     .clip(
                                         RoundedCornerShape(
                                             topStart = 16.dp,
@@ -418,7 +418,7 @@ fun LibraryAlbumsTab(
                             val activeGridState = if (albums.itemCount > 0) gridState else dummyGridState
                             LazyVerticalGrid(
                                 modifier = Modifier
-                                    .padding(start = 14.dp, end = if (LocalShowScrollbar.current && (activeGridState.canScrollForward || activeGridState.canScrollBackward)) 24.dp else 14.dp, bottom = 6.dp)
+                                    .padding(horizontal = if (LocalShowScrollbar.current && (activeGridState.canScrollForward || activeGridState.canScrollBackward)) 24.dp else 14.dp).padding(bottom = 6.dp)
                                     .clip(
                                         RoundedCornerShape(
                                             topStart = 16.dp,
@@ -633,7 +633,7 @@ fun LibraryArtistsTab(
                         val activeListState = if (artists.itemCount > 0) listState else dummyListState
                         LazyColumn(
                             modifier = Modifier
-                                .padding(start = 12.dp, end = if (LocalShowScrollbar.current && (activeListState.canScrollForward || activeListState.canScrollBackward)) 22.dp else 12.dp, bottom = 6.dp)
+                                .padding(horizontal = if (LocalShowScrollbar.current && (activeListState.canScrollForward || activeListState.canScrollBackward)) 22.dp else 12.dp).padding(bottom = 6.dp)
                                 .clip(
                                     RoundedCornerShape(
                                         topStart = 26.dp,

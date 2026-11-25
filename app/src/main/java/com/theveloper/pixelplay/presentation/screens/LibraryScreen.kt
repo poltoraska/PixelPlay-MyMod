@@ -3135,7 +3135,7 @@ fun LibraryFoldersTab(
                             val showScrollbar = LocalShowScrollbar.current && (listState.canScrollForward || listState.canScrollBackward)
                             LazyColumn(
                                 modifier = Modifier
-                                    .padding(start = 12.dp, end = if (showScrollbar) 22.dp else 12.dp)
+                                    .padding(horizontal = if (showScrollbar) 22.dp else 12.dp)
                                     .fillMaxSize()
                                     .clip(
                                         RoundedCornerShape(

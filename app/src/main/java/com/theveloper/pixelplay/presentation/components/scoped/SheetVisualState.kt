@@ -47,7 +47,8 @@ internal fun rememberSheetVisualState(
     isNavBarHidden: Boolean,
     isPlaying: Boolean,
     hasCurrentSong: Boolean,
-    swipeDismissProgress: Float
+    swipeDismissProgress: Float,
+    directCollapsedAnchor: Boolean = false,
 ): SheetVisualState {
     // Compute in px to be read inside graphicsLayer (draw phase) — zero relayout per drag frame.
     val density = LocalDensity.current
@@ -63,13 +64,17 @@ internal fun rememberSheetVisualState(
     val containerHeightPx = remember(containerHeight, density) { with(density) { containerHeight.toPx() } }
     val baseBottomPaddingPx = remember(baseBottomPadding, density) { with(density) { baseBottomPadding.toPx() } }
     val predictiveBackCollapseProgressState = rememberUpdatedState(predictiveBackCollapseProgress)
+    val directCollapsedAnchorState = rememberUpdatedState(directCollapsedAnchor)
     val visualSheetTranslationYProvider: () -> Float = remember(
         currentSheetTranslationY,
         sheetCollapsedTargetY
     ) {
         {
             val progress = predictiveBackCollapseProgressState.value
-            currentSheetTranslationY.value * (1f - progress) +
+            if (directCollapsedAnchorState.value && playerContentExpansionFraction.value <= 0.001f &&
+                !playerContentExpansionFraction.isRunning && !currentSheetTranslationY.isRunning && progress <= 0f) {
+                sheetCollapsedTargetY
+            } else currentSheetTranslationY.value * (1f - progress) +
                 (sheetCollapsedTargetY * progress)
         }
     }
