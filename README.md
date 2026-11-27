@@ -41,7 +41,7 @@
   </tr>
   <tr>
     <td align="center"><a href="assets/screenshots/home.png"><img src="assets/screenshots/home.png" alt="Главная: Ваш микс, волк с анимированными нотами и коллаж обложек" width="240"></a></td>
-    <td align="center"><a href="assets/screenshots/library.png"><img src="assets/screenshots/library.png" alt="Библиотека: альбомы в виде кассет, год выпуска и управление воспроизведением" width="240"></a></td>
+    <td align="center"><a href="assets/screenshots/library.png"><img src="assets/screenshots/library.png" alt="Библиотека: альбомы в виде кассет и компактная навигация с отдельным мини-плеером" width="240"></a></td>
     <td align="center"><a href="assets/screenshots/search.png"><img src="assets/screenshots/search.png" alt="Поиск по медиатеке и обзор музыки по жанрам" width="240"></a></td>
   </tr>
 </table>
@@ -49,11 +49,11 @@
 <table>
   <tr>
     <th width="50%">Полноэкранный плеер</th>
-    <th width="50%">Тексты песен</th>
+    <th width="50%">Страница альбома</th>
   </tr>
   <tr>
     <td align="center"><a href="assets/screenshots/player.png"><img src="assets/screenshots/player.png" alt="Плеер с крупной обложкой, цветами альбома и выразительными кнопками" width="280"></a></td>
-    <td align="center"><a href="assets/screenshots/lyrics.png"><img src="assets/screenshots/lyrics.png" alt="Синхронный текст песни с выделением текущей строки" width="280"></a></td>
+    <td align="center"><a href="assets/screenshots/album.png"><img src="assets/screenshots/album.png" alt="Страница альбома: крупная обложка с кассетой, выразительный заголовок и список песен" width="280"></a></td>
   </tr>
 </table>
 
